@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">imservice</string>
+    <string name="remote_service_connected">remote service connected</string>
+    <string name="remote_service_stopped">remote service stopped</string>
+    <string name="remote_service_disconnected">remote service disconnected</string>
+</resources>
