@@ -1,7 +1,5 @@
 package com.beetle;
 
-import java.lang.ref.WeakReference;
-
 public class AsyncTCP {
     private int sock;
     private int events;

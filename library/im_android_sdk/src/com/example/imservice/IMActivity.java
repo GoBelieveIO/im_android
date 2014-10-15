@@ -1,21 +1,15 @@
 package com.example.imservice;
 
 import android.app.Activity;
-
-import android.database.Cursor;
-import android.os.*;
-import android.provider.ContactsContract;
-import android.provider.UserDictionary;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
-import com.gameservice.sdk.im.*;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.Date;
+import com.gameservice.sdk.im.IMMessage;
+import com.gameservice.sdk.im.IMPeerMessageHandler;
+import com.gameservice.sdk.im.IMService;
+import com.gameservice.sdk.im.IMServiceObserver;
 
 
 public class IMActivity extends Activity implements IMServiceObserver, IMPeerMessageHandler {

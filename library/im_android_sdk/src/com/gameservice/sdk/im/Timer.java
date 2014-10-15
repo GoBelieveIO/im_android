@@ -2,7 +2,7 @@ package com.gameservice.sdk.im;
 
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
+
 import static android.os.SystemClock.uptimeMillis;
 
 abstract class Timer {
