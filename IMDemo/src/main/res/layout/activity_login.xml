@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:orientation="vertical">
+
+    <fragment
+        android:id="@+id/fg_header"
+        class="cn.ngds.im.demo.view.header.HeaderFragment"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/header_common_height"
+        tools:layout="@layout/fragment_common_header" />
+
+    <RelativeLayout
+        android:id="@+id/area_account"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_below="@id/fg_header"
+        android:layout_marginLeft="28dp"
+        android:layout_marginRight="28dp"
+        android:layout_marginTop="25dp">
+
+        <ImageView
+            android:id="@+id/iv_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_account" />
+
+        <EditText
+            android:id="@+id/et_username"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="11dp"
+            android:layout_toRightOf="@id/iv_username"
+            android:background="@null"
+            android:hint="@string/login_account"
+            android:singleLine="true"
+            android:textColor="@android:color/black"
+            android:textSize="18sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_alignParentBottom="true"
+            android:background="#b3b3b3" />
+    </RelativeLayout>
+
+    <Button
+        android:id="@+id/btn_login"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/area_account"
+        android:layout_marginBottom="10dip"
+        android:layout_marginLeft="29dp"
+        android:layout_marginRight="29dp"
+        android:layout_marginTop="20dip"
+        android:background="@drawable/btn_login_selector"
+        android:gravity="center"
+        android:paddingBottom="7dp"
+        android:paddingTop="7dp"
+        android:text="@string/login_login"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/h3" />
+</RelativeLayout>
