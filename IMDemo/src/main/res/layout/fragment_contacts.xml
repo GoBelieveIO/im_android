@@ -1,23 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <fragment
-        android:id="@+id/fg_header"
-        class="cn.ngds.im.demo.view.header.HeaderFragment"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/header_common_height"
-        tools:layout="@layout/fragment_common_header" />
 
 
     <ListView
         android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/fg_header"
         android:background="@android:color/transparent"
         android:cacheColorHint="#00000000"
         android:divider="@color/divider_list"

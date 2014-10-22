@@ -26,8 +26,6 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_centerInParent="true"
-        android:layout_toLeftOf="@id/ibtn_left"
-        android:layout_toRightOf="@id/ibtn_right"
         android:gravity="center"
         android:textColor="@android:color/white"
         android:textSize="@dimen/h3" />

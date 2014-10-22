@@ -39,6 +39,7 @@
             android:layout_toRightOf="@id/iv_username"
             android:background="@null"
             android:hint="@string/login_account"
+            android:numeric="integer"
             android:singleLine="true"
             android:textColor="@android:color/black"
             android:textSize="18sp" />

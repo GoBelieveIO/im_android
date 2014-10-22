@@ -12,4 +12,8 @@
     <color name="common_bottom_bar_normal_bg">#2d2f31</color>
     <color name="common_bottom_bar_selected_bg">#161718</color>
     <color name="divider_list">#cccccc</color>
+    <color name="blue_337aba">#337aba</color>
+    <color name="setting_item_pressed">@color/btn_login_pressed</color>
+    <color name="setting_divider">#e6e6e6</color>
+    <color name="gray_33">#333333</color>
 </resources>

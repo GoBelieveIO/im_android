@@ -34,7 +34,8 @@ public class HeaderFragment extends Fragment implements View.OnClickListener {
         mBtnLeft = (ImageButton) headerView.findViewById(R.id.ibtn_left);
         mBtnRight = (ImageButton) headerView.findViewById(R.id.ibtn_right);
         mTvTitle = (TextView) headerView.findViewById(R.id.tv_title);
-
+        mBtnLeft.setOnClickListener(this);
+        mBtnRight.setOnClickListener(this);
         return headerView;
     }
 

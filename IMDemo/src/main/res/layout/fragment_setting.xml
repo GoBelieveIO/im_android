@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:id="@+id/area_notification"
+            style="@style/Setting_Item_Commons"
+            >
+
+            <TextView
+                android:id="@+id/area_notification"
+                style="@style/Setting_With_Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawablePadding="0dp"
+                android:text="@string/setting_notification" />
+
+            <CheckBox
+                android:id="@+id/cb_notification"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:button="@drawable/cb_setting_selector"
+                android:clickable="false"
+                android:paddingRight="@dimen/setting_item_checkbox_right_padding" />
+        </RelativeLayout>
+
+        <View style="@style/Setting_Divider_Line" />
+
+        <RelativeLayout
+            android:id="@+id/area_sound"
+            style="@style/Setting_Item_Commons"
+            >
+
+            <TextView
+                android:id="@+id/tv_sound"
+                style="@style/Setting_With_Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawablePadding="0dp"
+                android:text="@string/setting_sound" />
+
+            <CheckBox
+                android:id="@+id/cb_sound"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:button="@drawable/cb_setting_selector"
+                android:clickable="false"
+                android:paddingRight="@dimen/setting_item_checkbox_right_padding" />
+        </RelativeLayout>
+
+        <View style="@style/Setting_Divider_Line" />
+
+        <RelativeLayout
+            android:id="@+id/area_vibrate"
+            style="@style/Setting_Item_Commons"
+           >
+
+            <TextView
+                android:id="@+id/tv_vibrate"
+                style="@style/Setting_With_Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawablePadding="0dp"
+                android:text="@string/setting_vibrate" />
+
+            <CheckBox
+                android:id="@+id/cb_vibrate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:button="@drawable/cb_setting_selector"
+                android:clickable="false"
+                android:paddingRight="@dimen/setting_item_checkbox_right_padding" />
+        </RelativeLayout>
+
+        <View style="@style/Setting_Divider_Line" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_logout"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="12dp"
+        android:layout_marginLeft="@dimen/setting_item_left_padding"
+        android:layout_marginRight="@dimen/setting_item_right_padding"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/btn_login_selector"
+        android:text="@string/setting_logout"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/h3" />
+</RelativeLayout>

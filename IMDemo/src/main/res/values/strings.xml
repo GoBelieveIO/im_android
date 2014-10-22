@@ -4,9 +4,13 @@
     <string name="app_name">IMDemo</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
-    <string name="login_account">用户名</string>
+    <string name="login_account">用户id</string>
     <string name="login_login">登 录</string>
     <string name="main_settings">设置</string>
     <string name="main_contacts">通讯录</string>
+    <string name="setting_notification">接收新消息通知</string>
+    <string name="setting_sound">声音</string>
+    <string name="setting_vibrate">震动</string>
+    <string name="setting_logout">注销</string>
 
 </resources>

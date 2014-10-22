@@ -4,4 +4,13 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="header_common_height">46dp</dimen>
     <dimen name="header_button_width">48dp</dimen>
+
+    <!--setting-->
+    <dimen name="setting_left_padding">20dp</dimen>
+    <dimen name="setting_right_padding">20dp</dimen>
+    <dimen name="setting_item_height">47dp</dimen>
+    <dimen name="setting_item_left_padding">27dp</dimen>
+    <dimen name="setting_item_right_padding">27dp</dimen>
+    <dimen name="setting_item_checkbox_right_padding">32dp</dimen>
+    <dimen name="setting_checkbox_right_margin">14dp</dimen>
 </resources>
