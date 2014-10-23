@@ -7,6 +7,7 @@ import java.util.Arrays;
 public class IMMessage {
     public long sender;
     public long receiver;
+    public int timestamp;
     public int msgLocalID;
     public String content;
 }
@@ -79,16 +80,18 @@ class Message {
             pos += 8;
             BytePacket.writeInt64(im.receiver, buf, pos);
             pos += 8;
+            BytePacket.writeInt32(im.timestamp, buf, pos);
+            pos += 4;
             BytePacket.writeInt32(im.msgLocalID, buf, pos);
             pos += 4;
             try {
                 byte[] c = im.content.getBytes("UTF-8");
-                if (c.length + 28 > 64 * 1024) {
+                if (c.length + 32 > 64 * 1024) {
                     Log.e("imservice", "packet buffer overflow");
                     return null;
                 }
                 System.arraycopy(c, 0, buf, pos, c.length);
-                return Arrays.copyOf(buf, HEAD_SIZE + 20 + c.length);
+                return Arrays.copyOf(buf, HEAD_SIZE + 24 + c.length);
             } catch (Exception e) {
                 Log.e("imservice", "encode utf8 error");
                 return null;
@@ -134,10 +137,12 @@ class Message {
             pos += 8;
             im.receiver = BytePacket.readInt64(data, pos);
             pos += 8;
+            im.timestamp = BytePacket.readInt32(data, pos);
+            pos += 4;
             im.msgLocalID = BytePacket.readInt32(data, pos);
             pos += 4;
             try {
-                im.content = new String(data, pos, data.length - 28, "UTF-8");
+                im.content = new String(data, pos, data.length - 32, "UTF-8");
                 this.body = im;
                 return true;
             } catch (Exception e) {
