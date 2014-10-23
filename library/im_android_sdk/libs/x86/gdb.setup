@@ -1,2 +1,0 @@
-set solib-search-path ./obj/local/x86
-directory /Users/houxh/android-ndk-r9d/platforms/android-9/arch-x86/usr/include jni /Users/houxh/android-ndk-r9d/sources/cxx-stl/system

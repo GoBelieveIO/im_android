@@ -25,6 +25,8 @@ class Command{
     public static final int MSG_INPUTTING = 10;
     public static final int MSG_SUBSCRIBE_ONLINE_STATE = 11;
     public static final int MSG_ONLINE_STATE = 12;
+    public static final int MSG_PING = 13;
+    public static final int MSG_PONG = 14;
 }
 
 
@@ -63,11 +65,14 @@ class Message {
         buf[pos] = (byte)cmd;
         pos += 4;
 
-        if (cmd == Command.MSG_HEARTBEAT) {
+        if (cmd == Command.MSG_HEARTBEAT || cmd == Command.MSG_PING) {
             return Arrays.copyOf(buf, HEAD_SIZE);
         } else if (cmd == Command.MSG_AUTH) {
             BytePacket.writeInt64((Long) body, buf, pos);
-            return Arrays.copyOf(buf, HEAD_SIZE+8);
+            final int PLATFORM_ANDROID = 2;
+            pos += 8;
+            buf[pos] = PLATFORM_ANDROID;
+            return Arrays.copyOf(buf, HEAD_SIZE+9);
         } else if (cmd == Command.MSG_IM) {
             IMMessage im = (IMMessage) body;
             BytePacket.writeInt64(im.sender, buf, pos);
@@ -166,6 +171,8 @@ class Message {
             this.body = state;
             return true;
         } else if (cmd == Command.MSG_RST) {
+            return true;
+        } else if (cmd == Command.MSG_PONG) {
             return true;
         } else {
             return false;

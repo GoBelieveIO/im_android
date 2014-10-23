@@ -1,16 +1,14 @@
 package com.gameservice.sdk.im;
+import android.os.Handler;
 import android.util.Log;
-import com.beetle.AsyncTCP;
-import com.beetle.TCPConnectCallback;
-import com.beetle.TCPReadCallback;
 
+
+import java.io.IOException;
+import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import static android.os.SystemClock.uptimeMillis;
-
 
 public class IMService {
 
@@ -22,25 +20,36 @@ public class IMService {
     }
 
     private final String TAG = "imservice";
-    private final int HEARTBEAT = 10;
-    private AsyncTCP tcp;
-    private boolean stopped;
-    private Timer connectTimer;
-    private Timer heartbeatTimer;
-    private int connectFailCount = 0;
-    private boolean isRST = false;
-    private int seq = 0;
-    private ConnectState connectState = ConnectState.STATE_UNCONNECTED;
+    private final int HEARTBEAT = 60*3;
+
+
+    private volatile boolean stopped = true;
+    private TCP tcp;
+    private TCP.TCPConnectCallback onConnect;
+    private TCP.TCPReadCallback onRead;
+    private IoLoop.Timer connectTimer;
+    private IoLoop.Timer heartbeatTimer;
+    private IoLoop.Timer pongTimeoutTimer;
+
+    private volatile boolean isRST = false;
+
+    private volatile ConnectState connectState = ConnectState.STATE_UNCONNECTED;
 
     private String host;
     private int port;
     private long uid;
 
+    //only access by main thread
     IMPeerMessageHandler peerMessageHandler;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
-    HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
 
+
+    private int connectFailCount = 0;
+    private int seq = 0;
+    HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
     private byte[] data;
+
+    private Handler mainThreadhandler = new Handler();
 
     private static IMService instance = new IMService();
 
@@ -49,19 +58,69 @@ public class IMService {
     }
 
     private IMService() {
-        this.stopped = true;
-
-        connectTimer = new Timer() {
+        this.connectTimer = new IoLoop.Timer() {
             @Override
-            protected void fire() {
-                IMService.this.connect();
+            public void handleTimeout() {
+                connect();
             }
         };
 
-        heartbeatTimer = new Timer() {
+        this.heartbeatTimer = new IoLoop.Timer() {
+           @Override
+           public void handleTimeout() {
+               IMService.this.sendPing();
+               IoLoop.getDefaultLoop().setTimeout(50 * 1000, pongTimeoutTimer);
+           }
+        };
+
+        this.pongTimeoutTimer = new IoLoop.Timer() {
             @Override
-            protected void fire() {
-                IMService.this.sendHeartbeat();
+            public void handleTimeout() {
+                Log.i("PUSH", "pong timeout");
+                closeTCP();
+                reconnect();
+            }
+        };
+
+        this.onConnect = new TCP.TCPConnectCallback() {
+            @Override
+            public void onConnect(TCP tcp, int status) {
+                if (status != 0) {
+                    Log.i(TAG, "connect err:" + status);
+                    IMService.this.connectFailCount++;
+                    IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;
+                    IMService.this.publishConnectState();
+                    IMService.this.closeTCP();
+                    IMService.this.reconnect();
+                } else {
+                    Log.i(TAG, "tcp connected");
+                    IMService.this.connectFailCount = 0;
+                    IMService.this.connectState = ConnectState.STATE_CONNECTED;
+                    IMService.this.publishConnectState();
+                    IMService.this.sendAuth();
+                    IMService.this.tcp.startRead(IMService.this.onRead);
+
+                    IoLoop loop = IoLoop.getDefaultLoop();
+                    loop.setTimeout(HEARTBEAT*1000, heartbeatTimer);
+                }
+            }
+        };
+
+        this.onRead = new TCP.TCPReadCallback() {
+            @Override
+            public void onRead(TCP tcp, byte[] data) {
+                if (data == null || data.length == 0) {
+                    IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
+                    IMService.this.publishConnectState();
+                    IMService.this.handleClose();
+                } else {
+                    boolean b = IMService.this.handleData(data);
+                    if (!b) {
+                        IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
+                        IMService.this.publishConnectState();
+                        IMService.this.handleClose();
+                    }
+                }
             }
         };
     }
@@ -99,13 +158,26 @@ public class IMService {
             Log.w(TAG, "im service repeat start");
             return;
         }
-        this.isRST = false;
+        try {
+            IoLoop loop = IoLoop.getDefaultLoop();
+            if (!loop.isAlive()) {
+                loop.prepare();
+                loop.start();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
         this.stopped = false;
-        connectTimer.setTimer(uptimeMillis());
-        connectTimer.resume();
+        this.isRST = false;
 
-        heartbeatTimer.setTimer(uptimeMillis(), HEARTBEAT*1000);
-        heartbeatTimer.resume();
+        final IoLoop loop = IoLoop.getDefaultLoop();
+        loop.asyncSend(new IoLoop.IoRunnable() {
+            @Override
+            public void run() {
+                loop.setTimeout(0, connectTimer);
+            }
+        });
     }
 
     public void stop() {
@@ -114,95 +186,81 @@ public class IMService {
             return;
         }
         stopped = true;
-        heartbeatTimer.suspend();
-        connectTimer.suspend();
-        this.close();
+        final IoLoop loop = IoLoop.getDefaultLoop();
+        loop.asyncSend(new IoLoop.IoRunnable() {
+            @Override
+            public void run() {
+                loop.setTimeout(0, null);
+                IMService.this.closeTCP();
+            }
+        });
     }
 
-    public boolean sendPeerMessage(IMMessage im) {
-        Message msg = new Message();
-        msg.cmd = Command.MSG_IM;
-        msg.body = im;
-        if (!sendMessage(msg)) {
-            return false;
-        }
+    public boolean sendPeerMessage(final IMMessage im) {
+        IoLoop loop = IoLoop.getDefaultLoop();
+        loop.asyncSend(new IoLoop.IoRunnable() {
+            @Override
+            public void run() {
+                Message msg = new Message();
+                msg.cmd = Command.MSG_IM;
+                msg.body = im;
+                if (!sendMessage(msg)) {
+                    return;
+                }
 
-        peerMessages.put(new Integer(msg.seq), im);
+                peerMessages.put(new Integer(msg.seq), im);
+            }
+        });
         return true;
     }
 
-    private void close() {
+    private void closeTCP() {
         if (this.tcp != null) {
             this.tcp.close();
             this.tcp = null;
         }
+    }
+
+    private void reconnect() {
         if (this.stopped || this.isRST) {
             return;
         }
-
         Log.d(TAG, "start connect timer");
 
         long t;
         if (this.connectFailCount > 60) {
-            t = uptimeMillis() + 60*1000;
+            t = 60;
         } else {
-            t = uptimeMillis() + this.connectFailCount*1000;
+            t = this.connectFailCount;
         }
-        connectTimer.setTimer(t);
+        IoLoop loop = IoLoop.getDefaultLoop();
+        loop.setTimeout(t*1000, connectTimer);
     }
 
     private void connect() {
-        if (this.tcp != null) {
-            return;
-        }
-        if (this.stopped) {
-            Log.e(TAG, "opps....");
+        if (this.stopped || this.tcp != null) {
             return;
         }
         this.connectState = ConnectState.STATE_CONNECTING;
         publishConnectState();
-        this.tcp = new AsyncTCP();
+        IoLoop loop = IoLoop.getDefaultLoop();
+        Selector s = loop.getSelector();
+        this.tcp = new TCP(s);
         Log.i(TAG, "new tcp...");
+        this.tcp.connect(this.host, this.port, this.onConnect);
 
-        this.tcp.setConnectCallback(new TCPConnectCallback() {
+        //connect timeout 60sec
+        loop.setTimeout(60 * 1000, new IoLoop.Timer() {
             @Override
-            public void onConnect(Object tcp, int status) {
-                if (status != 0) {
-                    Log.i(TAG, "connect err:" + status);
-                    IMService.this.connectFailCount++;
-                    IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;
-                    IMService.this.publishConnectState();
-                    IMService.this.close();
-                } else {
-                    Log.i(TAG, "tcp connected");
-                    IMService.this.connectFailCount = 0;
-                    IMService.this.connectState = ConnectState.STATE_CONNECTED;
-                    IMService.this.publishConnectState();
-                    IMService.this.sendAuth();
-                    IMService.this.tcp.startRead();
-                }
+            public void handleTimeout() {
+                Log.i(TAG, "connect timeout");
+                IMService.this.connectFailCount++;
+                IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;
+                IMService.this.publishConnectState();
+                closeTCP();
+                reconnect();
             }
         });
-
-        this.tcp.setReadCallback(new TCPReadCallback() {
-            @Override
-            public void onRead(Object tcp, byte[] data) {
-                if (data.length == 0) {
-                    IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
-                    IMService.this.publishConnectState();
-                    IMService.this.handleClose();
-                } else {
-                    boolean b = IMService.this.handleData(data);
-                    if (!b) {
-                        IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
-                        IMService.this.publishConnectState();
-                        IMService.this.handleClose();
-                    }
-                }
-            }
-        });
-
-        this.tcp.connect(this.host, this.port);
     }
 
     private void handleAuthStatus(Message msg) {
@@ -233,7 +291,8 @@ public class IMService {
             publishPeerMessageFailure(im.msgLocalID, im.receiver);
         }
         peerMessages.clear();
-        close();
+        closeTCP();
+        reconnect();
     }
 
     private void handleACK(Message msg) {
@@ -263,6 +322,11 @@ public class IMService {
         publishRST();
     }
 
+    private void handlePong(Message msg) {
+        Log.i(TAG, "pong");
+        IoLoop.getDefaultLoop().setTimeout(HEARTBEAT*1000, heartbeatTimer);
+    }
+
     private void handleMessage(Message msg) {
         if (msg.cmd == Command.MSG_AUTH_STATUS) {
             handleAuthStatus(msg);
@@ -274,6 +338,8 @@ public class IMService {
             handlePeerACK(msg);
         } else if (msg.cmd == Command.MSG_RST) {
             handleRST(msg);
+        } else if (msg.cmd == Command.MSG_PONG) {
+            handlePong(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
@@ -327,10 +393,11 @@ public class IMService {
         sendMessage(msg);
     }
 
-    private void sendHeartbeat() {
+    private void sendPing() {
         Message msg = new Message();
-        msg.cmd = Command.MSG_HEARTBEAT;
+        msg.cmd = Command.MSG_PING;
         sendMessage(msg);
+        Log.i(TAG, "ping...");
     }
 
     private boolean sendMessage(Message msg) {
@@ -346,45 +413,76 @@ public class IMService {
         return true;
     }
 
-    private void publishPeerMessage(IMMessage msg) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onPeerMessage(msg);
-        }
+    private void publishPeerMessage(final IMMessage msg) {
+        mainThreadhandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < observers.size(); i++ ) {
+                    IMServiceObserver ob = observers.get(i);
+                    ob.onPeerMessage(msg);
+                }
+            }
+        });
     }
 
-    private void publishPeerMessageACK(int msgLocalID, long uid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onPeerMessageACK(msgLocalID, uid);
-        }
+    private void publishPeerMessageACK(final int msgLocalID, final long uid) {
+        mainThreadhandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < observers.size(); i++ ) {
+                    IMServiceObserver ob = observers.get(i);
+                    ob.onPeerMessageACK(msgLocalID, uid);
+                }
+            }
+        });
     }
 
-    private void publishPeerMessageRemoveACK(int msgLocalID, long uid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onPeerMessageRemoteACK(msgLocalID, uid);
-        }
+    private void publishPeerMessageRemoveACK(final int msgLocalID, final long uid) {
+        mainThreadhandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < observers.size(); i++ ) {
+                    IMServiceObserver ob = observers.get(i);
+                    ob.onPeerMessageRemoteACK(msgLocalID, uid);
+                }
+            }
+        });
     }
 
-    private void publishPeerMessageFailure(int msgLocalID, long uid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onPeerMessageFailure(msgLocalID, uid);
-        }
+    private void publishPeerMessageFailure(final int msgLocalID, final long uid) {
+        mainThreadhandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < observers.size(); i++ ) {
+                    IMServiceObserver ob = observers.get(i);
+                    ob.onPeerMessageFailure(msgLocalID, uid);
+                }
+            }
+        });
     }
 
     private void publishConnectState() {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onConnectState(connectState);
-        }
+        mainThreadhandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < observers.size(); i++ ) {
+                    IMServiceObserver ob = observers.get(i);
+                    ob.onConnectState(connectState);
+                }
+            }
+        });
+
     }
 
     private void publishRST() {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onReset();
-        }
+        mainThreadhandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < observers.size(); i++ ) {
+                    IMServiceObserver ob = observers.get(i);
+                    ob.onReset();
+                }
+            }
+        });
     }
 }
