@@ -12,5 +12,9 @@
     <string name="setting_sound">声音</string>
     <string name="setting_vibrate">震动</string>
     <string name="setting_logout">注销</string>
+    <string name="chat_send">发送</string>
+    <string name="text_ack_msg">已读</string>
+    <string name="text_delivered_msg">送达</string>
+    <string name="chat_activity_header">%1$d -> %2$d</string>
 
 </resources>

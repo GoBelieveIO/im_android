@@ -16,4 +16,6 @@
     <color name="setting_item_pressed">@color/btn_login_pressed</color>
     <color name="setting_divider">#e6e6e6</color>
     <color name="gray_33">#333333</color>
+    <color name="bg_chat">#f2f0eb</color>
+    <color name="gray_normal">#666667</color>
 </resources>

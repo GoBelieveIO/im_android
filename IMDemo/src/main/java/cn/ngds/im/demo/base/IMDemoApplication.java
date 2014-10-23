@@ -1,6 +1,9 @@
 package cn.ngds.im.demo.base;
 
 import android.app.Application;
+import cn.ngds.im.demo.db.DbOpenHelper;
+import cn.ngds.im.demo.domain.UserHelper;
+import com.gameservice.sdk.im.IMService;
 
 /**
  * IMDemoApplication
@@ -9,6 +12,7 @@ import android.app.Application;
  */
 public class IMDemoApplication extends Application {
     private static Application sApplication;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -16,7 +20,14 @@ public class IMDemoApplication extends Application {
 
     }
 
-    public static Application getApplication(){
+    public static Application getApplication() {
         return sApplication;
+    }
+
+
+    public static void logout() {
+        UserHelper.INSTANCE.logout();
+        DbOpenHelper.getInstance(sApplication).closeDB();
+        IMService.getInstance().stop();
     }
 }

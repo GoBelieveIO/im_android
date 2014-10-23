@@ -13,4 +13,8 @@
     <dimen name="setting_item_right_padding">27dp</dimen>
     <dimen name="setting_item_checkbox_right_padding">32dp</dimen>
     <dimen name="setting_checkbox_right_margin">14dp</dimen>
+
+
+    <dimen name="margin_chat_activity">5dp</dimen>
+    <dimen name="size_avatar">50dp</dimen>
 </resources>

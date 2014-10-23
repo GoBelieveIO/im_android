@@ -10,8 +10,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.RelativeLayout;
 import cn.ngds.im.demo.R;
+import cn.ngds.im.demo.base.IMDemoApplication;
 import cn.ngds.im.demo.domain.SettingHelper;
-import cn.ngds.im.demo.domain.UserHelper;
 import cn.ngds.im.demo.view.base.TabFragment;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
@@ -83,14 +83,14 @@ public class SettingsFragment extends TabFragment implements View.OnClickListene
                 break;
             case R.id.area_sound:
                 SettingHelper.INSTANCE.setHasSound(!SettingHelper.INSTANCE.hasSound());
-                mCBSound.setChecked(SettingHelper.INSTANCE.isCanNotify());
+                mCBSound.setChecked(SettingHelper.INSTANCE.hasSound());
                 break;
             case R.id.area_vibrate:
-                SettingHelper.INSTANCE.setHasSound(!SettingHelper.INSTANCE.isCanVibrate());
+                SettingHelper.INSTANCE.setCanVibrate(!SettingHelper.INSTANCE.isCanVibrate());
                 mCBVibrate.setChecked(SettingHelper.INSTANCE.isCanVibrate());
                 break;
             case R.id.btn_logout:
-                UserHelper.INSTANCE.logout();
+                IMDemoApplication.logout();
                 Intent intent = new Intent();
                 intent.setClass(getActivity(), LoginActivity.class);
                 startActivity(intent);
