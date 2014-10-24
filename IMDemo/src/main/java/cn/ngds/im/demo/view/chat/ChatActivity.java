@@ -1,6 +1,8 @@
 package cn.ngds.im.demo.view.chat;
 
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -13,6 +15,7 @@ import cn.ngds.im.demo.R;
 import cn.ngds.im.demo.base.IMDemoApplication;
 import cn.ngds.im.demo.domain.NgdsMessage;
 import cn.ngds.im.demo.domain.UserHelper;
+import cn.ngds.im.demo.receiver.NetworkStateReceiver;
 import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
@@ -44,6 +47,7 @@ public class ChatActivity extends BaseActivity
     private static int msgLocalId = 1;
     private List<NgdsMessage> mChatMsgList;
     private IMService mIMService;
+    private NetworkStateReceiver mNetworkStateReceiver;
 
     @Override
     protected void onBaseCreate(Bundle savedInstanceState) {
@@ -67,6 +71,7 @@ public class ChatActivity extends BaseActivity
     }
 
     private void initData() {
+        mNetworkStateReceiver = new NetworkStateReceiver();
         startPushService();
         startIMService();
         mChatMsgList = new ArrayList<NgdsMessage>();
@@ -225,16 +230,20 @@ public class ChatActivity extends BaseActivity
         return true;
     }
 
+    private IntentFilter mIntentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
 
     @Override
     protected void onPause() {
         super.onPause();
+        //应用离开前台后依靠push 接收离线消息
+        unregisterReceiver(mNetworkStateReceiver);
         mIMService.stop();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        registerReceiver(mNetworkStateReceiver, mIntentFilter);
         mIMService.start();
     }
 }

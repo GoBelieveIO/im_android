@@ -75,13 +75,6 @@
                 <action android:name="cn.ngds.android.intent.alarm" />
             </intent-filter>
         </receiver>
-        <!--< receiver-->
-        <!--android:name=".receiver.NetworkStateReceiver"-->
-        <!--android:label="NetworkConnection">-->
-        <!--< intent-filter>-->
-        <!--< action android:name="android.net.conn.CONNECTIVITY_CHANGE" />-->
-        <!--</intent-filter>-->
-        <!--</receiver>-->
     </application>
 
 </manifest>
