@@ -21,7 +21,11 @@ public class NgdsMessage {
     public NgdsMessage(IMMessage IMMessage, Direct direction) {
         mIMMessage = IMMessage;
         mDirection = direction;
-        time = System.currentTimeMillis();
+        if (mDirection == Direct.RECEIVE) {
+            time = mIMMessage.timestamp*1000L;
+        } else {
+            time = System.currentTimeMillis();
+        }
     }
 
 
