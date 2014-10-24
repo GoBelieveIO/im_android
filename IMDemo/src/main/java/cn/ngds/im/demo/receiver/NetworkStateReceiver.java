@@ -6,10 +6,9 @@ import android.content.Intent;
 
 /**
  * NewMsgBroadcastReceiver
- * Description:
- * Author:walker lx
+ * Description: 网络状态变化监听
  */
-public abstract class NewMsgBroadcastReceiver extends BroadcastReceiver {
+public class NetworkStateReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 

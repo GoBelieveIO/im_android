@@ -1,7 +1,6 @@
 package cn.ngds.im.demo.base;
 
 import android.app.Application;
-import cn.ngds.im.demo.db.DbOpenHelper;
 import cn.ngds.im.demo.domain.UserHelper;
 import com.gameservice.sdk.im.IMService;
 
@@ -27,7 +26,6 @@ public class IMDemoApplication extends Application {
 
     public static void logout() {
         UserHelper.INSTANCE.logout();
-        DbOpenHelper.getInstance(sApplication).closeDB();
         IMService.getInstance().stop();
     }
 }

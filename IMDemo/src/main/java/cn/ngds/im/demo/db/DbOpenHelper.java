@@ -42,7 +42,7 @@ public class DbOpenHelper extends SQLiteOpenHelper{
 	}
 	
 	private static String getUserDatabaseName() {
-        return  UserHelper.INSTANCE.getUserId() + "_demo.db";
+        return  UserHelper.INSTANCE.getSenderId() + "_demo.db";
     }
 	
 	@Override

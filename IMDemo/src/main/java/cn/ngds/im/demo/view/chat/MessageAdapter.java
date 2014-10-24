@@ -77,13 +77,13 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
         private TextView tvContent;
         private TextView tvTimeStamp;
         private ProgressBar progressBar;
-        private ImageView ivStatus;
+        private ImageView ivFailureStatus;
 
         public ViewHolder(View view) {
             tvContent = (TextView) view.findViewById(R.id.tv_chatcontent);
             tvTimeStamp = (TextView) view.findViewById(R.id.tv_timestamp);
             progressBar = (ProgressBar) view.findViewById(R.id.pb_sending);
-            ivStatus = (ImageView) view.findViewById(R.id.iv_status);
+            ivFailureStatus = (ImageView) view.findViewById(R.id.iv_status);
         }
 
         public void setContent(final NgdsMessage item, NgdsMessage mLastItem) {
@@ -97,10 +97,13 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
             if (null != progressBar && item.isDirectSend() && item.serverReceived) {
                 progressBar.setVisibility(View.GONE);
             }
-            if (null != ivStatus && item.isDirectSend() && item.sendFailure) {
-                ivStatus.setVisibility(View.VISIBLE);
+            if (null != ivFailureStatus) {
+                ivFailureStatus.setVisibility(View.GONE);
+            }
+            if (null != ivFailureStatus && item.isDirectSend() && item.sendFailure) {
+                ivFailureStatus.setVisibility(View.VISIBLE);
                 progressBar.setVisibility(View.GONE);
-                ivStatus.setOnClickListener(new View.OnClickListener() {
+                ivFailureStatus.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         item.sendFailure = false;
@@ -108,8 +111,6 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
                         progressBar.setVisibility(View.VISIBLE);
                     }
                 });
-            } else {
-                ivStatus.setVisibility(View.GONE);
             }
         }
     }

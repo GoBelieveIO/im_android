@@ -17,6 +17,7 @@ android {
     buildToolsVersion "19.1.0"
 
     defaultConfig {
+//        applicationId 'cn.ngds.im.demo'
         minSdkVersion 8
         targetSdkVersion 17
         versionCode 1

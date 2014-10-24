@@ -11,26 +11,46 @@ import cn.ngds.im.demo.base.IMDemoApplication;
 public enum UserHelper {
     INSTANCE;
     public static final long LOGOUT_ID = -1;
-    public final String USER_ID = "user_id";
+    public final String SENDER_ID = "sender_id";
+    public final String RECEIVER_ID = "receiver_id";
 
-    private long userId = LOGOUT_ID;
+    private long senderId = LOGOUT_ID;
+    private long receiverId = LOGOUT_ID;
 
-    public long getUserId() {
-        if (LOGOUT_ID == userId) {
+    public long getSenderId() {
+        if (LOGOUT_ID == senderId) {
             SharedPreferences
                 preferences =
                 PreferenceManager.getDefaultSharedPreferences(IMDemoApplication.getApplication());
-            userId = preferences.getLong(USER_ID, LOGOUT_ID);
+            senderId = preferences.getLong(SENDER_ID, LOGOUT_ID);
         }
-        return userId;
+        return senderId;
     }
 
-    public void setUserId(long userId) {
-        this.userId = userId;
+    public long getReceiverId() {
+        if (LOGOUT_ID == receiverId) {
+            SharedPreferences
+                preferences =
+                PreferenceManager.getDefaultSharedPreferences(IMDemoApplication.getApplication());
+            receiverId = preferences.getLong(RECEIVER_ID, LOGOUT_ID);
+        }
+        return receiverId;
+    }
+
+    public void setSenderId(long senderId) {
+        this.senderId = senderId;
         SharedPreferences
             preferences =
             PreferenceManager.getDefaultSharedPreferences(IMDemoApplication.getApplication());
-        preferences.edit().putLong(USER_ID, userId).commit();
+        preferences.edit().putLong(SENDER_ID, senderId).commit();
+    }
+
+    public void setReceiverId(long receiverId) {
+        this.receiverId = receiverId;
+        SharedPreferences
+            preferences =
+            PreferenceManager.getDefaultSharedPreferences(IMDemoApplication.getApplication());
+        preferences.edit().putLong(RECEIVER_ID, receiverId).commit();
     }
 
     /**
@@ -39,11 +59,13 @@ public enum UserHelper {
      * @return 是否是重新登录
      */
     public boolean validUser() {
-        long userId = getUserId();
-        return userId != LOGOUT_ID;
+        long senderId = getSenderId();
+        long receiverId = getReceiverId();
+        return senderId != LOGOUT_ID && receiverId != LOGOUT_ID;
     }
 
     public void logout() {
-        setUserId(LOGOUT_ID);
+        setSenderId(LOGOUT_ID);
+        setReceiverId(LOGOUT_ID);
     }
 }

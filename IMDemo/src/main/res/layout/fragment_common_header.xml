@@ -19,7 +19,7 @@
         android:layout_height="match_parent"
         android:layout_alignParentRight="true"
         android:background="@drawable/btn_normal_selector"
-        android:src="@drawable/ic_add" />
+        android:src="@drawable/ic_garbage" />
 
     <TextView
         android:id="@+id/tv_title"
