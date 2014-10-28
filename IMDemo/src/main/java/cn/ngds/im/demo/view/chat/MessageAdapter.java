@@ -115,10 +115,13 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
                     }
                 });
             }
-            if (item.serverReceived) {
-                tvDelivered.setVisibility(View.VISIBLE);
-            } else {
-                tvDelivered.setVisibility(View.GONE);
+
+            if (null != tvDelivered) {
+                if (item.serverReceived ) {
+                    tvDelivered.setVisibility(View.VISIBLE);
+                } else {
+                    tvDelivered.setVisibility(View.GONE);
+                }
             }
         }
     }
