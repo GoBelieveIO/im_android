@@ -47,6 +47,7 @@ public class ChatActivity extends BaseActivity
     private List<NgdsMessage> mChatMsgList;
     private IMService mIMService;
     private NetworkStateReceiver mNetworkStateReceiver;
+    private HeaderFragment mHeaderFragment;
 
     @Override
     protected void onBaseCreate(Bundle savedInstanceState) {
@@ -85,7 +86,7 @@ public class ChatActivity extends BaseActivity
     }
 
     private void initHeaderView() {
-        HeaderFragment mHeaderFragment =
+        mHeaderFragment =
             (HeaderFragment) getSupportFragmentManager().findFragmentById(R.id.fg_header);
         mHeaderFragment.setCenterText(
             getString(R.string.chat_activity_header, senderId,
@@ -145,8 +146,26 @@ public class ChatActivity extends BaseActivity
 
     @Override
     public void onConnectState(IMService.ConnectState state) {
-        //TODO UI设计之后添加
-
+        if (null == mHeaderFragment || null == state) {
+            return;
+        }
+        String status = null;
+        switch (state) {
+            case STATE_CONNECTING:
+                status = "连接中...";
+                break;
+            case STATE_CONNECTED:
+                status = getString(R.string.chat_activity_header, senderId,
+                    receiverId);
+                break;
+            case STATE_CONNECTFAIL:
+                status = "连接失败";
+                break;
+            case STATE_UNCONNECTED:
+                status = "未连接";
+                break;
+        }
+        mHeaderFragment.setCenterText(status);
     }
 
     @Override
@@ -161,13 +180,15 @@ public class ChatActivity extends BaseActivity
     @Override
     public void onPeerMessageACK(int msgLocalID, long uid) {
         if (uid == receiverId && null != mMessageAdapter) {
-            mMessageAdapter.onServerAck(msgLocalID, uid);
+            mMessageAdapter.onServerAck(msgLocalID);
         }
     }
 
     @Override
     public void onPeerMessageRemoteACK(int msgLocalID, long uid) {
-        //TODO UI设计之后添加
+        if (uid == receiverId && null != mMessageAdapter) {
+            mMessageAdapter.onReceiverAck(msgLocalID);
+        }
     }
 
     @Override

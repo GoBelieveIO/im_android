@@ -76,14 +76,17 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
     class ViewHolder {
         private TextView tvContent;
         private TextView tvTimeStamp;
+        private TextView tvDelivered;
         private ProgressBar progressBar;
         private ImageView ivFailureStatus;
 
         public ViewHolder(View view) {
             tvContent = (TextView) view.findViewById(R.id.tv_chatcontent);
             tvTimeStamp = (TextView) view.findViewById(R.id.tv_timestamp);
+            tvDelivered = (TextView) view.findViewById(R.id.tv_delivered);
             progressBar = (ProgressBar) view.findViewById(R.id.pb_sending);
             ivFailureStatus = (ImageView) view.findViewById(R.id.iv_status);
+
         }
 
         public void setContent(final NgdsMessage item, NgdsMessage mLastItem) {
@@ -112,6 +115,11 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
                     }
                 });
             }
+            if (item.serverReceived) {
+                tvDelivered.setVisibility(View.VISIBLE);
+            } else {
+                tvDelivered.setVisibility(View.GONE);
+            }
         }
     }
 
@@ -119,14 +127,30 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
      * 服务端收到信息反馈
      *
      * @param localMsgId
-     * @param uid
      */
-    public void onServerAck(int localMsgId, long uid) {
+    public void onServerAck(int localMsgId) {
         List<NgdsMessage> ngdsMessageList = getData();
         for (int i = 0; i < ngdsMessageList.size(); i++) {
             NgdsMessage message = ngdsMessageList.get(i);
             if (message.isDirectSend() && message.mIMMessage.msgLocalID == localMsgId) {
                 message.serverReceived = true;
+                notifyDataSetChanged();
+                return;
+            }
+        }
+    }
+
+    /**
+     * 接收方收到信息反馈
+     *
+     * @param localMsgId
+     */
+    public void onReceiverAck(int localMsgId) {
+        List<NgdsMessage> ngdsMessageList = getData();
+        for (int i = 0; i < ngdsMessageList.size(); i++) {
+            NgdsMessage message = ngdsMessageList.get(i);
+            if (message.isDirectSend() && message.mIMMessage.msgLocalID == localMsgId) {
+                message.receiverReceived = true;
                 notifyDataSetChanged();
                 return;
             }

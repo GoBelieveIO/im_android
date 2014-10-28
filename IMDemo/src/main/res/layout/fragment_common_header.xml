@@ -27,7 +27,15 @@
         android:layout_height="match_parent"
         android:layout_centerInParent="true"
         android:gravity="center"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:layout_marginLeft="@dimen/header_button_width"
+        android:layout_marginRight="@dimen/header_button_width"
         android:textColor="@android:color/white"
+        android:singleLine="true"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:textSize="@dimen/h3" />
 
 </RelativeLayout>

@@ -16,6 +16,7 @@ public class NgdsMessage {
     public Direct mDirection;
     public long time;
     public boolean serverReceived;
+    public boolean receiverReceived;
     public boolean sendFailure;
 
     public NgdsMessage(IMMessage IMMessage, Direct direction) {
