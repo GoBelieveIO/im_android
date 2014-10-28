@@ -1,4 +1,5 @@
 package com.gameservice.sdk.im;
+
 import android.os.Handler;
 import android.util.Log;
 
@@ -19,8 +20,9 @@ public class IMService {
         STATE_CONNECTFAIL,
     }
 
+
     private final String TAG = "imservice";
-    private final int HEARTBEAT = 60*3;
+    private final int HEARTBEAT = 60 * 3;
 
 
     private volatile boolean stopped = true;
@@ -35,12 +37,10 @@ public class IMService {
 
     private volatile ConnectState connectState = ConnectState.STATE_UNCONNECTED;
 
-    private String host;
-    private int port;
     private long uid;
 
-    //only access by main thread
-    IMPeerMessageHandler peerMessageHandler;
+    private final String HOST = "172.25.1.111";
+    private final int PORT = 23000;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
 
 
@@ -66,11 +66,11 @@ public class IMService {
         };
 
         this.heartbeatTimer = new IoLoop.Timer() {
-           @Override
-           public void handleTimeout() {
-               IMService.this.sendPing();
-               IoLoop.getDefaultLoop().setTimeout(50 * 1000, pongTimeoutTimer);
-           }
+            @Override
+            public void handleTimeout() {
+                IMService.this.sendPing();
+                IoLoop.getDefaultLoop().setTimeout(50 * 1000, pongTimeoutTimer);
+            }
         };
 
         this.pongTimeoutTimer = new IoLoop.Timer() {
@@ -101,7 +101,7 @@ public class IMService {
                     IMService.this.tcp.startRead(IMService.this.onRead);
 
                     IoLoop loop = IoLoop.getDefaultLoop();
-                    loop.setTimeout(HEARTBEAT*1000, heartbeatTimer);
+                    loop.setTimeout(HEARTBEAT * 1000, heartbeatTimer);
                 }
             }
         };
@@ -128,19 +128,13 @@ public class IMService {
     public ConnectState getConnectState() {
         return connectState;
     }
-    public void setHost(String host) {
-        this.host = host;
-    }
-    public void setPort(int port) {
-        this.port = port;
-    }
+
+
+
     public void setUID(long uid) {
         this.uid = uid;
     }
 
-    public void setPeerMessageHandler(IMPeerMessageHandler handler) {
-        this.peerMessageHandler = handler;
-    }
 
     public void addObserver(IMServiceObserver ob) {
         if (observers.contains(ob)) {
@@ -234,7 +228,7 @@ public class IMService {
             t = this.connectFailCount;
         }
         IoLoop loop = IoLoop.getDefaultLoop();
-        loop.setTimeout(t*1000, connectTimer);
+        loop.setTimeout(t * 1000, connectTimer);
     }
 
     private void connect() {
@@ -247,7 +241,7 @@ public class IMService {
         Selector s = loop.getSelector();
         this.tcp = new TCP(s);
         Log.i(TAG, "new tcp...");
-        this.tcp.connect(this.host, this.port, this.onConnect);
+        this.tcp.connect(HOST, PORT, this.onConnect);
 
         //connect timeout 60sec
         loop.setTimeout(60 * 1000, new IoLoop.Timer() {
@@ -264,17 +258,14 @@ public class IMService {
     }
 
     private void handleAuthStatus(Message msg) {
-        Integer status = (Integer)msg.body;
+        Integer status = (Integer) msg.body;
         Log.d(TAG, "auth status:" + status);
     }
 
     private void handleIMMessage(Message msg) {
-        IMMessage im = (IMMessage)msg.body;
-        Log.d(TAG, "im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
-        if (!peerMessageHandler.handleMessage(im)) {
-            Log.i(TAG, "handle im message fail");
-            return;
-        }
+        IMMessage im = (IMMessage) msg.body;
+        Log.d(TAG, "im message sender:" + im.sender + " receiver:" + im.receiver + " content:"
+            + im.content);
         publishPeerMessage(im);
         Message ack = new Message();
         ack.cmd = Command.MSG_ACK;
@@ -285,9 +276,8 @@ public class IMService {
     private void handleClose() {
         Iterator iter = peerMessages.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
+            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>) iter.next();
             IMMessage im = entry.getValue();
-            peerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
             publishPeerMessageFailure(im.msgLocalID, im.receiver);
         }
         peerMessages.clear();
@@ -296,23 +286,18 @@ public class IMService {
     }
 
     private void handleACK(Message msg) {
-        Integer seq = (Integer)msg.body;
+        Integer seq = (Integer) msg.body;
         IMMessage im = peerMessages.get(seq);
         if (im == null) {
             return;
         }
 
-        if (!peerMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
-            Log.w(TAG, "handle message ack fail");
-            return;
-        }
         peerMessages.remove(seq);
         publishPeerMessageACK(im.msgLocalID, im.receiver);
     }
 
     private void handlePeerACK(Message msg) {
-        MessagePeerACK ack = (MessagePeerACK)msg.body;
-        this.peerMessageHandler.handleMessageRemoteACK(ack.msgLocalID, ack.sender);
+        MessagePeerACK ack = (MessagePeerACK) msg.body;
         publishPeerMessageRemoveACK(ack.msgLocalID, ack.sender);
     }
 
@@ -324,7 +309,7 @@ public class IMService {
 
     private void handlePong(Message msg) {
         Log.i(TAG, "pong");
-        IoLoop.getDefaultLoop().setTimeout(HEARTBEAT*1000, heartbeatTimer);
+        IoLoop.getDefaultLoop().setTimeout(HEARTBEAT * 1000, heartbeatTimer);
     }
 
     private void handleMessage(Message msg) {
@@ -341,7 +326,7 @@ public class IMService {
         } else if (msg.cmd == Command.MSG_PONG) {
             handlePong(msg);
         } else {
-            Log.i(TAG, "unknown message cmd:"+msg.cmd);
+            Log.i(TAG, "unknown message cmd:" + msg.cmd);
         }
     }
 
@@ -371,7 +356,7 @@ public class IMService {
             }
             Message msg = new Message();
             byte[] buf = new byte[Message.HEAD_SIZE + len];
-            System.arraycopy(this.data, pos+4, buf, 0, Message.HEAD_SIZE+len);
+            System.arraycopy(this.data, pos + 4, buf, 0, Message.HEAD_SIZE + len);
             if (!msg.unpack(buf)) {
                 Log.i(TAG, "unpack message error");
                 return false;
@@ -401,7 +386,8 @@ public class IMService {
     }
 
     private boolean sendMessage(Message msg) {
-        if (this.tcp == null || connectState != ConnectState.STATE_CONNECTED) return false;
+        if (this.tcp == null || connectState != ConnectState.STATE_CONNECTED)
+            return false;
         this.seq++;
         msg.seq = this.seq;
         byte[] p = msg.pack();
@@ -417,7 +403,7 @@ public class IMService {
         mainThreadhandler.post(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < observers.size(); i++ ) {
+                for (int i = 0; i < observers.size(); i++) {
                     IMServiceObserver ob = observers.get(i);
                     ob.onPeerMessage(msg);
                 }
@@ -429,7 +415,7 @@ public class IMService {
         mainThreadhandler.post(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < observers.size(); i++ ) {
+                for (int i = 0; i < observers.size(); i++) {
                     IMServiceObserver ob = observers.get(i);
                     ob.onPeerMessageACK(msgLocalID, uid);
                 }
@@ -441,7 +427,7 @@ public class IMService {
         mainThreadhandler.post(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < observers.size(); i++ ) {
+                for (int i = 0; i < observers.size(); i++) {
                     IMServiceObserver ob = observers.get(i);
                     ob.onPeerMessageRemoteACK(msgLocalID, uid);
                 }
@@ -453,7 +439,7 @@ public class IMService {
         mainThreadhandler.post(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < observers.size(); i++ ) {
+                for (int i = 0; i < observers.size(); i++) {
                     IMServiceObserver ob = observers.get(i);
                     ob.onPeerMessageFailure(msgLocalID, uid);
                 }
@@ -465,7 +451,7 @@ public class IMService {
         mainThreadhandler.post(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < observers.size(); i++ ) {
+                for (int i = 0; i < observers.size(); i++) {
                     IMServiceObserver ob = observers.get(i);
                     ob.onConnectState(connectState);
                 }
@@ -478,7 +464,7 @@ public class IMService {
         mainThreadhandler.post(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < observers.size(); i++ ) {
+                for (int i = 0; i < observers.size(); i++) {
                     IMServiceObserver ob = observers.get(i);
                     ob.onReset();
                 }

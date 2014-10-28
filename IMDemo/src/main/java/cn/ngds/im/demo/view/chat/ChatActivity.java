@@ -20,7 +20,6 @@ import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
 import com.gameservice.sdk.im.IMMessage;
-import com.gameservice.sdk.im.IMPeerMessageHandler;
 import com.gameservice.sdk.im.IMService;
 import com.gameservice.sdk.im.IMServiceObserver;
 import com.gameservice.sdk.push.api.IMsgReceiver;
@@ -35,7 +34,7 @@ import java.util.List;
  * Description: 用户聊天窗口
  */
 public class ChatActivity extends BaseActivity
-    implements IMServiceObserver, View.OnClickListener, IMPeerMessageHandler {
+    implements IMServiceObserver, View.OnClickListener {
     private ListView mLvChatMsg;
     private MessageAdapter mMessageAdapter;
     private EditText mEtSendBoard;
@@ -81,11 +80,10 @@ public class ChatActivity extends BaseActivity
 
     private void startIMService() {
         mIMService = IMService.getInstance();
-        mIMService.setHost("172.25.1.154");
+        mIMService.setHost("172.25.1.111");
         mIMService.setPort(23000);
         mIMService.setUID(UserHelper.INSTANCE.getSenderId());
         mIMService.addObserver(this);
-        mIMService.setPeerMessageHandler(this);
     }
 
     private void initHeaderView() {
@@ -210,25 +208,6 @@ public class ChatActivity extends BaseActivity
         }
     }
 
-    @Override
-    public boolean handleMessage(IMMessage msg) {
-        return true;
-    }
-
-    @Override
-    public boolean handleMessageACK(int msgLocalID, long uid) {
-        return true;
-    }
-
-    @Override
-    public boolean handleMessageRemoteACK(int msgLocalID, long uid) {
-        return true;
-    }
-
-    @Override
-    public boolean handleMessageFailure(int msgLocalID, long uid) {
-        return true;
-    }
 
     private IntentFilter mIntentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
 
