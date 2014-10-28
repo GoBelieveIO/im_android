@@ -9,7 +9,7 @@ import com.gameservice.sdk.im.IMService;
 
 /**
  * NewMsgBroadcastReceiver
- * Description: 网络状态变化监听
+ * Description: 网络状态变化监听,网络关闭时请stop IMService避免反复尝试建立连接
  */
 public class NetworkStateReceiver extends BroadcastReceiver {
     @Override
