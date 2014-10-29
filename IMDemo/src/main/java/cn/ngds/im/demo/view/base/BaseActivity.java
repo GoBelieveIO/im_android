@@ -51,7 +51,7 @@ public abstract class BaseActivity extends FragmentActivity {
         super.onStop();
 
         if (!isAppOnForeground()) {
-            //app 进入后台,停止IMService
+            //app 进入后台,停止IMService,采用push机制接收离线消息
             IMService.getInstance().stop();
         }
     }

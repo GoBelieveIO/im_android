@@ -168,14 +168,31 @@ public class ChatActivity extends BaseActivity
         mHeaderFragment.setCenterText(status);
     }
 
+    /**
+     * 收到IM消息
+     *
+     * @param msg 消息
+     */
     @Override
     public void onPeerMessage(IMMessage msg) {
         if (null != mMessageAdapter && msg.receiver == senderId) {
+            if (msg.sender != receiverId) {
+
+            }
             mChatMsgList.add(new NgdsMessage(msg, NgdsMessage.Direct.RECEIVE));
             mMessageAdapter.notifyDataSetChanged();
         }
     }
 
+    /**
+     * 服务器已收到发送消息回调
+     *
+     * @param msgLocalID 消息本地id
+     * @param uid        发送方id
+     */
+    private int ackCount = 0;
+    private int receiverCount = 0;
+    private int failureCount = 0;
 
     @Override
     public void onPeerMessageACK(int msgLocalID, long uid) {
@@ -184,6 +201,12 @@ public class ChatActivity extends BaseActivity
         }
     }
 
+    /**
+     * 接收方已收到
+     *
+     * @param msgLocalID 消息本地id
+     * @param uid        发送方id
+     */
     @Override
     public void onPeerMessageRemoteACK(int msgLocalID, long uid) {
         if (uid == receiverId && null != mMessageAdapter) {
@@ -191,6 +214,12 @@ public class ChatActivity extends BaseActivity
         }
     }
 
+    /**
+     * 消息发送失败
+     *
+     * @param msgLocalID 消息本地id
+     * @param uid        发送方id
+     */
     @Override
     public void onPeerMessageFailure(int msgLocalID, long uid) {
         if (uid == receiverId && null != mMessageAdapter) {
@@ -198,6 +227,9 @@ public class ChatActivity extends BaseActivity
         }
     }
 
+    /**
+     * 用户异地登录,需下线当前用户.
+     */
     @Override
     public void onReset() {
         //异地登录,下线用户
@@ -208,6 +240,7 @@ public class ChatActivity extends BaseActivity
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_send:
+
                 //发送消息
                 String msgContent = mEtSendBoard.getText().toString();
                 if (TextUtils.isEmpty(msgContent)) {

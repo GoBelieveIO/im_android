@@ -39,8 +39,6 @@ public class IMService {
 
     private long uid;
 
-    private final String HOST = "58.22.120.51";
-    private final int PORT = 23000;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
 
 
@@ -241,7 +239,8 @@ public class IMService {
         Selector s = loop.getSelector();
         this.tcp = new TCP(s);
         Log.i(TAG, "new tcp...");
-        this.tcp.connect(HOST, PORT, this.onConnect);
+        //此处不用常量防止混淆后暴露ip地址
+        this.tcp.connect("58.22.120.51", 23000, this.onConnect);
 
         //connect timeout 60sec
         loop.setTimeout(60 * 1000, new IoLoop.Timer() {
@@ -351,7 +350,7 @@ public class IMService {
                 break;
             }
             int len = BytePacket.readInt32(this.data, pos);
-            if (this.data.length < 4 + Message.HEAD_SIZE + len) {
+            if (this.data.length - pos < 4 + Message.HEAD_SIZE + len) {
                 break;
             }
             Message msg = new Message();

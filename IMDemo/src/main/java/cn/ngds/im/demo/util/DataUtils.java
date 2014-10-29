@@ -1,4 +1,4 @@
-package com.gameservice.sdk.im.util;
+package cn.ngds.im.demo.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

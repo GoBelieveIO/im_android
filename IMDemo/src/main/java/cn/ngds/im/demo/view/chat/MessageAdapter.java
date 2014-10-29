@@ -10,14 +10,13 @@ import cn.ngds.im.demo.R;
 import cn.ngds.im.demo.domain.NgdsMessage;
 import cn.ngds.im.demo.view.adapter.SimpleListAdapter;
 import com.gameservice.sdk.im.IMService;
-import com.gameservice.sdk.im.util.DataUtils;
+import cn.ngds.im.demo.util.DataUtils;
 
 import java.util.List;
 
 /**
  * MessageAdapter
  * Description:
- * Author:walker lx
  */
 public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
     private static final int MESSAGE_TYPE_RECV_TXT = 0;
@@ -90,19 +89,24 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
         }
 
         public void setContent(final NgdsMessage item, NgdsMessage mLastItem) {
+            //设置消息时间
             if (mLastItem == null || !DataUtils.isCloseEnough(mLastItem.time, item.time)) {
                 tvTimeStamp.setVisibility(View.VISIBLE);
                 tvTimeStamp.setText(DataUtils.getTimestampString(item.time));
             } else {
                 tvTimeStamp.setVisibility(View.GONE);
             }
+            //设置消息内容
             tvContent.setText(item.mIMMessage.content);
+            //设置发送进度条
             if (null != progressBar && item.isDirectSend() && item.serverReceived) {
                 progressBar.setVisibility(View.GONE);
             }
+            //默认隐藏发送失败图片
             if (null != ivFailureStatus) {
                 ivFailureStatus.setVisibility(View.GONE);
             }
+            //设置发送失败时重发监听
             if (null != ivFailureStatus && item.isDirectSend() && item.sendFailure) {
                 ivFailureStatus.setVisibility(View.VISIBLE);
                 progressBar.setVisibility(View.GONE);
@@ -115,9 +119,9 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
                     }
                 });
             }
-
+            //是否显示送达状态
             if (null != tvDelivered) {
-                if (item.serverReceived ) {
+                if (item.receiverReceived) {
                     tvDelivered.setVisibility(View.VISIBLE);
                 } else {
                     tvDelivered.setVisibility(View.GONE);
