@@ -173,4 +173,4 @@
 # -keep public class * implements mypackage.MyInterface
 
 
--outjars Release/im-v1.0.1.jar
+-outjars Release/smart-push-im-v1.0.1.jar
