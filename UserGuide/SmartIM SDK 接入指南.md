@@ -1,4 +1,4 @@
-# SmartPush IM SDK 接入指南
+# SmartIM SDK 接入指南
 
 
 
@@ -56,8 +56,8 @@
 
 <h3 id="1.3">1.3 SDK 包内容</h3>
 
-* SDK开发包：**smart-push-im-v1.x.x.jar**
-* 开发文档：**SmartPush IM SDK 接入指南.pdf**
+* SDK开发包：**smart-im-v1.x.x.jar**
+* 开发文档：**Smart IM SDK 接入指南.pdf**
 * 示例程序工程：**IMDemo**
 
 
@@ -69,7 +69,7 @@
 
 
 <h3 id="2.1">2.1 IM SDK接入前准备(必读)</h3>
-*  IM的SDK是需要和Push的SDK一并使用, 请先移步阅读[Push SDK说明文档](http://www.baidu.com/)
+*  IM的SDK是需要和Push的SDK一并使用, 请先移步阅读[Push SDK说明文档](http://docs.gameservice.com/push/Android-SDK.html)
   
 
 <h3 id="2.2">2.2 成为一个开发者</h3>
@@ -341,7 +341,7 @@
 | sender    	| 发送者id| 
 | receiver    	| 接收者id| 
 | timestamp    | 消息时间戳(只有收到的消息中含有)| 
-| msgLocalID| 消息id(接收到的消息没有本地id)| 
+| msgLocalId| 消息id(接收到的消息没有本地id)| 
 | content    | 消息内容|
 
 	
