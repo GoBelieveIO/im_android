@@ -184,6 +184,18 @@ public class IMService {
             public void run() {
                 loop.setTimeout(0, null);
                 IMService.this.closeTCP();
+                Iterator iter = peerMessages.entrySet().iterator();
+                while (iter.hasNext()) {
+                    Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>) iter.next();
+                    IMMessage im = entry.getValue();
+                    publishPeerMessageFailure(im.msgLocalID, im.receiver);
+                }
+                peerMessages.clear();
+
+                if (IMService.this.connectState != ConnectState.STATE_UNCONNECTED) {
+                    IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
+                    IMService.this.publishConnectState();
+                }
             }
         });
     }
