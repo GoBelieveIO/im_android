@@ -9,17 +9,21 @@ import com.gameservice.sdk.im.IMService;
 
 /**
  * NewMsgBroadcastReceiver
- * Description: 网络状态变化监听,网络关闭时请stop IMService避免反复尝试建立连接
+ * Description: 网络状态变化监听,网络关闭时请stop IMService避免反复尝试建立连接.
+ * 2g,3g,以及wifi切换下需要关闭IMService重新打开以建立连接
  */
 public class NetworkStateReceiver extends BroadcastReceiver {
+
     @Override
     public void onReceive(Context context, Intent intent) {
         if (isNetworkConnected(context)) {
+            IMService.getInstance().stop();
             IMService.getInstance().start();
         } else {
             IMService.getInstance().stop();
         }
     }
+
 
     public boolean isNetworkConnected(Context context) {
         if (context != null) {

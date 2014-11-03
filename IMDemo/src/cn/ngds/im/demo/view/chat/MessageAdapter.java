@@ -119,14 +119,19 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
                     }
                 });
             }
-            //是否显示送达状态
+            //是否显示送达或者已发送状态
             if (null != tvDelivered) {
-                if (item.receiverReceived) {
+                if (item.serverReceived && item.receiverReceived) {
+                    tvDelivered.setText(R.string.text_delivered_msg);
+                    tvDelivered.setVisibility(View.VISIBLE);
+                } else if (item.serverReceived) {
+                    tvDelivered.setText(R.string.text_sended_msg);
                     tvDelivered.setVisibility(View.VISIBLE);
                 } else {
                     tvDelivered.setVisibility(View.GONE);
                 }
             }
+
         }
     }
 

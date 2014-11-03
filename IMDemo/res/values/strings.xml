@@ -16,6 +16,7 @@
     <string name="chat_send">发送</string>
     <string name="text_ack_msg">已读</string>
     <string name="text_delivered_msg">送达</string>
+    <string name="text_sended_msg">已发送</string>
     <string name="chat_activity_header">%1$d -> %2$d</string>
 
 </resources>

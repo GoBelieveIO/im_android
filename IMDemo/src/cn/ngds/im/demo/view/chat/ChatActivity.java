@@ -224,10 +224,6 @@ public class ChatActivity extends BaseActivity
             public void onMessage(String message) {
                 // message为透传消息，需开发者在此处理
                 Log.i("PUSH", "透传消息:" + message);
-                // 以下用于demo展现消息列表，开发者不用理会
-                Intent intent = new Intent("cn.ngds.android.intent.MESSAGE");
-                intent.putExtra("msg", message);
-                sendBroadcast(intent);
             }
 
             @Override
