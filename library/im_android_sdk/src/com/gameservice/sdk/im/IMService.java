@@ -130,6 +130,9 @@ public class IMService {
 
 
     public void setUID(long uid) {
+        if (uid == 0) {
+            throw new IllegalArgumentException("uid can not be 0");
+        }
         this.uid = uid;
     }
 
@@ -186,7 +189,8 @@ public class IMService {
                 IMService.this.closeTCP();
                 Iterator iter = peerMessages.entrySet().iterator();
                 while (iter.hasNext()) {
-                    Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>) iter.next();
+                    Map.Entry<Integer, IMMessage> entry =
+                        (Map.Entry<Integer, IMMessage>) iter.next();
                     IMMessage im = entry.getValue();
                     publishPeerMessageFailure(im.msgLocalID, im.receiver);
                 }

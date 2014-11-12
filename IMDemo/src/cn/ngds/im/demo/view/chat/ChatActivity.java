@@ -51,7 +51,7 @@ public class ChatActivity extends BaseActivity
 
     @Override
     protected void onBaseCreate(Bundle savedInstanceState) {
-        setContentView(R.layout.activity_chat);
+        setContentView(R.layout.activity_chat_tmp);
         if (getIntent() != null) {
             senderId = getIntent().getExtras().getLong(KEY_SENDER_ID);
             receiverId = getIntent().getExtras().getLong(KEY_RECEIVER_ID);
@@ -82,7 +82,7 @@ public class ChatActivity extends BaseActivity
     private void startIMService() {
         //获取IMService
         mIMService = IMService.getInstance();
-        //设置使用者Id(为长整型)
+        //设置使用者Id(为长整型且不能为0)
         mIMService.setUID(UserHelper.INSTANCE.getSenderId());
         //注册接受消息状态以及送达回调的观察者
         mIMService.addObserver(new IMServiceObserver() {
@@ -123,7 +123,7 @@ public class ChatActivity extends BaseActivity
             public void onPeerMessage(IMMessage msg) {
                 if (null != mMessageAdapter && msg.receiver == senderId) {
                     if (msg.sender != receiverId) {
-
+                        msg.content = msg.sender + " : " + msg.content;
                     }
                     mChatMsgList.add(new NgdsMessage(msg, NgdsMessage.Direct.RECEIVE));
                     mMessageAdapter.notifyDataSetChanged();
@@ -136,9 +136,6 @@ public class ChatActivity extends BaseActivity
              * @param msgLocalID 消息本地id
              * @param uid        发送方id
              */
-            private int ackCount = 0;
-            private int receiverCount = 0;
-            private int failureCount = 0;
 
             @Override
             public void onPeerMessageACK(int msgLocalID, long uid) {
@@ -212,10 +209,6 @@ public class ChatActivity extends BaseActivity
         });
     }
 
-    @Override
-    protected void bindView(Bundle savedInstanceState) {
-
-    }
 
     private void startPushService() {
         // 注册消息接受者

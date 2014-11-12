@@ -3,14 +3,13 @@ package cn.ngds.im.demo.view.chat;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import cn.ngds.im.demo.R;
 import cn.ngds.im.demo.domain.NgdsMessage;
+import cn.ngds.im.demo.util.DataUtils;
 import cn.ngds.im.demo.view.adapter.SimpleListAdapter;
 import com.gameservice.sdk.im.IMService;
-import cn.ngds.im.demo.util.DataUtils;
 
 import java.util.List;
 
@@ -75,16 +74,16 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
     class ViewHolder {
         private TextView tvContent;
         private TextView tvTimeStamp;
-        private TextView tvDelivered;
+        private TextView tvFailure;
+        private TextView tvStatus;
         private ProgressBar progressBar;
-        private ImageView ivFailureStatus;
 
         public ViewHolder(View view) {
             tvContent = (TextView) view.findViewById(R.id.tv_chatcontent);
             tvTimeStamp = (TextView) view.findViewById(R.id.tv_timestamp);
-            tvDelivered = (TextView) view.findViewById(R.id.tv_delivered);
+            tvStatus = (TextView) view.findViewById(R.id.tv_status);
             progressBar = (ProgressBar) view.findViewById(R.id.pb_sending);
-            ivFailureStatus = (ImageView) view.findViewById(R.id.iv_status);
+            tvFailure = (TextView) view.findViewById(R.id.tv_failure);
 
         }
 
@@ -102,15 +101,15 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
             if (null != progressBar && item.isDirectSend() && item.serverReceived) {
                 progressBar.setVisibility(View.GONE);
             }
-            //默认隐藏发送失败图片
-            if (null != ivFailureStatus) {
-                ivFailureStatus.setVisibility(View.GONE);
+            //默认隐藏发送失败标签
+            if (null != tvFailure) {
+                tvFailure.setVisibility(View.GONE);
             }
             //设置发送失败时重发监听
-            if (null != ivFailureStatus && item.isDirectSend() && item.sendFailure) {
-                ivFailureStatus.setVisibility(View.VISIBLE);
+            if (null != tvFailure && item.isDirectSend() && item.sendFailure) {
+                tvFailure.setVisibility(View.VISIBLE);
                 progressBar.setVisibility(View.GONE);
-                ivFailureStatus.setOnClickListener(new View.OnClickListener() {
+                tvFailure.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         item.sendFailure = false;
@@ -120,15 +119,15 @@ public class MessageAdapter extends SimpleListAdapter<NgdsMessage> {
                 });
             }
             //是否显示送达或者已发送状态
-            if (null != tvDelivered) {
+            if (null != tvStatus) {
                 if (item.serverReceived && item.receiverReceived) {
-                    tvDelivered.setText(R.string.text_delivered_msg);
-                    tvDelivered.setVisibility(View.VISIBLE);
+                    tvStatus.setText(R.string.text_delivered_msg);
+                    tvStatus.setVisibility(View.VISIBLE);
                 } else if (item.serverReceived) {
-                    tvDelivered.setText(R.string.text_sended_msg);
-                    tvDelivered.setVisibility(View.VISIBLE);
+                    tvStatus.setText(R.string.text_sended_msg);
+                    tvStatus.setVisibility(View.VISIBLE);
                 } else {
-                    tvDelivered.setVisibility(View.GONE);
+                    tvStatus.setVisibility(View.GONE);
                 }
             }
 

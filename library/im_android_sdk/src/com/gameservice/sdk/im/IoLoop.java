@@ -16,7 +16,7 @@ import java.util.Set;
  */
 public class IoLoop extends Thread {
 
-    private static final String TAG = "IoLoop";
+    private static final String TAG = "IMIoLoop";
 
 
     public static interface Handler {

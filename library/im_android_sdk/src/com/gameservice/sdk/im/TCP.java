@@ -15,7 +15,7 @@ import java.nio.channels.UnresolvedAddressException;
  * Created by houxh on 14-8-5.
  */
 public class TCP implements IoLoop.Handler {
-    private static final String TAG = "TCP";
+    private static final String TAG = "IMTCP";
 
 
     public static interface TCPReadCallback {

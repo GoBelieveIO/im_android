@@ -3,104 +3,69 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
-    android:orientation="vertical">
+    android:background="@drawable/bg_background">
 
-    <fragment
-        android:id="@+id/fg_header"
-        class="cn.ngds.im.demo.view.header.HeaderFragment"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/header_common_height"
-        />
+    <!--发送用户id-->
+    <View
+        android:id="@+id/line_sender_underline"
+        style="@style/login_edittext_underline"
+        android:layout_marginTop="248dp" />
 
-    <RelativeLayout
-        android:id="@+id/area_account"
-        android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:layout_below="@id/fg_header"
-        android:layout_marginLeft="28dp"
-        android:layout_marginRight="28dp"
-        android:layout_marginTop="25dp">
+    <ImageView
+        android:id="@+id/iv_sender"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/line_sender_underline"
+        android:layout_alignBottom="@id/line_sender_underline"
+        android:layout_marginBottom="9dp"
+        android:layout_marginLeft="22dp"
+        android:src="@drawable/ic_account" />
 
-        <ImageView
-            android:id="@+id/iv_username"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:src="@drawable/ic_account" />
+    <EditText
+        android:id="@+id/et_username"
+        style="@style/login_edittext"
+        android:layout_above="@id/line_sender_underline"
+        android:layout_alignBottom="@id/line_sender_underline"
+        android:layout_toRightOf="@id/iv_sender"
+        android:hint="@string/login_account" />
 
-        <EditText
-            android:id="@+id/et_username"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_centerVertical="true"
-            android:layout_marginLeft="11dp"
-            android:layout_toRightOf="@id/iv_username"
-            android:background="@null"
-            android:hint="@string/login_account"
-            android:numeric="integer"
-            android:singleLine="true"
-            android:textColor="@android:color/black"
-            android:textSize="18sp" />
+    <!--接收用户id-->
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_alignParentBottom="true"
-            android:background="#b3b3b3" />
-    </RelativeLayout>
+    <View
+        android:id="@+id/line_receiver_underline"
+        style="@style/login_edittext_underline"
+        android:layout_below="@id/line_sender_underline"
+        android:layout_marginTop="44dp" />
 
-    <RelativeLayout
-        android:id="@+id/area_target"
-        android:layout_width="match_parent"
-        android:layout_height="38dp"
-        android:layout_below="@id/area_account"
-        android:layout_marginLeft="28dp"
-        android:layout_marginRight="28dp"
-        android:layout_marginTop="25dp">
 
-        <ImageView
-            android:id="@+id/iv_target_username"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:src="@drawable/ic_account" />
+    <ImageView
+        android:id="@+id/iv_receiver"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/line_receiver_underline"
+        android:layout_marginBottom="9dp"
+        android:layout_marginLeft="22dp"
+        android:src="@drawable/ic_account" />
 
-        <EditText
-            android:id="@+id/et_target_username"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_centerVertical="true"
-            android:layout_marginLeft="11dp"
-            android:layout_toRightOf="@id/iv_target_username"
-            android:background="@null"
-            android:hint="@string/login_target_account"
-            android:numeric="integer"
-            android:singleLine="true"
-            android:textColor="@android:color/black"
-            android:textSize="18sp" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_alignParentBottom="true"
-            android:background="#b3b3b3" />
-    </RelativeLayout>
+    <EditText
+        android:id="@+id/et_target_username"
+        style="@style/login_edittext"
+        android:layout_alignBottom="@id/line_receiver_underline"
+        android:layout_toRightOf="@id/iv_receiver"
+        android:hint="@string/login_target_account" />
 
     <Button
         android:id="@+id/btn_login"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/area_target"
-        android:layout_marginBottom="10dip"
-        android:layout_marginLeft="29dp"
-        android:layout_marginRight="29dp"
-        android:layout_marginTop="20dip"
+        android:layout_below="@id/line_receiver_underline"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginTop="45dp"
         android:background="@drawable/btn_login_selector"
-        android:gravity="center"
-        android:paddingBottom="7dp"
-        android:paddingTop="7dp"
         android:text="@string/login_login"
         android:textColor="@android:color/white"
-        android:textSize="@dimen/h3" />
+        android:textSize="@dimen/h2" />
+
+
 </RelativeLayout>

@@ -41,5 +41,5 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-//    compile project(":library:im_android_sdk")
+    compile project(":library:im_android_sdk")
 }

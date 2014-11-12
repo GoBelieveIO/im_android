@@ -15,18 +15,19 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/margin_chat_activity">
+        android:layout_marginTop="@dimen/margin_chat_activity"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp">
 
         <ImageView
             android:id="@+id/iv_userhead"
-            android:layout_width="@dimen/size_avatar"
-            android:layout_height="@dimen/size_avatar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
             android:layout_alignParentTop="true"
             android:layout_marginRight="@dimen/margin_chat_activity"
             android:background="@drawable/ic_sender"
             android:scaleType="fitXY" />
-        <!--android:background="@drawable/mini_avatar_shadow"-->
 
         <TextView
             android:id="@+id/tv_chatcontent"
@@ -34,54 +35,40 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="@dimen/margin_chat_activity"
+            android:layout_marginTop="3dp"
             android:layout_toLeftOf="@id/iv_userhead"
             android:autoLink="web"
             android:background="@drawable/bg_chat_from"
             android:gravity="left|center"
             android:lineSpacingExtra="2dp"
-            android:maxWidth="225.0dip"
-            android:paddingLeft="8dip" />
+            android:maxWidth="205dp"
+            android:paddingLeft="8dip"
+            android:textColor="@android:color/white" />
 
-        <!--    <TextView
-               android:id="@+id/tv_userid"
-               style="@style/chat_text_name_style"
-               android:layout_width="wrap_content"
-               android:layout_height="wrap_content"
-               android:layout_alignParentLeft="true"
-               android:layout_toRightOf="@id/tv_chatcontent"
-               android:layout_below="@id/iv_userhead"/> -->
-
-        <ImageView
-            android:id="@+id/iv_status"
+        <TextView
+            android:id="@+id/tv_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="5dp"
             android:layout_toLeftOf="@id/tv_chatcontent"
-            android:clickable="true"
-            android:src="@drawable/msg_state_failed_resend"
+            android:text="@string/text_delivered_msg"
+            android:textColor="#b3b3b3"
+            android:textSize="@dimen/h6"
             android:visibility="gone" />
 
         <TextView
-            android:id="@+id/tv_ack"
-            style="@style/chat_text_name_style"
+            android:id="@+id/tv_failure"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="5dp"
             android:layout_toLeftOf="@id/tv_chatcontent"
-            android:text="@string/text_ack_msg"
-            android:textSize="12sp"
-            android:visibility="invisible" />
-
-        <TextView
-            android:id="@+id/tv_delivered"
-            style="@style/chat_text_name_style"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerVertical="true"
-            android:layout_toLeftOf="@id/tv_chatcontent"
-            android:text="@string/text_delivered_msg"
-            android:textSize="12sp"
-            android:visibility="invisible" />
+            android:clickable="true"
+            android:text="@string/text_failure"
+            android:textColor="#ef8181"
+            android:textSize="@dimen/h6"
+            android:visibility="gone" />
 
         <ProgressBar
             android:id="@+id/pb_sending"

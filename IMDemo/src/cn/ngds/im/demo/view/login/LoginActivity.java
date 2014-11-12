@@ -10,7 +10,6 @@ import cn.ngds.im.demo.R;
 import cn.ngds.im.demo.domain.UserHelper;
 import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.chat.ChatActivity;
-import cn.ngds.im.demo.view.header.HeaderFragment;
 
 /**
  * LoginActivity
@@ -31,7 +30,6 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         if (UserHelper.INSTANCE.validUser()) {
             go2Chat();
         }
-        initHeaderFragment();
         Button btnLogin = (Button) findViewById(R.id.btn_login);
         mEtAccount = (EditText) findViewById(R.id.et_username);
         mEtTargetAccount = (EditText) findViewById(R.id.et_target_username);
@@ -60,19 +58,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         finish();
     }
 
-    private void initHeaderFragment() {
-        HeaderFragment headerFragment =
-            (HeaderFragment) getSupportFragmentManager().findFragmentById(R.id.fg_header);
 
-        headerFragment.setCenterText(R.string.login_login);
-        headerFragment.showOrHideLeftButton(false);
-        headerFragment.showOrHideRightButton(false);
-    }
-
-    @Override
-    protected void bindView(Bundle savedInstanceState) {
-
-    }
 
     @Override
     public void onClick(View v) {

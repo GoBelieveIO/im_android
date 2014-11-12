@@ -10,17 +10,20 @@
         style="@style/chat_text_date_style"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center" />
+        android:layout_gravity="center_horizontal"
+        />
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/margin_chat_activity">
+        android:layout_marginTop="@dimen/margin_chat_activity"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp">
 
         <ImageView
             android:id="@+id/iv_userhead"
-            android:layout_width="@dimen/size_avatar"
-            android:layout_height="@dimen/size_avatar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_alignParentTop="true"
             android:layout_marginLeft="@dimen/margin_chat_activity"
@@ -31,27 +34,18 @@
             android:id="@+id/tv_chatcontent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            style="@style/chat_content_date_style"
             android:layout_marginLeft="@dimen/margin_chat_activity"
             android:layout_toRightOf="@id/iv_userhead"
+            android:layout_marginTop="3dp"
             android:autoLink="web"
             android:background="@drawable/bg_chat_to"
-            android:clickable="true"
-            android:focusable="true"
             android:gravity="left|center"
             android:lineSpacingExtra="2dp"
-            android:maxWidth="225.0dip"
-            android:minHeight="50dp"
-            android:textColor="#ff000000"
-            android:textSize="15sp" />
+            android:maxWidth="205.0dip"
+            android:textColor="#4f4f4f"
+           />
 
-        <TextView
-            android:id="@+id/tv_userid"
-            style="@style/chat_text_name_style"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@id/iv_userhead"
-            android:layout_toLeftOf="@id/tv_chatcontent" />
     </RelativeLayout>
 
 </LinearLayout>
