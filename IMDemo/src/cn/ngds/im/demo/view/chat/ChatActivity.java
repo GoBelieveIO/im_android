@@ -19,6 +19,7 @@ import cn.ngds.im.demo.receiver.NetworkStateReceiver;
 import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
+import com.gameservice.sdk.analystic.analytics.AnalysticAgent;
 import com.gameservice.sdk.im.IMMessage;
 import com.gameservice.sdk.im.IMService;
 import com.gameservice.sdk.im.IMServiceObserver;
@@ -220,12 +221,17 @@ public class ChatActivity extends BaseActivity
             }
 
             @Override
-            public void onDeviceToken(String deviceToken) {
+            public void onDeviceToken(byte[] tokenArray) {
                 // SmartPushOpenUtils是 sdk提供本地化deviceToken的帮助类，开发者也可以自己实现本地化存储deviceToken
-                SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceToken);
+                String deviceTokenStr = null;
+                if (null != tokenArray && tokenArray.length > 0) {
+                    deviceTokenStr = SmartPushOpenUtils.convertDeviceTokenArrary(tokenArray);
+                }
+                SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceTokenStr);
                 // 玩家已登录
                 // ***用于接收推送, 一定要调用该接口后才能接受推送
-                SmartPush.bindDevice(ChatActivity.this, deviceToken, String.valueOf(senderId));
+                AnalysticAgent.bindPlayerIdToToken(ChatActivity.this, deviceTokenStr,
+                    String.valueOf(senderId));
             }
         });
         // 注册服务，并启动服务

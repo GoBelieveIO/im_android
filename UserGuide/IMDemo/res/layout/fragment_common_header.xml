@@ -10,7 +10,8 @@
         android:layout_width="@dimen/header_button_width"
         android:layout_height="match_parent"
         android:background="@drawable/btn_normal_selector"
-        android:src="@drawable/ic_header_back" />
+        android:src="@drawable/ic_header_back"
+        />
 
 
     <ImageButton
@@ -36,6 +37,6 @@
         android:clickable="true"
         android:focusable="true"
         android:focusableInTouchMode="true"
-        android:textSize="@dimen/h3" />
+        android:textSize="@dimen/h0" />
 
 </RelativeLayout>

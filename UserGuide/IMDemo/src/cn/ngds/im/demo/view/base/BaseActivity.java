@@ -19,7 +19,6 @@ public abstract class BaseActivity extends FragmentActivity {
 
         onBaseCreate(savedInstanceState);
         initView(savedInstanceState);
-        bindView(savedInstanceState);
     }
 
     /**
@@ -38,12 +37,6 @@ public abstract class BaseActivity extends FragmentActivity {
      */
     protected abstract void initView(Bundle savedInstanceState);
 
-    /**
-     * 在此处理视图逻辑的绑定
-     *
-     * @param savedInstanceState
-     */
-    protected abstract void bindView(Bundle savedInstanceState);
 
 
     @Override

@@ -45,10 +45,9 @@
         </activity>
         <activity
             android:name=".view.chat.ChatActivity"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:screenOrientation="portrait"
-            android:theme="@style/Horizontal_Slide"
-            android:windowSoftInputMode="adjustResize" />
+            android:theme="@style/Horizontal_Slide" />
         <!-- 必需： push 服务配置 -->
         <service
             android:name="com.gameservice.sdk.push.api.SmartPushService"

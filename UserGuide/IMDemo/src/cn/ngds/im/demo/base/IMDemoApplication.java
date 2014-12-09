@@ -7,7 +7,6 @@ import com.gameservice.sdk.im.IMService;
 /**
  * IMDemoApplication
  * Description:
- * Author:walker lx
  */
 public class IMDemoApplication extends Application {
     private static Application sApplication;

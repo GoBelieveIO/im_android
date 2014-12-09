@@ -1,15 +1,11 @@
+apply plugin: 'com.android.application'
 buildscript {
     repositories {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.12.2'
+        classpath 'com.android.tools.build:gradle:0.13.0'
     }
-}
-apply plugin: 'com.android.application'
-
-repositories {
-    mavenCentral()
 }
 
 android {
@@ -41,5 +37,5 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile project(":library:im_android_sdk")
+//    compile project(":library:im_android_sdk")
 }

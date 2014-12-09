@@ -19,6 +19,7 @@ import cn.ngds.im.demo.receiver.NetworkStateReceiver;
 import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
+import com.gameservice.sdk.analystic.analytics.AnalysticAgent;
 import com.gameservice.sdk.im.IMMessage;
 import com.gameservice.sdk.im.IMService;
 import com.gameservice.sdk.im.IMServiceObserver;
@@ -51,7 +52,7 @@ public class ChatActivity extends BaseActivity
 
     @Override
     protected void onBaseCreate(Bundle savedInstanceState) {
-        setContentView(R.layout.activity_chat);
+        setContentView(R.layout.activity_chat_tmp);
         if (getIntent() != null) {
             senderId = getIntent().getExtras().getLong(KEY_SENDER_ID);
             receiverId = getIntent().getExtras().getLong(KEY_RECEIVER_ID);
@@ -82,7 +83,7 @@ public class ChatActivity extends BaseActivity
     private void startIMService() {
         //获取IMService
         mIMService = IMService.getInstance();
-        //设置使用者Id(为长整型)
+        //设置使用者Id(为长整型且不能为0)
         mIMService.setUID(UserHelper.INSTANCE.getSenderId());
         //注册接受消息状态以及送达回调的观察者
         mIMService.addObserver(new IMServiceObserver() {
@@ -123,7 +124,7 @@ public class ChatActivity extends BaseActivity
             public void onPeerMessage(IMMessage msg) {
                 if (null != mMessageAdapter && msg.receiver == senderId) {
                     if (msg.sender != receiverId) {
-
+                        msg.content = msg.sender + " : " + msg.content;
                     }
                     mChatMsgList.add(new NgdsMessage(msg, NgdsMessage.Direct.RECEIVE));
                     mMessageAdapter.notifyDataSetChanged();
@@ -136,9 +137,6 @@ public class ChatActivity extends BaseActivity
              * @param msgLocalID 消息本地id
              * @param uid        发送方id
              */
-            private int ackCount = 0;
-            private int receiverCount = 0;
-            private int failureCount = 0;
 
             @Override
             public void onPeerMessageACK(int msgLocalID, long uid) {
@@ -212,10 +210,6 @@ public class ChatActivity extends BaseActivity
         });
     }
 
-    @Override
-    protected void bindView(Bundle savedInstanceState) {
-
-    }
 
     private void startPushService() {
         // 注册消息接受者
@@ -224,19 +218,20 @@ public class ChatActivity extends BaseActivity
             public void onMessage(String message) {
                 // message为透传消息，需开发者在此处理
                 Log.i("PUSH", "透传消息:" + message);
-                // 以下用于demo展现消息列表，开发者不用理会
-                Intent intent = new Intent("cn.ngds.android.intent.MESSAGE");
-                intent.putExtra("msg", message);
-                sendBroadcast(intent);
             }
 
             @Override
-            public void onDeviceToken(String deviceToken) {
+            public void onDeviceToken(byte[] tokenArray) {
                 // SmartPushOpenUtils是 sdk提供本地化deviceToken的帮助类，开发者也可以自己实现本地化存储deviceToken
-                SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceToken);
+                String deviceTokenStr = null;
+                if (null != tokenArray && tokenArray.length > 0) {
+                    deviceTokenStr = SmartPushOpenUtils.convertDeviceTokenArrary(tokenArray);
+                }
+                SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceTokenStr);
                 // 玩家已登录
                 // ***用于接收推送, 一定要调用该接口后才能接受推送
-                SmartPush.bindDevice(ChatActivity.this, deviceToken, String.valueOf(senderId));
+                AnalysticAgent.bindPlayerIdToToken(ChatActivity.this, deviceTokenStr,
+                    String.valueOf(senderId));
             }
         });
         // 注册服务，并启动服务
