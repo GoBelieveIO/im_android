@@ -28,6 +28,7 @@ class Command{
     public static final int MSG_ONLINE_STATE = 12;
     public static final int MSG_PING = 13;
     public static final int MSG_PONG = 14;
+    public static final int MSG_AUTH_TOKEN = 15;
 }
 
 
@@ -73,7 +74,25 @@ class Message {
             final int PLATFORM_ANDROID = 2;
             pos += 8;
             buf[pos] = PLATFORM_ANDROID;
-            return Arrays.copyOf(buf, HEAD_SIZE+9);
+            return Arrays.copyOf(buf, HEAD_SIZE + 9);
+        } else if (cmd == Command.MSG_AUTH_TOKEN) {
+            final int PLATFORM_ANDROID = 2;
+            try {
+                String token = (String)body;
+                byte[] c = token.getBytes("UTF-8");
+                if (c.length + 32 > 64 * 1024) {
+                    Log.e("imservice", "packet buffer overflow");
+                    return null;
+                }
+                System.arraycopy(c, 0, buf, pos, c.length);
+                pos += c.length;
+                buf[pos] = PLATFORM_ANDROID;
+                return Arrays.copyOf(buf, HEAD_SIZE + 1 + c.length);
+            } catch (Exception e) {
+                Log.e("imservice", "encode utf8 error");
+                return null;
+            }
+
         } else if (cmd == Command.MSG_IM) {
             IMMessage im = (IMMessage) body;
             BytePacket.writeInt64(im.sender, buf, pos);

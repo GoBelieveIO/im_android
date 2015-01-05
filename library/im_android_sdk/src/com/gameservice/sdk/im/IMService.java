@@ -1,6 +1,7 @@
 package com.gameservice.sdk.im;
 
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 
 
@@ -39,6 +40,10 @@ public class IMService {
 
     private long uid;
 
+    private String accessToken;
+
+    private int authStatus = -1;
+
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
 
 
@@ -66,6 +71,9 @@ public class IMService {
         this.heartbeatTimer = new IoLoop.Timer() {
             @Override
             public void handleTimeout() {
+                if (IMService.this.authStatus != 0) {
+                    return;
+                }
                 IMService.this.sendPing();
                 IoLoop.getDefaultLoop().setTimeout(50 * 1000, pongTimeoutTimer);
             }
@@ -134,6 +142,13 @@ public class IMService {
             throw new IllegalArgumentException("uid can not be 0");
         }
         this.uid = uid;
+    }
+
+    public void setAccessToken(String token) {
+        if (TextUtils.isEmpty(token)) {
+            throw new IllegalArgumentException("access can not be empty");
+        }
+        this.accessToken = token;
     }
 
 
@@ -249,6 +264,7 @@ public class IMService {
         if (this.stopped || this.tcp != null) {
             return;
         }
+        this.authStatus = -1;
         this.connectState = ConnectState.STATE_CONNECTING;
         publishConnectState();
         IoLoop loop = IoLoop.getDefaultLoop();
@@ -274,6 +290,7 @@ public class IMService {
 
     private void handleAuthStatus(Message msg) {
         Integer status = (Integer) msg.body;
+        this.authStatus = status;
         Log.d(TAG, "auth status:" + status);
     }
 
@@ -388,8 +405,16 @@ public class IMService {
 
     private void sendAuth() {
         Message msg = new Message();
-        msg.cmd = Command.MSG_AUTH;
-        msg.body = new Long(this.uid);
+        if (this.uid > 0) {
+            msg.cmd = Command.MSG_AUTH;
+            msg.body = new Long(this.uid);
+        } else if (!TextUtils.isEmpty(this.accessToken)) {
+            msg.cmd = Command.MSG_AUTH_TOKEN;
+            msg.body = this.accessToken;
+        } else {
+            Log.e(TAG, "no auth info");
+            return;
+        }
         sendMessage(msg);
     }
 
