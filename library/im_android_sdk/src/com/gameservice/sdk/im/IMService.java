@@ -38,10 +38,8 @@ public class IMService {
 
     private volatile ConnectState connectState = ConnectState.STATE_UNCONNECTED;
 
-    private long uid;
-
     private String accessToken;
-
+    private String deviceID;
     private int authStatus = -1;
 
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
@@ -135,15 +133,6 @@ public class IMService {
         return connectState;
     }
 
-
-
-    public void setUID(long uid) {
-        if (uid == 0) {
-            throw new IllegalArgumentException("uid can not be 0");
-        }
-        this.uid = uid;
-    }
-
     public void setAccessToken(String token) {
         if (TextUtils.isEmpty(token)) {
             throw new IllegalArgumentException("access can not be empty");
@@ -151,6 +140,9 @@ public class IMService {
         this.accessToken = token;
     }
 
+    public void setDeviceID(String deviceID) {
+        this.deviceID = deviceID;
+    }
 
     public void addObserver(IMServiceObserver ob) {
         if (observers.contains(ob)) {
@@ -272,7 +264,7 @@ public class IMService {
         this.tcp = new TCP(s);
         Log.i(TAG, "new tcp...");
         //此处不用常量防止混淆后暴露ip地址
-        this.tcp.connect("58.22.120.51", 23000, this.onConnect);
+        this.tcp.connect("172.25.1.154", 23000, this.onConnect);
 
         //connect timeout 60sec
         loop.setTimeout(60 * 1000, new IoLoop.Timer() {
@@ -404,13 +396,15 @@ public class IMService {
     }
 
     private void sendAuth() {
+        final int PLATFORM_ANDROID = 2;
         Message msg = new Message();
-        if (this.uid > 0) {
-            msg.cmd = Command.MSG_AUTH;
-            msg.body = new Long(this.uid);
-        } else if (!TextUtils.isEmpty(this.accessToken)) {
+        if (!TextUtils.isEmpty(this.accessToken)) {
             msg.cmd = Command.MSG_AUTH_TOKEN;
-            msg.body = this.accessToken;
+            AuthenticationToken auth = new AuthenticationToken();
+            auth.token = this.accessToken;
+            auth.platformID = PLATFORM_ANDROID;
+            auth.deviceID = this.deviceID;
+            msg.body = auth;
         } else {
             Log.e(TAG, "no auth info");
             return;

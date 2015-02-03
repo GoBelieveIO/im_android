@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -42,8 +43,11 @@ public class ChatActivity extends BaseActivity
     private Button mBtnSend;
     private long receiverId;
     private long senderId;
+    private String token;
     public static final String KEY_SENDER_ID = "key_sender_id";
     public static final String KEY_RECEIVER_ID = "key_receiver_id";
+    public static final String KEY_TOKEN_ID = "key_token_id";
+
     private static int msgLocalId = 1;
     private List<NgdsMessage> mChatMsgList;
     private IMService mIMService;
@@ -56,6 +60,7 @@ public class ChatActivity extends BaseActivity
         if (getIntent() != null) {
             senderId = getIntent().getExtras().getLong(KEY_SENDER_ID);
             receiverId = getIntent().getExtras().getLong(KEY_RECEIVER_ID);
+            token = getIntent().getExtras().getString(KEY_TOKEN_ID);
         }
     }
 
@@ -77,14 +82,16 @@ public class ChatActivity extends BaseActivity
         startIMService();
         mChatMsgList = new ArrayList<NgdsMessage>();
         senderId = UserHelper.INSTANCE.getSenderId();
-
     }
 
     private void startIMService() {
         //获取IMService
         mIMService = IMService.getInstance();
-        //设置使用者Id(为长整型且不能为0)
-        mIMService.setUID(UserHelper.INSTANCE.getSenderId());
+        mIMService.setAccessToken(this.token);
+        String androidID = Settings.Secure.getString(this.getContentResolver(),
+                Settings.Secure.ANDROID_ID);
+        mIMService.setDeviceID(androidID);
+
         //注册接受消息状态以及送达回调的观察者
         mIMService.addObserver(new IMServiceObserver() {
             /**

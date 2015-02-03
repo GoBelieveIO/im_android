@@ -15,7 +15,7 @@ public class IMMessage {
 
 class Command{
     public static final int MSG_HEARTBEAT = 1;
-    public static final int MSG_AUTH = 2;
+    //public static final int MSG_AUTH = 2;
     public static final int MSG_AUTH_STATUS = 3;
     public static final int MSG_IM = 4;
     public static final int MSG_ACK = 5;
@@ -43,14 +43,12 @@ class MessageInputing {
     public long receiver;
 }
 
-class MessageOnlineState {
-    public long sender;
-    public int online;
+class AuthenticationToken {
+    public String token;
+    public int platformID;
+    public String deviceID;
 }
 
-class MessageSubscribe {
-    public ArrayList<Long> uids;
-}
 
 class Message {
 
@@ -69,31 +67,25 @@ class Message {
 
         if (cmd == Command.MSG_HEARTBEAT || cmd == Command.MSG_PING) {
             return Arrays.copyOf(buf, HEAD_SIZE);
-        } else if (cmd == Command.MSG_AUTH) {
-            BytePacket.writeInt64((Long) body, buf, pos);
-            final int PLATFORM_ANDROID = 2;
-            pos += 8;
-            buf[pos] = PLATFORM_ANDROID;
-            return Arrays.copyOf(buf, HEAD_SIZE + 9);
-        } else if (cmd == Command.MSG_AUTH_TOKEN) {
-            final int PLATFORM_ANDROID = 2;
-            try {
-                String token = (String)body;
-                byte[] c = token.getBytes("UTF-8");
-                if (c.length + 32 > 64 * 1024) {
-                    Log.e("imservice", "packet buffer overflow");
-                    return null;
-                }
-                System.arraycopy(c, 0, buf, pos, c.length);
-                pos += c.length;
-                buf[pos] = PLATFORM_ANDROID;
-                return Arrays.copyOf(buf, HEAD_SIZE + 1 + c.length);
-            } catch (Exception e) {
-                Log.e("imservice", "encode utf8 error");
-                return null;
-            }
+        }  else if (cmd == Command.MSG_AUTH_TOKEN) {
+            AuthenticationToken auth = (AuthenticationToken)body;
+            buf[pos] = (byte)auth.platformID;
+            pos++;
+            byte[] token = auth.token.getBytes();
+            buf[pos] = (byte)token.length;
+            pos++;
+            System.arraycopy(token, 0, buf, pos, token.length);
+            pos += token.length;
 
-        } else if (cmd == Command.MSG_IM) {
+            byte[] deviceID = auth.deviceID.getBytes();
+            buf[pos] = (byte)deviceID.length;
+            pos++;
+            System.arraycopy(deviceID, 0, buf, pos, deviceID.length);
+            pos += deviceID.length;
+
+            return Arrays.copyOf(buf, pos);
+
+        }  else if (cmd == Command.MSG_IM) {
             IMMessage im = (IMMessage) body;
             BytePacket.writeInt64(im.sender, buf, pos);
             pos += 8;
@@ -118,16 +110,6 @@ class Message {
         } else if (cmd == Command.MSG_ACK) {
             BytePacket.writeInt32((Integer)body, buf, pos);
             return Arrays.copyOf(buf, HEAD_SIZE+4);
-        } else if (cmd == Command.MSG_SUBSCRIBE_ONLINE_STATE) {
-            MessageSubscribe sub = (MessageSubscribe)body;
-            BytePacket.writeInt32(sub.uids.size(), buf, pos);
-            pos += 4;
-            for (int i = 0; i < sub.uids.size(); i++) {
-                Long uid = sub.uids.get(i);
-                BytePacket.writeInt64(uid, buf, pos);
-                pos += 8;
-            }
-            return Arrays.copyOf(buf, HEAD_SIZE + 4 + sub.uids.size()*8);
         } else if (cmd == Command.MSG_INPUTTING) {
             MessageInputing in = (MessageInputing)body;
             BytePacket.writeInt64(in.sender, buf, pos);
@@ -187,19 +169,12 @@ class Message {
             inputing.receiver = BytePacket.readInt64(data, pos);
             this.body = inputing;
             return true;
-        } else if (cmd == Command.MSG_ONLINE_STATE) {
-            MessageOnlineState state = new MessageOnlineState();
-            state.sender = BytePacket.readInt64(data, pos);
-            pos += 8;
-            state.online = BytePacket.readInt32(data, pos);
-            this.body = state;
-            return true;
         } else if (cmd == Command.MSG_RST) {
             return true;
         } else if (cmd == Command.MSG_PONG) {
             return true;
         } else {
-            return false;
+            return true;
         }
     }
 }
