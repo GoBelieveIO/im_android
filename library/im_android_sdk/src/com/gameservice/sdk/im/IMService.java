@@ -34,8 +34,6 @@ public class IMService {
     private IoLoop.Timer heartbeatTimer;
     private IoLoop.Timer pongTimeoutTimer;
 
-    private volatile boolean isRST = false;
-
     private volatile ConnectState connectState = ConnectState.STATE_UNCONNECTED;
 
     private String accessToken;
@@ -171,7 +169,6 @@ public class IMService {
             return;
         }
         this.stopped = false;
-        this.isRST = false;
 
         final IoLoop loop = IoLoop.getDefaultLoop();
         loop.asyncSend(new IoLoop.IoRunnable() {
@@ -237,7 +234,7 @@ public class IMService {
     }
 
     private void reconnect() {
-        if (this.stopped || this.isRST) {
+        if (this.stopped) {
             return;
         }
         Log.d(TAG, "start connect timer");
