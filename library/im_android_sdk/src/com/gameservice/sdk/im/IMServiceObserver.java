@@ -12,6 +12,7 @@ public interface IMServiceObserver {
     public void onPeerMessageRemoteACK(int msgLocalID, long uid);
     //消息发送失败
     public void onPeerMessageFailure(int msgLocalID, long uid);
+
     //当前用户ID在其它地方登录
-    public void onReset();
+    public void onLoginPoint(LoginPoint lp);
 }

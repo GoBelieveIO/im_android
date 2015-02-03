@@ -24,6 +24,7 @@ import com.gameservice.sdk.analystic.analytics.AnalysticAgent;
 import com.gameservice.sdk.im.IMMessage;
 import com.gameservice.sdk.im.IMService;
 import com.gameservice.sdk.im.IMServiceObserver;
+import com.gameservice.sdk.im.LoginPoint;
 import com.gameservice.sdk.push.api.IMsgReceiver;
 import com.gameservice.sdk.push.api.SmartPush;
 import com.gameservice.sdk.push.api.SmartPushOpenUtils;
@@ -182,9 +183,10 @@ public class ChatActivity extends BaseActivity
              * 用户异地登录,需下线当前用户.
              */
             @Override
-            public void onReset() {
-                //异地登录,下线用户
-                mIMService.stop();
+            public void onLoginPoint(LoginPoint lp) {
+                //异地登录,可以在此处下线用户
+                //mIMService.stop();
+                Log.i("demo", "login point");
             }
         });
     }
@@ -237,8 +239,7 @@ public class ChatActivity extends BaseActivity
                 SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceTokenStr);
                 // 玩家已登录
                 // ***用于接收推送, 一定要调用该接口后才能接受推送
-                AnalysticAgent.bindPlayerIdToToken(ChatActivity.this, deviceTokenStr,
-                    String.valueOf(senderId));
+                //todo call bind api
             }
         });
         // 注册服务，并启动服务

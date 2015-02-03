@@ -325,15 +325,14 @@ public class IMService {
         publishPeerMessageRemoveACK(ack.msgLocalID, ack.sender);
     }
 
-    private void handleRST(Message msg) {
-        Log.i(TAG, "the user login at outside");
-        isRST = true;
-        publishRST();
-    }
 
     private void handlePong(Message msg) {
         Log.i(TAG, "pong");
         IoLoop.getDefaultLoop().setTimeout(HEARTBEAT * 1000, heartbeatTimer);
+    }
+
+    private void handleLoginPoint(Message msg) {
+        publishLoginPoint((LoginPoint)msg.body);
     }
 
     private void handleMessage(Message msg) {
@@ -345,10 +344,10 @@ public class IMService {
             handleACK(msg);
         } else if (msg.cmd == Command.MSG_PEER_ACK) {
             handlePeerACK(msg);
-        } else if (msg.cmd == Command.MSG_RST) {
-            handleRST(msg);
         } else if (msg.cmd == Command.MSG_PONG) {
             handlePong(msg);
+        } else if (msg.cmd == Command.MSG_LOGIN_POINT) {
+            handleLoginPoint(msg);
         } else {
             Log.i(TAG, "unknown message cmd:" + msg.cmd);
         }
@@ -494,15 +493,18 @@ public class IMService {
 
     }
 
-    private void publishRST() {
+
+
+    private void publishLoginPoint(final LoginPoint lp) {
         mainThreadhandler.post(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < observers.size(); i++) {
                     IMServiceObserver ob = observers.get(i);
-                    ob.onReset();
+                    ob.onLoginPoint(lp);
                 }
             }
         });
     }
+
 }
