@@ -17,7 +17,7 @@
 -injars build/intermediates/classes/release
 
 
--libraryjars /Users/walker/develop/android-sdk-macosx/platforms/android-19/android.jar
+#-libraryjars /Users/walker/develop/android-sdk-macosx/platforms/android-19/android.jar
 
 
 #-libraryjars /usr/local/android-sdk/add-ons/google_apis-7_r01/libs/maps.jar
@@ -173,4 +173,4 @@
 # -keep public class * implements mypackage.MyInterface
 
 
--outjars Release/smart-im-v1.0.1.jar
+-outjars Release/smart-im-v1.0.2.jar

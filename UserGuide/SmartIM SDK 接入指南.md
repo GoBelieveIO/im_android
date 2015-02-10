@@ -150,12 +150,12 @@
 
         <!-- 必需： push 服务配置 -->
         <service
-            android:name="com.gameservice.sdk.push.api.SmartPushService"
+            android:name="com.gameservice.sdk.push.v2.api.SmartPushService"
             android:process=":ngds" />
 
         <!-- 必需： push 消息接收配置 -->
         <receiver
-            android:name="com.gameservice.sdk.push.api.SmartPushReceiver"
+            android:name="com.gameservice.sdk.push.v2.api.SmartPushReceiver"
             android:enabled="true"
             android:exported="false"
             android:priority="90000"

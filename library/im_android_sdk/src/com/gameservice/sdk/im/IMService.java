@@ -3,7 +3,7 @@ package com.gameservice.sdk.im;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
-
+import com.gameservice.sdk.im.token.TokenBindTask;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
@@ -24,6 +24,7 @@ public class IMService {
 
     private final String TAG = "imservice";
     private final int HEARTBEAT = 60 * 3;
+//    private final int HEARTBEAT = 10;
 
 
     private volatile boolean stopped = true;
@@ -56,6 +57,8 @@ public class IMService {
         return instance;
     }
 
+    public static final String HOST = "172.25.1.154";
+
     private IMService() {
         this.connectTimer = new IoLoop.Timer() {
             @Override
@@ -72,6 +75,11 @@ public class IMService {
                 }
                 IMService.this.sendPing();
                 IoLoop.getDefaultLoop().setTimeout(50 * 1000, pongTimeoutTimer);
+                //判断是否需要重发绑定设备消息,如果是,则发出一个异步请求
+                if (mNeedBindDeviceTokenAgain && !mIsBindTaskInProcess && !TextUtils
+                    .isEmpty(accessToken) && !TextUtils.isEmpty(mDeviceToken)) {
+                    bindDeviceToken(mDeviceToken);
+                }
             }
         };
 
@@ -151,6 +159,43 @@ public class IMService {
 
     public void removeObserver(IMServiceObserver ob) {
         observers.remove(ob);
+    }
+
+    private String mDeviceToken;
+    private boolean mIsBindTaskInProcess;
+    private boolean mNeedBindDeviceTokenAgain;
+
+
+    public interface TaskCallback {
+        public void onSuccess();
+
+        public void onFailure();
+    }
+
+
+    private TaskCallback mBindTaskCallBack = new TaskCallback() {
+        @Override
+        public void onSuccess() {
+            mIsBindTaskInProcess = false;
+        }
+
+        @Override
+        public void onFailure() {
+            mNeedBindDeviceTokenAgain = true;
+            mIsBindTaskInProcess = false;
+        }
+    };
+
+    public void bindDeviceToken(String deviceToken) {
+        mDeviceToken = deviceToken;
+        if (mIsBindTaskInProcess) {
+            mNeedBindDeviceTokenAgain = true;
+            Log.w(TAG, "bind task is running");
+            return;
+        }
+        mIsBindTaskInProcess = true;
+        new TokenBindTask(deviceToken, accessToken, mBindTaskCallBack).execute();
+        mNeedBindDeviceTokenAgain = false;
     }
 
     public void start() {
@@ -261,7 +306,7 @@ public class IMService {
         this.tcp = new TCP(s);
         Log.i(TAG, "new tcp...");
         //此处不用常量防止混淆后暴露ip地址
-        this.tcp.connect("172.25.1.154", 23000, this.onConnect);
+        this.tcp.connect(HOST, 23000, this.onConnect);
 
         //connect timeout 60sec
         loop.setTimeout(60 * 1000, new IoLoop.Timer() {
@@ -329,7 +374,7 @@ public class IMService {
     }
 
     private void handleLoginPoint(Message msg) {
-        publishLoginPoint((LoginPoint)msg.body);
+        publishLoginPoint((LoginPoint) msg.body);
     }
 
     private void handleMessage(Message msg) {

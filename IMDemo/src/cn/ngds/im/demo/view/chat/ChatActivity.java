@@ -20,14 +20,13 @@ import cn.ngds.im.demo.receiver.NetworkStateReceiver;
 import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
-import com.gameservice.sdk.analystic.analytics.AnalysticAgent;
 import com.gameservice.sdk.im.IMMessage;
 import com.gameservice.sdk.im.IMService;
 import com.gameservice.sdk.im.IMServiceObserver;
 import com.gameservice.sdk.im.LoginPoint;
-import com.gameservice.sdk.push.api.IMsgReceiver;
-import com.gameservice.sdk.push.api.SmartPush;
-import com.gameservice.sdk.push.api.SmartPushOpenUtils;
+import com.gameservice.sdk.push.v2.api.IMsgReceiver;
+import com.gameservice.sdk.push.v2.api.SmartPush;
+import com.gameservice.sdk.push.v2.api.SmartPushOpenUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +56,7 @@ public class ChatActivity extends BaseActivity
 
     @Override
     protected void onBaseCreate(Bundle savedInstanceState) {
-        setContentView(R.layout.activity_chat_tmp);
+        setContentView(R.layout.activity_chat);
         if (getIntent() != null) {
             senderId = getIntent().getExtras().getLong(KEY_SENDER_ID);
             receiverId = getIntent().getExtras().getLong(KEY_RECEIVER_ID);
@@ -90,7 +89,7 @@ public class ChatActivity extends BaseActivity
         mIMService = IMService.getInstance();
         mIMService.setAccessToken(this.token);
         String androidID = Settings.Secure.getString(this.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
+            Settings.Secure.ANDROID_ID);
         mIMService.setDeviceID(androidID);
 
         //注册接受消息状态以及送达回调的观察者
@@ -238,8 +237,8 @@ public class ChatActivity extends BaseActivity
                 }
                 SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceTokenStr);
                 // 玩家已登录
-                // ***用于接收推送, 一定要调用该接口后才能接受推送
-                //todo call bind api
+                // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
+                IMService.getInstance().bindDeviceToken(deviceTokenStr);
             }
         });
         // 注册服务，并启动服务
