@@ -41,6 +41,9 @@
 	
 	4.2 [相关类介绍](#4.2)
 
+5. [FAQ](#5)
+	
+	5.1 [使用HttpUrlConnection调用服务端接口抛出EOF异常](#5.1)
 
 
 
@@ -57,7 +60,6 @@
 <h3 id="1.3">1.3 SDK 包内容</h3>
 
 * SDK开发包：**smart-im-v1.x.x.jar**
-* 开发文档：**Smart IM SDK 接入指南.pdf**
 * 示例程序工程：**IMDemo**
 
 
@@ -69,7 +71,7 @@
 
 
 <h3 id="2.1">2.1 IM SDK接入前准备(必读)</h3>
-*  IM的SDK是需要和Push的SDK一并使用, 请先移步阅读[Push SDK说明文档](http://docs.gameservice.com/push/Android-SDK.html)
+*  IM sdk的离线消息功能是需要和Push的SDK一并使用, 请先移步阅读[Push SDK说明文档](http://docs.gameservice.com/push/Android-SDK.html)
   
 
 <h3 id="2.2">2.2 成为一个开发者</h3>
@@ -93,14 +95,14 @@
 		            android:name="NGDS_APPKEY"
 		            android:value="cZe1eqiDmQG4T5wHkzOykGdbZvq6oQAo" />
 
-* 配置好AppId和AppKey之后可分别将demo运行在两部手机中(模拟器也可以),在登录页面中可将其中一台手机设置本机用户id为10001,接收用户id为10002.将另外一台手机设置为本机id为10002,接收用户id为10001.登录之后便可以体验IM功能,uid不能为0.
+* 配置好AppId和AppKey之后可分别将demo运行在两部手机中(模拟器也可以),在登录页面中可将其中一台手机设置本机用户id为10001,接收用户id为10002.将另外一台手机设置为本机id为10002,接收用户id为10001.登录之后便可以体验IM功能.
 
 <h2 id="3">3 快速集成SDK</h2>
 
 
 <h3 id="3.1">3.1 依赖建立</h3>
 
-* 拷贝 smart-push-im-v1.x.x.jar 包到主工程的libs下；
+* 拷贝 smart-im-v1.x.x.jar 包到主工程的libs下；
 
 * Eclipse 下导入依赖包
 
@@ -138,12 +140,12 @@
 		<!-- 必需： 应用ID(此处的id为您申请的应用id) -->
         <meta-data
             android:name="NGDS_APPID"
-            android:value="8" />
+            android:value="11035" />
         
         <!-- 必需： 应用KEY (此处appkey为您申请的应用密钥)-->
         <meta-data
             android:name="NGDS_APPKEY"
-            android:value="sVDIlIiDUm7tWPYWhi6kfNbrqui3ez44" />
+            android:value="HS5NVruwDJxFwUPEdzqo7gBrQCSFsIhA" />
 
         <!-- 必需： 推送页面配置 -->
         <activity android:name="com.gameservice.sdk.push.ui.SmartPushActivity" />
@@ -187,8 +189,10 @@
 
 		//获取IMService
         mIMService = IMService.getInstance();
-        //设置使用者Id(为long)
-        mIMService.setUID(UserHelper.INSTANCE.getSenderId());
+        String androidID = Settings.Secure.getString(this.getContentResolver(),
+            Settings.Secure.ANDROID_ID);
+        //设置设备唯一标识,用于多点登录时设备校验    
+        mIMService.setDeviceID(androidID);
         //注册接受消息状态以及送达回调的观察者
         mIMService.addObserver(new IMServiceObserver() {
             /**
@@ -257,12 +261,12 @@
             }
 
             /**
-             * 用户异地登录,需下线当前用户.
+             * 用户异地登录,可下线当前用户或者保留(按照需求而定)
              */
             @Override
-            public void onReset() {
-                //异地登录,下线用户
-                mIMService.stop();
+            public void onLoginPoint(LoginPoint lp) {
+                //异地登录,可以在此处下线用户
+                //mIMService.stop();
             }
         });
 
@@ -274,9 +278,8 @@
 
 * 切换至后台关闭IMService转由PushService接收的实现可以参照IMDemo中cn.ngds.im.demo.view.base.BaseActivy的使用场景(在Activity进入onStop的时候是否app在前台)也可以根据使用需求让开发者自行拓展.
 
-* 监听网络变化,在断开网络的时候主动调用停止服务API停止IM服务,防止socket在后台不断的间歇性重连.网络连接上的时候开启服务.网络变化监听代码在 cn.ngds.im.demo.receiver.NetworkStateReceiver.
+* 监听网络变化,在断开网络的时候主动调用停止服务API停止IM服务,防止socket在后台不断的间歇性重连.网络连接上的时候开启服务.网络变化监听代码示例在 cn.ngds.im.demo.receiver.NetworkStateReceiver.
 
-		IMService.getInstance().start();
 		
 <h3 id="3.6">3.6 发送消息</h3>
 
@@ -300,11 +303,11 @@
 
 <h3 id="4.1">4.1 IM API</h3>
 *  设置用户Id
-	* 注意事项： userId不能为0
-	* 调用方法： IMService.getInstance.**setUID**(long userId)
+	* 注意事项： token不能为null,调用auth接口获取token后可保存在本地,使用实例场景可见LoginActivity,接口详细说明设计文档可见服务端接口文档说明.
+	* 调用方法： IMService.getInstance.**setAccessToken**(String token)
 	* 使用场景： 在调用IMService.start方法前调用
 	* 参数说明： 
-		* userId       玩家id
+		* token  客户端连接IM服务必须的acessToken
 
 *  设置观察者
 	* 调用方法： IMService.getInstance.**addObserver**(IMServiceObserver imserviceObserver)
@@ -345,6 +348,16 @@
 | msgLocalId| 消息id(接收到的消息没有本地id)| 
 | content    | 消息内容|
 
+<h2 id="5">5. FAQ</h2>
+
+<h3 id="5.1">5.1 使用HttpUrlConnection反复调用服务端接口抛出EOF异常</h3>
+
+* 异常说明:	android httpurlconnection 在SDK版本号13之后请求策略采用keep-alive.
+* 解决方案: 在HttpUrlConnection上加入以下property :
 	
+	
+		if (Build.VERSION.SDK_INT > 13) {
+		    httpUrlConnection.setRequestProperty("Connection", "close");
+		}
 
 

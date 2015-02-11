@@ -25,12 +25,12 @@
         <!-- 必需： 应用ID -->
         <meta-data
             android:name="NGDS_APPID"
-            android:value="10781" />
+            android:value="11035" />
 
         <!-- 必需： 应用KEY -->
         <meta-data
             android:name="NGDS_APPKEY"
-            android:value="cZe1eqiDmQG4T5wHkzOykGdbZvq6oQAo" />
+            android:value="HS5NVruwDJxFwUPEdzqo7gBrQCSFsIhA" />
 
         <activity
             android:name=".view.login.LoginActivity"

@@ -90,6 +90,7 @@ public class ChatActivity extends BaseActivity
         mIMService.setAccessToken(this.token);
         String androidID = Settings.Secure.getString(this.getContentResolver(),
             Settings.Secure.ANDROID_ID);
+        //设置设备唯一标识,用于多点登录时设备校验
         mIMService.setDeviceID(androidID);
 
         //注册接受消息状态以及送达回调的观察者
@@ -179,13 +180,12 @@ public class ChatActivity extends BaseActivity
             }
 
             /**
-             * 用户异地登录,需下线当前用户.
+             * 用户异地登录,可下线当前用户或者保留(按照需求而定)
              */
             @Override
             public void onLoginPoint(LoginPoint lp) {
                 //异地登录,可以在此处下线用户
                 //mIMService.stop();
-                Log.i("demo", "login point");
             }
         });
     }

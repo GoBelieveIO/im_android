@@ -7,7 +7,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
+import cn.ngds.im.demo.R;
+import cn.ngds.im.demo.domain.UserHelper;
+import cn.ngds.im.demo.view.base.BaseActivity;
+import cn.ngds.im.demo.view.chat.ChatActivity;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -19,13 +22,7 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.io.InputStream;
-
-import cn.ngds.im.demo.R;
-import cn.ngds.im.demo.domain.UserHelper;
-import cn.ngds.im.demo.view.base.BaseActivity;
-import cn.ngds.im.demo.view.chat.ChatActivity;
 
 /**
  * LoginActivity
@@ -129,7 +126,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
     }
 
     private String login(long uid) {
-        //调用app自身的登陆接口获取im服务必须的access token
+        //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务
         String URL = "http://172.25.1.154";
         String uri = String.format("%s/auth/token", URL);
         try {
