@@ -127,7 +127,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
 
     private String login(long uid) {
         //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务
-        String URL = "http://172.25.1.154";
+        String URL = "http://demo.im.gameservice.com";
         String uri = String.format("%s/auth/token", URL);
         try {
             HttpClient getClient = new DefaultHttpClient();
@@ -141,6 +141,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
             HttpResponse response = getClient.execute(request);
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode != HttpStatus.SC_OK){
+                System.out.println("login failure code is:"+statusCode);
                 return null;
             }
             int len = (int)response.getEntity().getContentLength();

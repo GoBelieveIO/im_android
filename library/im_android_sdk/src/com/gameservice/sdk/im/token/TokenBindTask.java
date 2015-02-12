@@ -3,6 +3,7 @@ package com.gameservice.sdk.im.token;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.text.TextUtils;
+import android.util.Log;
 import com.gameservice.sdk.im.IMService;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,7 +24,7 @@ public class TokenBindTask extends AsyncTask {
     private IMService.TaskCallback mTaskCallback;
     private static final String BIND_COMMAND = "/device/bind";
     private static final String DEVICE_TOKEN = "ng_device_token";
-    private static int count = 0;
+    private static final String TAG = "TokenBindTask";
 
     public TokenBindTask(String deviceToken, String userId, IMService.TaskCallback taskCallback) {
         mDeviceToken = deviceToken;
@@ -43,18 +44,13 @@ public class TokenBindTask extends AsyncTask {
     }
 
     public void bindDeviceToken(String deviceToken, String accessToken) {
-        if (count == 0) {
-            mTaskCallback.onFailure();
-            count++;
-        }
-
         //construct post body json
         URL url = null;
         InputStream is = null;
         OutputStream os = null;
         HttpURLConnection conn = null;
         try {
-            url = new URL("http://172.25.1.154" + BIND_COMMAND);
+            url = new URL("http://" + IMService.HOST + BIND_COMMAND);
             conn = (HttpURLConnection) url.openConnection();
             conn.setReadTimeout(10000);
             conn.setConnectTimeout(15000);
@@ -77,10 +73,10 @@ public class TokenBindTask extends AsyncTask {
             //do somehting with response
             int responseCode = conn.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                System.out.println("token response failure");
+                Log.d(TAG, "token response failure");
                 mTaskCallback.onFailure();
             } else {
-                System.out.println("token response success");
+                Log.d(TAG, "token response success");
                 mTaskCallback.onSuccess();
                 //读取内容
                 /*System.out.println("response success");

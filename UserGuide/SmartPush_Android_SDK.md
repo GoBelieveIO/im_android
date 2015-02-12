@@ -20,7 +20,6 @@
 ##1.3 SDK 包内容
 
 * SDK开发包：**gameservice-push-v1.x.x.jar**
-* SDK开发包：**gameservice-analystic-v1.x.x.jar**
 * 开发文档：**SmartPush SDK 接入指南.pdf**
 * 示例程序工程：**SmartPushExample**
 

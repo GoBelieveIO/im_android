@@ -57,7 +57,7 @@ public class IMService {
         return instance;
     }
 
-    public static final String HOST = "172.25.1.154";
+    public static final String HOST = "im.gameservice.com";
 
     private IMService() {
         this.connectTimer = new IoLoop.Timer() {

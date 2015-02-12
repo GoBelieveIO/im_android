@@ -88,12 +88,12 @@
 				 <!-- 必需： 应用ID -->
 	        	<meta-data
 	           	 android:name="NGDS_APPID"
-	           	 android:value="10781" />
+	           	 android:value="11035" />
 	
 		        <!-- 必需： 应用KEY -->
 		        <meta-data
 		            android:name="NGDS_APPKEY"
-		            android:value="cZe1eqiDmQG4T5wHkzOykGdbZvq6oQAo" />
+		            android:value="HS5NVruwDJxFwUPEdzqo7gBrQCSFsIhA" />
 
 * 配置好AppId和AppKey之后可分别将demo运行在两部手机中(模拟器也可以),在登录页面中可将其中一台手机设置本机用户id为10001,接收用户id为10002.将另外一台手机设置为本机id为10002,接收用户id为10001.登录之后便可以体验IM功能.
 
@@ -318,6 +318,27 @@
 *  开启服务
 	* 调用方法： IMService.getInstance.**start**()
 	* 使用场景： 在设置用户id之后调用启动服务,以及在恢复网络或者应用返回前台的时候调用.
+
+*  绑定用户token
+	* 注意事项: 此方法用于绑定用户token以接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
+    * 调用方法: IMService.getInstance.**bindDeviceToken**(String deviceToken)
+    * 使用场景: 在onDeviceToken回调函数中使用(具体使用见**ChatActivity**):
+
+        	// 注册消息接受者
+                SmartPush.registerReceiver(new IMsgReceiver() {
+                    @Override
+                    public void onMessage(String message) {
+                       ...
+                    }
+
+                    @Override
+                    public void onDeviceToken(byte[] tokenArray) {
+                        ...
+                        // 玩家已登录
+                        // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
+                        IMService.getInstance().bindDeviceToken(deviceTokenStr);
+                    }
+                });
 	
 *  关闭服务
 	* 调用方法： IMService.getInstance.**stop**()
