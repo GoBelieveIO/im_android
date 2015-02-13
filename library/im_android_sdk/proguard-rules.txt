@@ -168,6 +168,11 @@
   public *;
 }
 
+-keep public  class com.gameservice.sdk.im.IMApi
+{
+  public *;
+}
+
 
 # Your application may contain more items that need to be preserved;
 # typically classes that are dynamically created using Class.forName:
@@ -177,4 +182,4 @@
 # -keep public class * implements mypackage.MyInterface
 
 
--outjars Release/smart-im-v1.0.2.jar
+-outjars Release/gameservice-im-v1.0.3.jar

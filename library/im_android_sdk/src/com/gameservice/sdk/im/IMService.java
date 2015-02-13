@@ -57,7 +57,8 @@ public class IMService {
         return instance;
     }
 
-    public static final String HOST = "im.gameservice.com";
+//    public static final String HOST = "im.gameservice.com";
+    public static final String HOST = "172.25.1.154";
 
     private IMService() {
         this.connectTimer = new IoLoop.Timer() {
@@ -186,6 +187,10 @@ public class IMService {
         }
     };
 
+    /**
+     * 将deviceToken绑定到服务器以接收离线消息
+     * @param deviceToken 用户设备token
+     */
     public void bindDeviceToken(String deviceToken) {
         mDeviceToken = deviceToken;
         if (mIsBindTaskInProcess) {

@@ -13,6 +13,7 @@ public enum UserHelper {
     public static final long LOGOUT_ID = -1;
     public final String SENDER_ID = "sender_id";
     public final String RECEIVER_ID = "receiver_id";
+    public final String TOKEN_ID = "token_id";
 
     private long senderId = LOGOUT_ID;
     private long receiverId = LOGOUT_ID;
@@ -37,6 +38,13 @@ public enum UserHelper {
         return receiverId;
     }
 
+    public String getAccessToken() {
+        SharedPreferences
+                preferences =
+                PreferenceManager.getDefaultSharedPreferences(IMDemoApplication.getApplication());
+        return preferences.getString(TOKEN_ID, "");
+    }
+
     public void setSenderId(long senderId) {
         this.senderId = senderId;
         SharedPreferences
@@ -53,6 +61,12 @@ public enum UserHelper {
         preferences.edit().putLong(RECEIVER_ID, receiverId).commit();
     }
 
+    public void setAccessToken(String token) {
+        SharedPreferences
+                preferences =
+                PreferenceManager.getDefaultSharedPreferences(IMDemoApplication.getApplication());
+        preferences.edit().putString(TOKEN_ID, token).commit();
+    }
     /**
      * 用户帮助类
      *

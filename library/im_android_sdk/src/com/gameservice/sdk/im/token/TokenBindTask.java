@@ -34,6 +34,16 @@ public class TokenBindTask extends AsyncTask {
 
     @Override
     protected Object doInBackground(Object[] params) {
+        if (TextUtils.isEmpty(mDeviceToken)) {
+            Log.d(TAG, "deviceToken is empty");
+            mTaskCallback.onFailure();
+            return null;
+        }
+        if (TextUtils.isEmpty(mUserId)) {
+            mTaskCallback.onFailure();
+            Log.d(TAG, "userId is empty");
+            return null;
+        }
         try {
             bindDeviceToken(mDeviceToken, mUserId);
         } catch (Exception e) {
@@ -57,14 +67,15 @@ public class TokenBindTask extends AsyncTask {
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
             if (Build.VERSION.SDK != null && Build.VERSION.SDK_INT > 13) {
                 conn.setRequestProperty("Connection", "close");
             }
             conn.setDoInput(true);
             conn.setDoOutput(true);
-            conn.setChunkedStreamingMode(0);
+            //            conn.setChunkedStreamingMode(0);
             byte[] outputInBytes = initContent(deviceToken).getBytes("UTF-8");
-            //            conn.setFixedLengthStreamingMode(outputInBytes.length);
+            conn.setFixedLengthStreamingMode(outputInBytes.length);
             conn.connect();
             os = conn.getOutputStream();
             os.write(outputInBytes);
@@ -73,7 +84,7 @@ public class TokenBindTask extends AsyncTask {
             //do somehting with response
             int responseCode = conn.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                Log.d(TAG, "token response failure");
+                Log.d(TAG, "token response failure code is:" + responseCode);
                 mTaskCallback.onFailure();
             } else {
                 Log.d(TAG, "token response success");

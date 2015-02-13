@@ -321,8 +321,9 @@
 
 *  绑定用户token
 	* 注意事项: 此方法用于绑定用户token以接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
-    * 调用方法: IMService.getInstance.**bindDeviceToken**(String deviceToken)
-    * 使用场景: 在onDeviceToken回调函数中使用(具体使用见**ChatActivity**):
+    * 调用方法: IMApi.**bindDeviceToken**(String deviceToken)
+    * 使用场景: 在IMService.setAccessToken后以及在SmartPush.registerReceiver(new IMsgReceiver(){
+    onDeviceToken(byte[] tokenArray)})回调函数中使用(具体使用见**ChatActivity以及IMDemoApplication**):
 
         	// 注册消息接受者
                 SmartPush.registerReceiver(new IMsgReceiver() {
@@ -336,7 +337,7 @@
                         ...
                         // 玩家已登录
                         // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
-                        IMService.getInstance().bindDeviceToken(deviceTokenStr);
+                        IMApi.bindDeviceToken(deviceTokenStr);
                     }
                 });
 	
@@ -381,4 +382,11 @@
 		    httpUrlConnection.setRequestProperty("Connection", "close");
 		}
 
+<h3 id="5.2">5.2 如何在代码混淆时忽略 gameservice-push-v1.x.x.jar以及gameservice-im-v1.x.x.jar？</h3>
 
+* 在你的proguard.cfg加以下代码：
+
+		-dontwarn com.gameservice.sdk.im.**
+        -keep class com.gameservice.sdk.im.** { *; }
+        -dontwarn com.gameservice.sdk.push.**
+        -keep class com.gameservice.sdk.push.** { *; }

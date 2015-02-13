@@ -18,53 +18,42 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:paddingBottom="2dip"
-        android:paddingTop="2dip">
+        android:background="@drawable/bg_chat_bottom"
+        android:paddingBottom="5dp"
+        android:paddingTop="5dp">
 
-        <View
-            android:id="@+id/line"
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="@color/gray_normal" />
 
+            <!--android:layout_marginLeft="15dp"-->
+            <!--android:layout_marginRight="15dp"-->
         <Button
             android:id="@+id/btn_send"
-            android:layout_width="42dp"
-            android:layout_height="32dp"
+            android:layout_width="86dp"
+            android:layout_height="40dp"
+            android:layout_marginLeft="4dp"
+            android:layout_marginRight="4dp"
             android:layout_alignParentRight="true"
             android:layout_centerVertical="true"
-            android:layout_marginRight="4dp"
             android:background="@drawable/bg_chat_send_btn_selector"
             android:gravity="center"
             android:text="@string/chat_send"
-            android:textColor="#666666"
-            android:textSize="16sp" />
+            android:textColor="#00abf1"
+            android:textSize="@dimen/h2" />
 
+            <!--android:layout_below="@id/line"-->
         <EditText
             android:id="@+id/et_send_message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/line"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="30dp"
+            android:layout_marginLeft="15dp"
+            android:layout_marginTop="3dp"
             android:layout_toLeftOf="@id/btn_send"
-            android:background="@null"
+            android:background="@drawable/bg_chat_input"
             android:maxLines="3"
+            android:paddingLeft="2dp"
+            android:paddingRight="2dp"
             android:minHeight="40dp"
-            android:paddingBottom="3dp"
-            android:paddingLeft="1dp"
-            android:paddingRight="1dp"
-            android:paddingTop="3dp"
-            android:textSize="@dimen/h3" />
+            android:textSize="@dimen/h2" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_below="@id/et_send_message"
-            android:layout_marginLeft="2dp"
-            android:layout_marginRight="30dp"
-            android:layout_toLeftOf="@id/btn_send"
-            android:background="#b3b3b3" />
 
     </RelativeLayout>
 
@@ -74,6 +63,7 @@
         android:layout_height="match_parent"
         android:layout_above="@id/area_bottom"
         android:layout_below="@id/fg_header"
+        android:background="#ececec"
         android:cacheColorHint="#00000000"
         android:divider="@null"
         android:dividerHeight="5dp"

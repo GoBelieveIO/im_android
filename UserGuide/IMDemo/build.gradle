@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.13.0'
+        classpath 'com.android.tools.build:gradle:1.0.0'
     }
 }
 
@@ -15,13 +15,25 @@ android {
     defaultConfig {
         minSdkVersion 8
         targetSdkVersion 17
-        versionCode 1
-        versionName "1.0"
+        versionCode 1020
+        versionName "1.0.2"
+    }
+    signingConfigs {
+        release {
+            storeFile file("/Users/walker/Dropbox/NGDS_Android/Project/push_newgame/UserGuide/Release/ngds.keystore")
+            storePassword "ngdsngds"
+            keyAlias "ngds"
+            keyPassword "ngdsngds"
+        }
     }
     buildTypes {
         release {
-            runProguard false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            signingConfig signingConfigs.release
+            applicationVariants.all { variant ->
+                appendVersionNameVersionCode(variant, defaultConfig)
+            }
         }
     }
     sourceSets {
@@ -38,4 +50,23 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 //    compile project(":library:im_android_sdk")
+}
+
+def appendVersionNameVersionCode(variant, defaultConfig) {
+    //check if staging variant
+    if (variant.name == android.buildTypes.release.name) {
+        if (variant.buildType.zipAlignEnabled) {
+            variant.outputs.each{output ->
+                def outputFile = output.outputFile
+                if (outputFile != null && outputFile.name.endsWith('.apk')){
+                    def fileName = outputFile.name.replace(".apk", "-v" + defaultConfig.versionName + ".apk")
+                    output.outputFile = new File(outputFile.parent, fileName)
+                }
+
+            }
+        }
+       /* def file = variant.buildType.packageApplication.outputFile
+        def fileName = file.name.replace(".apk", "-v" + defaultConfig.versionName + ".apk")
+        variant.packageApplication.outputFile = new File(file.parent, fileName)*/
+    }
 }

@@ -34,7 +34,7 @@ IM SDK
     IMService.getInstance.setPort($PORT)
 
 2.设置当前登录的玩家id
-    IMService.getInstance.setUID($UID)
+    IMService.getInstance.setAccessToken($Token)
 
 3.设置MessageHandler(可选)
     IMService.getInstance.setPeerMessageHandler($Handler)

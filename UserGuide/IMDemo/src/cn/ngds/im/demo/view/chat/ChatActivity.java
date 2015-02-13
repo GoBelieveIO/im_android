@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -19,13 +20,13 @@ import cn.ngds.im.demo.receiver.NetworkStateReceiver;
 import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
-import com.gameservice.sdk.analystic.analytics.AnalysticAgent;
 import com.gameservice.sdk.im.IMMessage;
 import com.gameservice.sdk.im.IMService;
 import com.gameservice.sdk.im.IMServiceObserver;
-import com.gameservice.sdk.push.api.IMsgReceiver;
-import com.gameservice.sdk.push.api.SmartPush;
-import com.gameservice.sdk.push.api.SmartPushOpenUtils;
+import com.gameservice.sdk.im.LoginPoint;
+import com.gameservice.sdk.push.v2.api.IMsgReceiver;
+import com.gameservice.sdk.push.v2.api.SmartPush;
+import com.gameservice.sdk.push.v2.api.SmartPushOpenUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +43,11 @@ public class ChatActivity extends BaseActivity
     private Button mBtnSend;
     private long receiverId;
     private long senderId;
+    private String token;
     public static final String KEY_SENDER_ID = "key_sender_id";
     public static final String KEY_RECEIVER_ID = "key_receiver_id";
+    public static final String KEY_TOKEN_ID = "key_token_id";
+
     private static int msgLocalId = 1;
     private List<NgdsMessage> mChatMsgList;
     private IMService mIMService;
@@ -52,10 +56,11 @@ public class ChatActivity extends BaseActivity
 
     @Override
     protected void onBaseCreate(Bundle savedInstanceState) {
-        setContentView(R.layout.activity_chat_tmp);
+        setContentView(R.layout.activity_chat);
         if (getIntent() != null) {
             senderId = getIntent().getExtras().getLong(KEY_SENDER_ID);
             receiverId = getIntent().getExtras().getLong(KEY_RECEIVER_ID);
+            token = getIntent().getExtras().getString(KEY_TOKEN_ID);
         }
     }
 
@@ -77,14 +82,17 @@ public class ChatActivity extends BaseActivity
         startIMService();
         mChatMsgList = new ArrayList<NgdsMessage>();
         senderId = UserHelper.INSTANCE.getSenderId();
-
     }
 
     private void startIMService() {
         //获取IMService
         mIMService = IMService.getInstance();
-        //设置使用者Id(为长整型且不能为0)
-        mIMService.setUID(UserHelper.INSTANCE.getSenderId());
+        mIMService.setAccessToken(this.token);
+        String androidID = Settings.Secure.getString(this.getContentResolver(),
+            Settings.Secure.ANDROID_ID);
+        //设置设备唯一标识,用于多点登录时设备校验
+        mIMService.setDeviceID(androidID);
+
         //注册接受消息状态以及送达回调的观察者
         mIMService.addObserver(new IMServiceObserver() {
             /**
@@ -172,12 +180,12 @@ public class ChatActivity extends BaseActivity
             }
 
             /**
-             * 用户异地登录,需下线当前用户.
+             * 用户异地登录,可下线当前用户或者保留(按照需求而定)
              */
             @Override
-            public void onReset() {
-                //异地登录,下线用户
-                mIMService.stop();
+            public void onLoginPoint(LoginPoint lp) {
+                //异地登录,可以在此处下线用户
+                //mIMService.stop();
             }
         });
     }
@@ -229,9 +237,8 @@ public class ChatActivity extends BaseActivity
                 }
                 SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceTokenStr);
                 // 玩家已登录
-                // ***用于接收推送, 一定要调用该接口后才能接受推送
-                AnalysticAgent.bindPlayerIdToToken(ChatActivity.this, deviceTokenStr,
-                    String.valueOf(senderId));
+                // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
+                IMService.getInstance().bindDeviceToken(deviceTokenStr);
             }
         });
         // 注册服务，并启动服务
