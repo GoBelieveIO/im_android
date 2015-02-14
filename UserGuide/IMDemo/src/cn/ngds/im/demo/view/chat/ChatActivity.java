@@ -6,7 +6,6 @@ import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,12 +19,7 @@ import cn.ngds.im.demo.receiver.NetworkStateReceiver;
 import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
-import com.gameservice.sdk.im.IMMessage;
-import com.gameservice.sdk.im.IMService;
-import com.gameservice.sdk.im.IMServiceObserver;
-import com.gameservice.sdk.im.LoginPoint;
-import com.gameservice.sdk.push.v2.api.IMsgReceiver;
-import com.gameservice.sdk.push.v2.api.SmartPush;
+import com.gameservice.sdk.im.*;
 import com.gameservice.sdk.push.v2.api.SmartPushOpenUtils;
 
 import java.util.ArrayList;
@@ -78,7 +72,6 @@ public class ChatActivity extends BaseActivity
 
     private void initData() {
         mNetworkStateReceiver = new NetworkStateReceiver();
-        startPushService();
         startIMService();
         mChatMsgList = new ArrayList<NgdsMessage>();
         senderId = UserHelper.INSTANCE.getSenderId();
@@ -188,6 +181,9 @@ public class ChatActivity extends BaseActivity
                 //mIMService.stop();
             }
         });
+        // 玩家已登录,在调用   mIMService.setAccessToken(accessToken)方法后调用绑定接口
+        // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
+        IMApi.bindDeviceToken(SmartPushOpenUtils.loadDeviceToken(this));
     }
 
     private void initHeaderView() {
@@ -216,33 +212,6 @@ public class ChatActivity extends BaseActivity
                 mMessageAdapter.notifyDataSetChanged();
             }
         });
-    }
-
-
-    private void startPushService() {
-        // 注册消息接受者
-        SmartPush.registerReceiver(new IMsgReceiver() {
-            @Override
-            public void onMessage(String message) {
-                // message为透传消息，需开发者在此处理
-                Log.i("PUSH", "透传消息:" + message);
-            }
-
-            @Override
-            public void onDeviceToken(byte[] tokenArray) {
-                // SmartPushOpenUtils是 sdk提供本地化deviceToken的帮助类，开发者也可以自己实现本地化存储deviceToken
-                String deviceTokenStr = null;
-                if (null != tokenArray && tokenArray.length > 0) {
-                    deviceTokenStr = SmartPushOpenUtils.convertDeviceTokenArrary(tokenArray);
-                }
-                SmartPushOpenUtils.saveDeviceToken(ChatActivity.this, deviceTokenStr);
-                // 玩家已登录
-                // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
-                IMService.getInstance().bindDeviceToken(deviceTokenStr);
-            }
-        });
-        // 注册服务，并启动服务
-        SmartPush.registerService(this);
     }
 
 
