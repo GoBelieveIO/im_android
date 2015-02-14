@@ -3,7 +3,6 @@ package com.gameservice.sdk.im;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
-import com.gameservice.sdk.im.token.TokenBindTask;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
@@ -60,6 +59,7 @@ public class IMService {
     public static final String HOST = "im.gameservice.com";
 //    public static final String HOST = "172.25.1.154";
 
+
     private IMService() {
         this.connectTimer = new IoLoop.Timer() {
             @Override
@@ -76,11 +76,6 @@ public class IMService {
                 }
                 IMService.this.sendPing();
                 IoLoop.getDefaultLoop().setTimeout(50 * 1000, pongTimeoutTimer);
-                //判断是否需要重发绑定设备消息,如果是,则发出一个异步请求
-                if (mNeedBindDeviceTokenAgain && !mIsBindTaskInProcess && !TextUtils
-                    .isEmpty(accessToken) && !TextUtils.isEmpty(mDeviceToken)) {
-                    bindDeviceToken(mDeviceToken);
-                }
             }
         };
 
@@ -162,46 +157,10 @@ public class IMService {
         observers.remove(ob);
     }
 
-    private String mDeviceToken;
-    private boolean mIsBindTaskInProcess;
-    private boolean mNeedBindDeviceTokenAgain;
 
 
-    public interface TaskCallback {
-        public void onSuccess();
-
-        public void onFailure();
-    }
 
 
-    private TaskCallback mBindTaskCallBack = new TaskCallback() {
-        @Override
-        public void onSuccess() {
-            mIsBindTaskInProcess = false;
-        }
-
-        @Override
-        public void onFailure() {
-            mNeedBindDeviceTokenAgain = true;
-            mIsBindTaskInProcess = false;
-        }
-    };
-
-    /**
-     * 将deviceToken绑定到服务器以接收离线消息
-     * @param deviceToken 用户设备token
-     */
-    public void bindDeviceToken(String deviceToken) {
-        mDeviceToken = deviceToken;
-        if (mIsBindTaskInProcess) {
-            mNeedBindDeviceTokenAgain = true;
-            Log.w(TAG, "bind task is running");
-            return;
-        }
-        mIsBindTaskInProcess = true;
-        new TokenBindTask(deviceToken, accessToken, mBindTaskCallBack).execute();
-        mNeedBindDeviceTokenAgain = false;
-    }
 
     public void start() {
         if (!this.stopped) {

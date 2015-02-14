@@ -16,6 +16,12 @@ import com.gameservice.sdk.push.v2.api.SmartPushOpenUtils;
 public class IMDemoApplication extends Application {
     private static Application sApplication;
 
+    private byte[] mDeviceToken;
+
+    public byte[] getDeviceToken() {
+        return mDeviceToken;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -43,15 +49,7 @@ public class IMDemoApplication extends Application {
 
             @Override
             public void onDeviceToken(byte[] tokenArray) {
-                // SmartPushOpenUtils是 sdk提供本地化deviceToken的帮助类，开发者也可以自己实现本地化存储deviceToken
-                String deviceTokenStr = null;
-                if (null != tokenArray && tokenArray.length > 0) {
-                    deviceTokenStr = SmartPushOpenUtils.convertDeviceTokenArrary(tokenArray);
-                }
-                SmartPushOpenUtils.saveDeviceToken(IMDemoApplication.this, deviceTokenStr);
-                // 玩家已登录
-                // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
-                IMApi.bindDeviceToken(deviceTokenStr);
+                mDeviceToken = tokenArray;
             }
         });
         // 注册服务，并启动服务

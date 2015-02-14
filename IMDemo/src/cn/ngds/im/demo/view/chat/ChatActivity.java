@@ -20,7 +20,9 @@ import cn.ngds.im.demo.view.base.BaseActivity;
 import cn.ngds.im.demo.view.header.HeaderFragment;
 import cn.ngds.im.demo.view.login.LoginActivity;
 import com.gameservice.sdk.im.*;
-import com.gameservice.sdk.push.v2.api.SmartPushOpenUtils;
+
+import org.apache.http.entity.StringEntity;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -181,9 +183,13 @@ public class ChatActivity extends BaseActivity
                 //mIMService.stop();
             }
         });
-        // 玩家已登录,在调用   mIMService.setAccessToken(accessToken)方法后调用绑定接口
-        // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
-        IMApi.bindDeviceToken(SmartPushOpenUtils.loadDeviceToken(this));
+
+        IMDemoApplication app = (IMDemoApplication)getApplication();
+        if (app.getDeviceToken() != null) {
+            // 玩家已登录,在调用   mIMService.setAccessToken(accessToken)方法后调用绑定接口
+            // ***用于接收离线消息推送, 一定要调用该接口后才能接受离线消息推送
+            IMApi.getInstance().bindDeviceToken(app.getDeviceToken(), token);
+        }
     }
 
     private void initHeaderView() {
@@ -214,6 +220,21 @@ public class ChatActivity extends BaseActivity
         });
     }
 
+//消息内容使用如下json对象格式，推送的消息内容会更加详细
+                   /*
+ {
+    "text":"文本",
+    "image":"image url",
+    "audio": {
+        "url":"audio url",
+        "duration":"时长(整形)"
+    }
+    "location":{
+        "latitude":"纬度(浮点数)",
+        "latitude":"经度(浮点数)"
+    }
+}
+*/
 
 
     @Override
@@ -227,6 +248,9 @@ public class ChatActivity extends BaseActivity
                     Toast.makeText(this, "请输入发送内容", Toast.LENGTH_SHORT).show();
                     return;
                 }
+
+
+
                 //建立消息对象
                 IMMessage msg = new IMMessage();
                 //设置发送方id
@@ -235,7 +259,6 @@ public class ChatActivity extends BaseActivity
                 msg.receiver = receiverId;
                 //消息本地id
                 msg.msgLocalID = msgLocalId++;
-                //设置消息内容
                 msg.content = msgContent;
                 NgdsMessage ngdsMessage = new NgdsMessage(msg, NgdsMessage.Direct.SEND);
                 mChatMsgList.add(ngdsMessage);
