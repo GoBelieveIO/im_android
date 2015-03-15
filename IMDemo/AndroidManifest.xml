@@ -18,10 +18,24 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:name=".base.IMDemoApplication"
+        android:name=".IMDemoApplication"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name">
+
+
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Horizontal_Slide">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <!-- 必需： 应用ID -->
         <meta-data
             android:name="NGDS_APPID"
@@ -33,33 +47,25 @@
             android:value="HS5NVruwDJxFwUPEdzqo7gBrQCSFsIhA" />
 
         <activity
-            android:name=".view.login.LoginActivity"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait"
-            android:theme="@style/Horizontal_Slide">
+            android:name="com.beetle.bauhinia.IMActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".view.chat.ChatActivity"
-            android:launchMode="singleTask"
-            android:screenOrientation="portrait"
-            android:theme="@style/Horizontal_Slide" />
+
         <!-- 必需： push 服务配置 -->
         <service
-            android:name="com.gameservice.sdk.push.v2.api.SmartPushService"
-            android:process=":ngds" />
+            android:name="com.beetle.push.PushService"/>
 
         <!-- 必需： push 消息接收配置 -->
         <receiver
-            android:name="com.gameservice.sdk.push.v2.api.SmartPushReceiver"
+            android:name="com.beetle.push.PushReceiver"
             android:enabled="true"
             android:exported="false"
-            android:priority="90000"
-            android:process=":ngds">
+            android:priority="90000" >
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_ADDED" />
                 <action android:name="android.intent.action.PACKAGE_CHANGED" />
@@ -74,6 +80,11 @@
                 <action android:name="cn.ngds.android.intent.alarm" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name="com.beetle.bauhinia.activity.PhotoActivity"
+            android:label="照片" >
+        </activity>
     </application>
 
 </manifest>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="wrap_content" android:layout_height="wrap_content"
+	android:orientation="vertical" android:background="@drawable/conversation_recording_round"
+	android:id="@+id/conversation_recording" android:gravity="center"
+	android:padding="45dip">
+	<FrameLayout android:layout_width="wrap_content"
+		android:layout_height="wrap_content">
+		<ImageView android:id="@+id/conversation_recording_white"
+			android:src="@drawable/record_white" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" />
+		<ImageView android:id="@+id/conversation_recording_range"
+			android:src="@drawable/record_green" android:layout_width="wrap_content"
+			android:layout_height="wrap_content" android:layout_gravity="bottom"
+			android:layout_marginBottom="0px" android:cropToPadding="true"
+			android:adjustViewBounds="false" android:scrollY="0px"/>
+	</FrameLayout>
+	<TextView android:layout_marginTop="38dip"
+		android:layout_width="wrap_content" android:layout_height="wrap_content"
+		android:text="正在录音" android:id="@+id/conversation_recording_text"
+		android:textColor="@color/white" android:textSize="30dip" />
+</LinearLayout>

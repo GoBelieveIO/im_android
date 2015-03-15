@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">imkit</string>
+    <string name="product_fotos_get_from">Get photo from: </string>
+</resources>
