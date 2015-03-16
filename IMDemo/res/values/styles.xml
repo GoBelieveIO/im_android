@@ -1,9 +1,5 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-
-    <style name="AppTheme" parent="android:Theme.Light" />
-
-
     <!--login-->
     <style name="login_edittext_underline">
         <item name="android:layout_width">match_parent</item>
