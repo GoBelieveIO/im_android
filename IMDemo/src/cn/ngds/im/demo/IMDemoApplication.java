@@ -34,7 +34,7 @@ public class IMDemoApplication extends Application {
         Push.registerReceiver(new IMsgReceiver() {
             @Override
             public void onDeviceToken(byte[] tokenArrary) {
-
+                IMDemoApplication.this.mDeviceToken = tokenArrary;
             }
         });
         //启动后台推送服务
@@ -52,6 +52,7 @@ public class IMDemoApplication extends Application {
         //监听网路状态变更
         mIMService.registerConnectivityChangeReceiver(getApplicationContext());
 
+        //可以在登录成功后，设置每个用户不同的消息存储目录
         FileCache fc = FileCache.getInstance();
         fc.setDir(this.getDir("cache", MODE_PRIVATE));
         PeerMessageDB db = PeerMessageDB.getInstance();

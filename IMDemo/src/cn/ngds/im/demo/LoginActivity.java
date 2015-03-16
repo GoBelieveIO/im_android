@@ -3,6 +3,7 @@ package cn.ngds.im.demo;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -10,6 +11,7 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.IMActivity;
 import com.beetle.bauhinia.api.IMHttpAPI;
+import com.beetle.bauhinia.api.body.PostDeviceToken;
 import com.beetle.im.IMService;
 
 import org.apache.http.Header;
@@ -24,6 +26,9 @@ import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
 import java.io.InputStream;
+
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
 
 /**
  * LoginActivity
@@ -54,6 +59,25 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         IMService.getInstance().setToken(token);
         IMService.getInstance().start();
 
+        IMDemoApplication app = (IMDemoApplication)getApplication();
+        byte[] deviceToken = app.getDeviceToken();
+        if (token != null && deviceToken.length > 0) {
+            PostDeviceToken tokenBody = new PostDeviceToken();
+            tokenBody.deviceToken = LoginActivity.bin2Hex(deviceToken);
+            IMHttpAPI.Singleton().postDeviceToken(tokenBody)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Action1<Object>() {
+                        @Override
+                        public void call(Object obj) {
+                            Log.i("im", "bind success");
+                        }
+                    }, new Action1<Throwable>() {
+                        @Override
+                        public void call(Throwable throwable) {
+                            Log.i("im", "bind fail");
+                        }
+                    });
+        }
 
         Intent intent = new Intent(this, IMActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -101,6 +125,9 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                 }
                 @Override
                 protected void onPostExecute(String result) {
+
+
+
                     mLoginTask = null;
                     if (result != null && result.length() > 0) {
                         //设置用户id,进入MainActivity
@@ -157,4 +184,34 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
             return null;
         }
     }
+
+    private static final char HEX_DIGITS[] = {
+            '0',
+            '1',
+            '2',
+            '3',
+            '4',
+            '5',
+            '6',
+            '7',
+            '8',
+            '9',
+            'A',
+            'B',
+            'C',
+            'D',
+            'E',
+            'F'
+    };
+
+    public final static String bin2Hex(byte[] b) {
+        StringBuilder sb = new StringBuilder(b.length * 2);
+        for (int i = 0; i < b.length; i++) {
+            sb.append(HEX_DIGITS[(b[i] & 0xf0) >>> 4]);
+            sb.append(HEX_DIGITS[b[i] & 0x0f]);
+        }
+        return sb.toString();
+    }
+
+
 }
