@@ -50,7 +50,7 @@
             android:name="com.beetle.bauhinia.IMActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/imkit.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
