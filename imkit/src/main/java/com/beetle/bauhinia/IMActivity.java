@@ -77,16 +77,12 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
 
-
     private long currentUID;
 
     private long peerUID;
     private String peerName;
 
     private ArrayList<IMessage> messages;
-
-
-    private EditText editText;
 
     BaseAdapter adapter;
 
@@ -108,6 +104,120 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
 
     private String recordFileName;
 
+    AudioRecorder audioRecorder;
+    AudioUtil audioUtil;
+
+    ListView listview;
+    EditText editText;
+    TextView titleView;
+    TextView subtitleView;
+    Toolbar toolbar;
+    Button recordButton;
+    Button sendButton;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.chat);
+
+        File f = new File(getCacheDir(), "bh_audio.amr");
+        recordFileName = f.getAbsolutePath();
+        Log.i(TAG, "record file name:" + recordFileName);
+
+        listview = (ListView)findViewById(R.id.list_view);
+        recordButton = (Button)findViewById(R.id.audio_recorder);
+        titleView = (TextView)findViewById(R.id.title);
+        subtitleView = (TextView)findViewById(R.id.subtitle);
+        toolbar = (Toolbar)findViewById(R.id.support_toolbar);
+        sendButton = (Button)findViewById(R.id.btn_send);
+        editText = (EditText)findViewById(R.id.text_message);
+
+        listview.setOnItemClickListener(this);
+
+        Intent intent = getIntent();
+
+        currentUID = intent.getLongExtra("current_uid", 0);
+        if (currentUID == 0) {
+            Log.e(TAG, "current uid is 0");
+            return;
+        }
+        peerUID = intent.getLongExtra("peer_uid", 0);
+        if (peerUID == 0) {
+            Log.e(TAG, "peer uid is 0");
+            return;
+        }
+        peerName = intent.getStringExtra("peer_name");
+        if (peerName == null) {
+            Log.e(TAG, "peer name is null");
+            return;
+        }
+
+        messages = new ArrayList<IMessage>();
+
+        int count = 0;
+        PeerMessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID);
+        while (iter != null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
+                break;
+            }
+            messages.add(0, msg);
+            if (++count >= PAGE_SIZE) {
+                break;
+            }
+        }
+
+        SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+        swipeLayout.setOnRefreshListener(this);
+
+        adapter = new ChatAdapter();
+        listview.setAdapter(adapter);
+
+        titleView.setText(peerName);
+        setSubtitle();
+        setSupportActionBar(toolbar);
+        IMService.getInstance().addObserver(this);
+
+        audioUtil = new AudioUtil(this);
+        audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                adapter.notifyDataSetChanged();
+            }
+        });
+        audioUtil.setOnStopListener(new AudioUtil.OnStopListener() {
+            @Override
+            public void onStop(int reason) {
+                adapter.notifyDataSetChanged();
+            }
+        });
+
+        audioRecorder = new AudioRecorder(this, this.recordFileName);
+
+        recordButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    IMActivity.this.startRecord();
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    Log.i(TAG, "recording end by action button up");
+                    IMActivity.this.stopRecord();
+                } else if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
+                    Log.i(TAG, "recording end by action button outside");
+                    IMActivity.this.startRecord();
+                }
+                return false;
+            }
+        });
+
+        AudioDownloader.getInstance().addObserver(this);
+
+        Outbox.getInstance().addObserver(this);
+
+        if (IMService.getInstance().getConnectState() != IMService.ConnectState.STATE_CONNECTED) {
+            disableSend();
+        }
+    }
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
@@ -187,14 +297,8 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
         public static int TEXT = 8;
     }
 
-    ListView listview;
-    AudioRecorder audioRecorder;
-    AudioUtil audioUtil;
 
-    TextView titleView;
-    TextView subtitleView;
-    Toolbar toolbar;
-    Button recordButton;
+
 
     class ChatAdapter extends BaseAdapter implements ContentTypes {
         @Override
@@ -347,104 +451,21 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
         }
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.chat);
 
-        File f = new File(getCacheDir(), "bh_audio.amr");
-        recordFileName = f.getAbsolutePath();
-        Log.i(TAG, "record file name:" + recordFileName);
-
-        listview = (ListView)findViewById(R.id.list_view);
-        recordButton = (Button)findViewById(R.id.audio_recorder);
-        titleView = (TextView)findViewById(R.id.title);
-        subtitleView = (TextView)findViewById(R.id.subtitle);
-        toolbar = (Toolbar)findViewById(R.id.support_toolbar);
-
-        listview.setOnItemClickListener(this);
-
-        Intent intent = getIntent();
-
-        currentUID = intent.getLongExtra("current_uid", 0);
-        if (currentUID == 0) {
-            Log.e(TAG, "current uid is 0");
-            return;
-        }
-        peerUID = intent.getLongExtra("peer_uid", 0);
-        if (peerUID == 0) {
-            Log.e(TAG, "peer uid is 0");
-            return;
-        }
-        peerName = intent.getStringExtra("peer_name");
-        if (peerName == null) {
-            Log.e(TAG, "peer name is null");
-            return;
-        }
-
-        messages = new ArrayList<IMessage>();
-
-        int count = 0;
-        PeerMessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID);
-        while (iter != null) {
-            IMessage msg = iter.next();
-            if (msg == null) {
-                break;
-            }
-            messages.add(0, msg);
-            if (++count >= PAGE_SIZE) {
-                break;
-            }
-        }
-
-        SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
-        swipeLayout.setOnRefreshListener(this);
-
-        adapter = new ChatAdapter();
-        listview.setAdapter(adapter);
-        editText = (EditText)findViewById(R.id.text_message);
-
-        titleView.setText(peerName);
-        setSubtitle();
-        setSupportActionBar(toolbar);
-        IMService.getInstance().addObserver(this);
-
-        audioUtil = new AudioUtil(this);
-        audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                adapter.notifyDataSetChanged();
-            }
-        });
-        audioUtil.setOnStopListener(new AudioUtil.OnStopListener() {
-            @Override
-            public void onStop(int reason) {
-                adapter.notifyDataSetChanged();
-            }
-        });
-
-        audioRecorder = new AudioRecorder(this, this.recordFileName);
-
-        recordButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    IMActivity.this.startRecord();
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    Log.i(TAG, "recording end by action button up");
-                    IMActivity.this.stopRecord();
-                } else if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
-                    Log.i(TAG, "recording end by action button outside");
-                    IMActivity.this.startRecord();
-                }
-                return false;
-            }
-        });
-
-        AudioDownloader.getInstance().addObserver(this);
-
-        Outbox.getInstance().addObserver(this);
+    private void disableSend() {
+        recordButton.setEnabled(false);
+        sendButton.setEnabled(false);
+        findViewById(R.id.button_switch).setEnabled(false);
+        editText.setEnabled(false);
     }
+
+    private void enableSend() {
+        recordButton.setEnabled(true);
+        sendButton.setEnabled(true);
+        findViewById(R.id.button_switch).setEnabled(true);
+        editText.setEnabled(true);
+    }
+
 
     private class VolumeTimerTask extends TimerTask {
         @Override
@@ -585,9 +606,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        Log.i(TAG, "inflate menu");
         getMenuInflater().inflate(R.menu.chat, menu);
-        Log.i(TAG, "inflated menu");
         return true;
     }
 
@@ -738,6 +757,11 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
     }
 
     public void onConnectState(IMService.ConnectState state) {
+        if (state == IMService.ConnectState.STATE_CONNECTED) {
+            enableSend();
+        } else {
+            disableSend();
+        }
         setSubtitle();
     }
 
