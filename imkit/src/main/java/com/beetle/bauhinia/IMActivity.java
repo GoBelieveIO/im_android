@@ -132,7 +132,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             long mduration = AudioUtil.getAudioDuration(tfile);
 
             if (mduration < 1000) {
-                Toast.makeText(this, "录音时间太短了", 5000).show();
+                Toast.makeText(this, "录音时间太短了", Toast.LENGTH_SHORT).show();
                 return;
             }
             long duration = mduration/1000;
@@ -529,7 +529,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
 
     private void startRecord() {
         if (DeviceUtil.isFullStorage()) {
-            Toast.makeText(this, "您没有可用的SD卡，请退出U盘模式或者插入SD卡", 5000)
+            Toast.makeText(this, "您没有可用的SD卡，请退出U盘模式或者插入SD卡", Toast.LENGTH_SHORT)
                     .show();
             return;
         }
