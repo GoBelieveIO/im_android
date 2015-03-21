@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import android.content.Context;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.util.Log;
@@ -142,8 +143,18 @@ public class AudioUtil{
         try {
             mPlayer.reset();
             mPlayer.setDataSource(fileName);
+            mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+            AudioManager am = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+            if (!am.isBluetoothA2dpOn() && !am.isWiredHeadsetOn()) {
+                am.setSpeakerphoneOn(true);
+            }
+
+            am.setMode(AudioManager.STREAM_MUSIC);
             mPlayer.prepare();
             mPlayer.start();
+
+
             Log.i(TAG, "start play");
             OnCompletionListener mOnCompletionListener = new OnCompletionListener() {
 

@@ -2,8 +2,12 @@ package com.beetle.bauhinia.tools;
 
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.api.IMHttpAPI;
+import com.beetle.bauhinia.constant.MessageKeys;
 import com.beetle.bauhinia.api.types.Audio;
 import com.beetle.bauhinia.api.types.Image;
+import com.beetle.im.IMMessage;
+import com.beetle.im.IMService;
+import com.google.gson.JsonObject;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -73,6 +77,7 @@ public class Outbox {
                 .subscribe(new Action1<Image>() {
                     @Override
                     public void call(Image image) {
+                        Outbox.this.sendImageMessage(msg, image.srcUrl);
                         onUploadImageSuccess(msg, image.srcUrl);
                         messages.remove(msg);
                     }
@@ -96,6 +101,7 @@ public class Outbox {
                 .subscribe(new Action1<Audio>() {
                     @Override
                     public void call(Audio audio) {
+                        Outbox.this.sendAudioMessage(msg, audio.srcUrl);
                         onUploadAudioSuccess(msg, audio.srcUrl);
                         messages.remove(msg);
                     }
@@ -109,6 +115,36 @@ public class Outbox {
         return true;
     }
 
+    private void sendImageMessage(IMessage imsg, String url) {
+        IMMessage msg = new IMMessage();
+        msg.sender = imsg.sender;
+        msg.receiver = imsg.receiver;
+        JsonObject content = new JsonObject();
+        content.addProperty(MessageKeys.IMAGE, url);
+        msg.content = content.toString();
+        msg.msgLocalID = imsg.msgLocalID;
+
+        IMService im = IMService.getInstance();
+        im.sendPeerMessage(msg);
+    }
+
+    private void sendAudioMessage(IMessage imsg, String url) {
+        IMessage.Audio audio = (IMessage.Audio)imsg.content;
+
+        IMMessage msg = new IMMessage();
+        msg.sender = imsg.sender;
+        msg.receiver = imsg.receiver;
+        msg.msgLocalID = imsg.msgLocalID;
+        JsonObject content = new JsonObject();
+        JsonObject audioJson = new JsonObject();
+        audioJson.addProperty("duration", audio.duration);
+        audioJson.addProperty("url", url);
+        content.add(MessageKeys.AUDIO, audioJson);
+        msg.content = content.toString();
+
+        IMService im = IMService.getInstance();
+        im.sendPeerMessage(msg);
+    }
 
     private void onUploadAudioSuccess(IMessage msg, String url) {
         for (OutboxObserver ob : observers) {

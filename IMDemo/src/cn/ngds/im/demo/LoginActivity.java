@@ -9,7 +9,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.beetle.bauhinia.IMActivity;
+import com.beetle.bauhinia.PeerMessageActivity;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.body.PostDeviceToken;
 import com.beetle.im.IMService;
@@ -79,7 +79,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                     });
         }
 
-        Intent intent = new Intent(this, IMActivity.class);
+        Intent intent = new Intent(this, PeerMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra("peer_uid", receiver);
         intent.putExtra("peer_name", "测试");

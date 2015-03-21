@@ -8,19 +8,23 @@ import com.google.gson.JsonObject;
 /**
  * Created by houxh on 14-7-22.
  */
-enum MessageType {
-    MESSAGE_TEXT
-}
 
 
 public class IMessage implements MessageKeys {
+    public static enum MessageType {
+        MESSAGE_UNKNOWN,
+        MESSAGE_TEXT,
+        MESSAGE_AUDIO,
+        MESSAGE_IMAGE,
+    }
+
     static Gson gson = new GsonBuilder().create();
 
     public abstract static class MessageContent {
         public String raw;
 
         public MessageType getType() {
-            return MessageType.MESSAGE_TEXT;
+            return MessageType.MESSAGE_UNKNOWN;
         }
 
         public String getRaw() {
@@ -30,15 +34,24 @@ public class IMessage implements MessageKeys {
 
     public static class Text extends MessageContent {
         public String text;
+        public MessageType getType() {
+            return MessageType.MESSAGE_TEXT;
+        }
     }
 
     public static class Image extends MessageContent {
         public String image;
+        public MessageType getType() {
+            return MessageType.MESSAGE_IMAGE;
+        }
     }
 
     public static class Audio extends MessageContent {
         public String url;
         public long duration;
+        public MessageType getType() {
+            return MessageType.MESSAGE_AUDIO;
+        }
     }
 
     public static class Location extends MessageContent {

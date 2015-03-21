@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
@@ -24,8 +25,6 @@ import android.widget.*;
 
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageFlag;
-import com.beetle.bauhinia.db.PeerMessageDB;
-import com.beetle.bauhinia.db.PeerMessageIterator;
 import com.beetle.bauhinia.formatter.MessageFormatter;
 import com.beetle.bauhinia.tools.AudioRecorder;
 import com.beetle.bauhinia.tools.AudioUtil;
@@ -33,16 +32,13 @@ import com.beetle.bauhinia.tools.DeviceUtil;
 import com.beetle.im.*;
 import com.beetle.bauhinia.activity.BaseActivity;
 import com.beetle.bauhinia.activity.PhotoActivity;
-
 import com.beetle.bauhinia.constant.MessageKeys;
-
 
 import com.beetle.bauhinia.tools.AudioDownloader;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.bauhinia.tools.Outbox;
-import com.beetle.im.Timer;
 import com.google.gson.JsonObject;
 import com.squareup.picasso.Picasso;
 
@@ -61,48 +57,48 @@ import java.util.*;
 
 import com.beetle.imkit.R;
 
-import static android.os.SystemClock.uptimeMillis;
 import static com.beetle.bauhinia.constant.RequestCodes.*;
 
 
-public class IMActivity extends BaseActivity implements IMServiceObserver, MessageKeys,
+public class MessageActivity extends BaseActivity implements  MessageKeys,
         AdapterView.OnItemClickListener, AudioDownloader.AudioDownloaderObserver,
         Outbox.OutboxObserver, SwipeRefreshLayout.OnRefreshListener {
-    public static final String SEND_MESSAGE_NAME = "send_message";
-    public static final String CLEAR_MESSAGES = "clear_messages";
-    private final String TAG = "imservice";
 
-    private final int PAGE_SIZE = 10;
+    protected final String TAG = "imservice";
+
+
 
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
 
-    private long currentUID;
+    protected String sendNotificationName;
+    protected String clearNotificationName;
 
-    private long peerUID;
-    private String peerName;
+    protected long sender;
+    protected long receiver;
 
-    private ArrayList<IMessage> messages;
+
+    protected ArrayList<IMessage> messages = new ArrayList<>();
 
     BaseAdapter adapter;
 
     IMessage playingMessage;
 
     //录音相关
-    private Handler mHandler = new Handler();
-    private java.util.Timer sixtySecondsTimer;
-    private java.util.Timer recordingTimer;
-    private AlertDialog alertDialog;
+    protected Handler mHandler = new Handler();
+    protected java.util.Timer sixtySecondsTimer;
+    protected java.util.Timer recordingTimer;
+    protected AlertDialog alertDialog;
 
-    private ImageView recordingImageBG;
+    protected ImageView recordingImageBG;
 
-    private ImageView recordingImage;
+    protected ImageView recordingImage;
 
-    private TextView recordingText;
+    protected TextView recordingText;
 
-    private Date mBegin;
+    protected Date mBegin;
 
-    private String recordFileName;
+    protected String recordFileName;
 
     AudioRecorder audioRecorder;
     AudioUtil audioUtil;
@@ -134,49 +130,16 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
 
         listview.setOnItemClickListener(this);
 
-        Intent intent = getIntent();
-
-        currentUID = intent.getLongExtra("current_uid", 0);
-        if (currentUID == 0) {
-            Log.e(TAG, "current uid is 0");
-            return;
-        }
-        peerUID = intent.getLongExtra("peer_uid", 0);
-        if (peerUID == 0) {
-            Log.e(TAG, "peer uid is 0");
-            return;
-        }
-        peerName = intent.getStringExtra("peer_name");
-        if (peerName == null) {
-            Log.e(TAG, "peer name is null");
-            return;
-        }
-
-        messages = new ArrayList<IMessage>();
-
-        int count = 0;
-        PeerMessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID);
-        while (iter != null) {
-            IMessage msg = iter.next();
-            if (msg == null) {
-                break;
-            }
-            messages.add(0, msg);
-            if (++count >= PAGE_SIZE) {
-                break;
-            }
-        }
-
         SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
         swipeLayout.setOnRefreshListener(this);
 
         adapter = new ChatAdapter();
         listview.setAdapter(adapter);
 
-        titleView.setText(peerName);
+
         setSubtitle();
         setSupportActionBar(toolbar);
-        IMService.getInstance().addObserver(this);
+
 
         audioUtil = new AudioUtil(this);
         audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -198,13 +161,13 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    IMActivity.this.startRecord();
+                    MessageActivity.this.startRecord();
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
                     Log.i(TAG, "recording end by action button up");
-                    IMActivity.this.stopRecord();
+                    MessageActivity.this.stopRecord();
                 } else if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
                     Log.i(TAG, "recording end by action button outside");
-                    IMActivity.this.startRecord();
+                    MessageActivity.this.startRecord();
                 }
                 return false;
             }
@@ -218,6 +181,8 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             disableSend();
         }
     }
+
+    protected void loadEarlierData() {}
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
@@ -254,30 +219,28 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             content.add(AUDIO, audioJson);
 
             IMessage imsg = new IMessage();
-            imsg.sender = this.currentUID;
-            imsg.receiver = peerUID;
+            imsg.sender = this.sender;
+            imsg.receiver = this.receiver;
             imsg.setContent(content.toString());
             imsg.timestamp = now();
-            PeerMessageDB.getInstance().insertMessage(imsg, peerUID);
+
+            saveMessage(imsg);
 
             Log.i(TAG, "msg local id:" + imsg.msgLocalID);
-
-
             messages.add(imsg);
 
             adapter.notifyDataSetChanged();
             listview.smoothScrollToPosition(messages.size()-1);
 
-            Outbox ob = Outbox.getInstance();
-
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
             FileInputStream is = new FileInputStream(new File(tfile));
             Log.i(TAG, "store audio url:" + audio.url);
             FileCache.getInstance().storeFile(audio.url, is);
-            ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
+
+            sendMessage(imsg);
 
             NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
+            Notification notification = new Notification(imsg, sendNotificationName);
             nc.postNotification(notification);
 
         } catch (IllegalStateException e) {
@@ -296,8 +259,6 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
         public static int LOCATION = 6;
         public static int TEXT = 8;
     }
-
-
 
 
     class ChatAdapter extends BaseAdapter implements ContentTypes {
@@ -345,7 +306,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
 
         boolean isOutMsg(int position) {
             IMessage msg = messages.get(position);
-            return msg.sender == currentUID;
+            return msg.sender == MessageActivity.this.sender;
         }
 
         @Override
@@ -452,14 +413,14 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
     }
 
 
-    private void disableSend() {
+    protected void disableSend() {
         recordButton.setEnabled(false);
         sendButton.setEnabled(false);
         findViewById(R.id.button_switch).setEnabled(false);
         editText.setEnabled(false);
     }
 
-    private void enableSend() {
+    protected void enableSend() {
         recordButton.setEnabled(true);
         sendButton.setEnabled(true);
         findViewById(R.id.button_switch).setEnabled(true);
@@ -473,7 +434,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    IMActivity.this.refreshVolume();
+                    MessageActivity.this.refreshVolume();
                 }
             });
         }
@@ -571,7 +532,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
                     @Override
                     public void run() {
                         Log.i(TAG, "recording end by timeout");
-                        IMActivity.this.stopRecord();
+                        MessageActivity.this.stopRecord();
                     }
                 });
             }
@@ -598,9 +559,9 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             alertDialog.dismiss();
         }
 
-        if (IMActivity.this.audioRecorder.isRecording()) {
-            IMActivity.this.audioRecorder.stopRecord();
-            IMActivity.this.sendAudioMessage();
+        if (MessageActivity.this.audioRecorder.isRecording()) {
+            MessageActivity.this.audioRecorder.stopRecord();
+            MessageActivity.this.sendAudioMessage();
         }
     }
 
@@ -620,13 +581,12 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             takePicture();
             return true;
         } else if (id == R.id.action_clear) {
-            PeerMessageDB db = PeerMessageDB.getInstance();
-            db.clearCoversation(this.peerUID);
+            clearConversation();
             messages = new ArrayList<IMessage>();
             adapter.notifyDataSetChanged();
 
             NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.peerUID, CLEAR_MESSAGES);
+            Notification notification = new Notification(this.receiver, clearNotificationName);
             nc.postNotification(notification);
             return true;
         }
@@ -637,30 +597,11 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
         final SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout)findViewById(R.id.swipe_container);
         swipeLayout.setRefreshing(false);
 
-        if (messages.size() == 0) {
-            return;
-        }
+        loadEarlierData();
 
-        IMessage firsMsg = messages.get(0);
-        int count = 0;
-        PeerMessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID, firsMsg.msgLocalID);
-        while (iter != null) {
-            IMessage msg = iter.next();
-            if (msg == null) {
-                break;
-            }
-            messages.add(0, msg);
-            if (++count >= PAGE_SIZE) {
-                break;
-            }
-        }
-        if (count > 0) {
-            adapter.notifyDataSetChanged();
-            listview.setSelection(count);
-        }
     }
 
-    private void setSubtitle() {
+    protected void setSubtitle() {
         IMService.ConnectState state = IMService.getInstance().getConnectState();
         if (state == IMService.ConnectState.STATE_CONNECTING) {
             setSubtitle("连线中");
@@ -672,7 +613,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
         }
     }
 
-    private void setSubtitle(String subtitle) {
+    protected void setSubtitle(String subtitle) {
         subtitleView.setText(subtitle);
         if (subtitle.length() > 0) {
             subtitleView.setVisibility(View.VISIBLE);
@@ -685,7 +626,7 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "imactivity destory");
-        IMService.getInstance().removeObserver(this);
+
         AudioDownloader.getInstance().removeObserver(this);
         Outbox.getInstance().removeObserver(this);
         audioUtil.release();
@@ -718,28 +659,40 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
 
     public void onSend(View v) {
         String text = editText.getText().toString();
+        sendTextMessage(text);
+    }
+
+
+    void sendMessage(IMessage imsg) {
+        Log.i(TAG, "not implemented");
+    }
+
+    void saveMessage(IMessage imsg) {
+        Log.i(TAG, "not implemented");
+    }
+
+    void markMessageFailure(IMessage imsg) {
+        Log.i(TAG, "not implemented");
+    }
+
+    void clearConversation() {
+        Log.i(TAG, "not implemented");
+    }
+
+    void sendTextMessage(String text) {
         if (text.length() == 0) {
             return;
         }
-
-        IMMessage msg = new IMMessage();
-        msg.sender = this.currentUID;
-        msg.receiver = peerUID;
         JsonObject textContent = new JsonObject();
         textContent.addProperty(TEXT, text);
-        msg.content = textContent.toString();
-
         IMessage imsg = new IMessage();
-        imsg.sender = msg.sender;
-        imsg.receiver = msg.receiver;
-        imsg.setContent(msg.content);
+        imsg.sender = this.sender;
+        imsg.receiver = this.receiver;
+        imsg.setContent(textContent.toString());
         imsg.timestamp = now();
-        PeerMessageDB.getInstance().insertMessage(imsg, msg.receiver);
 
-        msg.msgLocalID = imsg.msgLocalID;
-        Log.i(TAG, "msg local id:" + imsg.msgLocalID);
-        IMService im = IMService.getInstance();
-        im.sendPeerMessage(msg);
+        saveMessage(imsg);
+        sendMessage(imsg);
 
         messages.add(imsg);
 
@@ -752,107 +705,8 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
         listview.smoothScrollToPosition(messages.size()-1);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
+        Notification notification = new Notification(imsg, sendNotificationName);
         nc.postNotification(notification);
-    }
-
-    public void onConnectState(IMService.ConnectState state) {
-        if (state == IMService.ConnectState.STATE_CONNECTED) {
-            enableSend();
-        } else {
-            disableSend();
-        }
-        setSubtitle();
-    }
-
-    public void onPeerInputting(long uid) {
-        if (uid == peerUID) {
-            setSubtitle("对方正在输入");
-            Timer t = new Timer() {
-                @Override
-                protected void fire() {
-                    setSubtitle();
-                }
-            };
-            long start = uptimeMillis() + 10*1000;
-            t.setTimer(start);
-            t.resume();
-        }
-    }
-
-    public void onPeerMessage(IMMessage msg) {
-        if (msg.sender != peerUID) {
-            return;
-        }
-        Log.i(TAG, "recv msg:" + msg.content);
-        final IMessage imsg = new IMessage();
-        imsg.timestamp = now();
-        imsg.msgLocalID = msg.msgLocalID;
-        imsg.sender = msg.sender;
-        imsg.receiver = msg.receiver;
-        imsg.setContent(msg.content);
-        messages.add(imsg);
-
-        adapter.notifyDataSetChanged();
-        listview.smoothScrollToPosition(messages.size()-1);
-        if (imsg.content instanceof IMessage.Audio) {
-            try {
-                AudioDownloader.getInstance().downloadAudio(imsg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-    private IMessage findMessage(int msgLocalID) {
-        for (IMessage imsg : messages) {
-            if (imsg.msgLocalID == msgLocalID) {
-                return imsg;
-            }
-        }
-        return null;
-    }
-
-    public void onPeerMessageACK(int msgLocalID, long uid) {
-        if (peerUID != uid) {
-            return;
-        }
-        Log.i(TAG, "message ack");
-
-        IMessage imsg = findMessage(msgLocalID);
-        if (imsg == null) {
-            Log.i(TAG, "can't find msg:" + msgLocalID);
-            return;
-        }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_ACK;
-        adapter.notifyDataSetChanged();
-    }
-    public void onPeerMessageRemoteACK(int msgLocalID, long uid) {
-        if (peerUID != uid) {
-            return;
-        }
-        Log.i(TAG, "message remote ack");
-
-        IMessage imsg = findMessage(msgLocalID);
-        if (imsg == null) {
-            Log.i(TAG, "can't find msg:" + msgLocalID);
-            return;
-        }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_PEER_ACK;
-        adapter.notifyDataSetChanged();
-    }
-    public void onPeerMessageFailure(int msgLocalID, long uid) {
-        if (peerUID != uid) {
-            return;
-        }
-        Log.i(TAG, "message failure");
-
-        IMessage imsg = findMessage(msgLocalID);
-        if (imsg == null) {
-            Log.i(TAG, "can't find msg:" + msgLocalID);
-            return;
-        }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_FAILURE;
-        adapter.notifyDataSetChanged();
     }
 
     void getPicture() {
@@ -901,7 +755,10 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             Log.i(TAG, "invalide request code:" + requestCode);
             return;
         }
+        sendImageMessage(bmp);
+    }
 
+    void sendImageMessage(Bitmap bmp) {
         double w = bmp.getWidth();
         double h = bmp.getHeight();
         double newHeight = 640.0;
@@ -938,22 +795,21 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
             content.addProperty(IMAGE, "file:" + path);
 
             IMessage imsg = new IMessage();
-            imsg.sender = currentUID;
-            imsg.receiver = peerUID;
+            imsg.sender = this.sender;
+            imsg.receiver = this.receiver;
             imsg.setContent(content.toString());
             imsg.timestamp = now();
-            PeerMessageDB.getInstance().insertMessage(imsg, peerUID);
+            saveMessage(imsg);
 
             messages.add(imsg);
 
             adapter.notifyDataSetChanged();
             listview.smoothScrollToPosition(messages.size()-1);
 
-
-            Outbox.getInstance().uploadImage(imsg, path);
+            sendMessage(imsg);
 
             NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
+            Notification notification = new Notification(imsg, sendNotificationName);
             nc.postNotification(notification);
 
         } catch (IOException e) {
@@ -1009,27 +865,13 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
     @Override
     public void onAudioUploadSuccess(IMessage imsg, String url) {
         Log.i(TAG, "audio upload success:" + url);
-        IMessage.Audio audio = (IMessage.Audio)imsg.content;
 
-        IMMessage msg = new IMMessage();
-        msg.sender = this.currentUID;
-        msg.receiver = peerUID;
-        msg.msgLocalID = imsg.msgLocalID;
-        JsonObject content = new JsonObject();
-        JsonObject audioJson = new JsonObject();
-        audioJson.addProperty("duration", audio.duration);
-        audioJson.addProperty("url", url);
-        content.add(AUDIO, audioJson);
-        msg.content = content.toString();
-
-        IMService im = IMService.getInstance();
-        im.sendPeerMessage(msg);
     }
 
     @Override
     public void onAudioUploadFail(IMessage msg) {
         Log.i(TAG, "audio upload fail");
-        PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+        markMessageFailure(msg);
         msg.flags = msg.flags | MessageFlag.MESSAGE_FLAG_FAILURE;
         adapter.notifyDataSetChanged();
     }
@@ -1038,22 +880,12 @@ public class IMActivity extends BaseActivity implements IMServiceObserver, Messa
     public void onImageUploadSuccess(IMessage imsg, String url) {
         Log.i(TAG, "image upload success:" + url);
 
-        IMMessage msg = new IMMessage();
-        msg.sender = this.currentUID;
-        msg.receiver = peerUID;
-        JsonObject content = new JsonObject();
-        content.addProperty(IMAGE, url);
-        msg.content = content.toString();
-        msg.msgLocalID = imsg.msgLocalID;
-
-        IMService im = IMService.getInstance();
-        im.sendPeerMessage(msg);
     }
 
     @Override
     public void onImageUploadFail(IMessage msg) {
         Log.i(TAG, "image upload fail");
-        PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+        this.markMessageFailure(msg);
         msg.flags = msg.flags | MessageFlag.MESSAGE_FLAG_FAILURE;
         adapter.notifyDataSetChanged();
     }

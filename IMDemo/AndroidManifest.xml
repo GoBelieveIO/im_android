@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+
 
     <application
         android:name=".IMDemoApplication"
@@ -47,7 +49,7 @@
             android:value="HS5NVruwDJxFwUPEdzqo7gBrQCSFsIhA" />
 
         <activity
-            android:name="com.beetle.bauhinia.IMActivity"
+            android:name="com.beetle.bauhinia.PeerMessageActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/imkit.NoActionBar">
@@ -83,7 +85,8 @@
 
         <activity
             android:name="com.beetle.bauhinia.activity.PhotoActivity"
-            android:label="照片" >
+            android:label="照片"
+            android:theme="@style/imkit.NoActionBar">
         </activity>
     </application>
 
