@@ -47,11 +47,6 @@ class MessageInputing {
     public long receiver;
 }
 
-class MessageOnlineState {
-    public long sender;
-    public int online;
-}
-
 class AuthenticationToken {
     public String token;
     public int platformID;
@@ -95,7 +90,7 @@ class Message {
             pos += deviceID.length;
 
             return Arrays.copyOf(buf, pos);
-        } else if (cmd == Command.MSG_IM) {
+        } else if (cmd == Command.MSG_IM || cmd == Command.MSG_GROUP_IM) {
             IMMessage im = (IMMessage) body;
             BytePacket.writeInt64(im.sender, buf, pos);
             pos += 8;
@@ -134,15 +129,13 @@ class Message {
         pos += 4;
         cmd = data[pos];
         pos += 4;
-        if (cmd == Command.MSG_RST) {
-            return true;
-        } else if (cmd == Command.MSG_PONG) {
+        if (cmd == Command.MSG_PONG) {
             return true;
         } else if (cmd == Command.MSG_AUTH_STATUS) {
             int status = BytePacket.readInt32(data, pos);
             this.body = new Integer(status);
             return true;
-        } else if (cmd == Command.MSG_IM) {
+        } else if (cmd == Command.MSG_IM || cmd == Command.MSG_GROUP_IM) {
             IMMessage im = new IMMessage();
             im.sender = BytePacket.readInt64(data, pos);
             pos += 8;
@@ -177,13 +170,13 @@ class Message {
             inputing.receiver = BytePacket.readInt64(data, pos);
             this.body = inputing;
             return true;
-        } else if (cmd == Command.MSG_ONLINE_STATE) {
-            MessageOnlineState state = new MessageOnlineState();
-            state.sender = BytePacket.readInt64(data, pos);
-            pos += 8;
-            state.online = BytePacket.readInt32(data, pos);
-            this.body = state;
-            return true;
+        } else if (cmd == Command.MSG_GROUP_NOTIFICATION) {
+            try {
+                this.body = new String(data, pos, data.length - HEAD_SIZE, "UTF-8");
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
         } else {
             return true;
         }

@@ -3,22 +3,19 @@ package com.beetle.bauhinia.db;
 import android.util.Log;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 
 /**
- * Created by houxh on 14-7-22.
+ * Created by houxh on 15/3/21.
  */
 
 
 
 
+public class GroupMessageDB extends MessageDB {
+    private static GroupMessageDB instance = new GroupMessageDB();
 
-public class PeerMessageDB extends MessageDB {
-
-    private static PeerMessageDB instance = new PeerMessageDB();
-
-    public static PeerMessageDB getInstance() {
+    public static GroupMessageDB getInstance() {
         return instance;
     }
 
@@ -28,13 +25,13 @@ public class PeerMessageDB extends MessageDB {
         this.dir = dir;
     }
 
-    private String fileName(long uid) {
-        return ""+uid;
+    private String fileName(long gid) {
+        return ""+gid;
     }
 
-    public boolean insertMessage(IMessage msg, long uid) {
+    public boolean insertMessage(IMessage msg, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             boolean b = insertMessage(f, msg);
             f.close();
@@ -46,9 +43,9 @@ public class PeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean acknowledgeMessage(int msgLocalID, long uid) {
+    public boolean acknowledgeMessage(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_ACK);
             return true;
@@ -57,20 +54,9 @@ public class PeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean acknowledgeMessageFromRemote(int msgLocalID, long uid) {
+    public boolean markMessageFailure(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
-            RandomAccessFile f = new RandomAccessFile(file, "rw");
-            addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_PEER_ACK);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    public boolean markMessageFailure(int msgLocalID, long uid) {
-        try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_FAILURE);
             return true;
@@ -79,9 +65,9 @@ public class PeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean removeMessage(int msgLocalID, long uid) {
+    public boolean removeMessage(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_DELETE);
             return true;
@@ -122,6 +108,7 @@ public class PeerMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new ConversationIterator(this.dir.listFiles(), Conversation.CONVERSATION_PEER);
+        return new ConversationIterator(this.dir.listFiles(), Conversation.CONVERSATION_GROUP);
     }
+
 }

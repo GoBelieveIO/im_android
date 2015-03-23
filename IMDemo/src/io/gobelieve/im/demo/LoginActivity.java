@@ -1,4 +1,4 @@
-package cn.ngds.im.demo;
+package io.gobelieve.im.demo;
 
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -61,7 +61,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
 
         IMDemoApplication app = (IMDemoApplication)getApplication();
         byte[] deviceToken = app.getDeviceToken();
-        if (token != null && deviceToken.length > 0) {
+        if (token != null && deviceToken != null && deviceToken.length > 0) {
             PostDeviceToken tokenBody = new PostDeviceToken();
             tokenBody.deviceToken = LoginActivity.bin2Hex(deviceToken);
             IMHttpAPI.Singleton().postDeviceToken(tokenBody)

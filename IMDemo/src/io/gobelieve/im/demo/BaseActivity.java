@@ -1,4 +1,4 @@
-package cn.ngds.im.demo;
+package io.gobelieve.im.demo;
 
 import android.app.ActivityManager;
 import android.content.Context;

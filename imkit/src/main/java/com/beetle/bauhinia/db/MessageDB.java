@@ -78,6 +78,7 @@ public class MessageDB {
             f.write(buf, 0, 4 + 4 + len + 4 + 4);
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }

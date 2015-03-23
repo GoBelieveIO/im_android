@@ -1,43 +1,44 @@
 package com.beetle.bauhinia;
 
 import android.content.Intent;
-import android.os.*;
+import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.MessageIterator;
-import com.beetle.bauhinia.db.PeerMessageDB;
-import com.beetle.im.*;
-
 import com.beetle.bauhinia.tools.AudioDownloader;
 import com.beetle.bauhinia.tools.FileCache;
-
 import com.beetle.bauhinia.tools.Outbox;
-import com.beetle.im.Timer;
+import com.beetle.im.IMMessage;
+import com.beetle.im.IMService;
+import com.beetle.im.IMServiceObserver;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
 
 
-import static android.os.SystemClock.uptimeMillis;
+/**
+ * Created by houxh on 15/3/21.
+ */
+public class GroupMessageActivity extends MessageActivity implements IMServiceObserver {
 
-
-public class PeerMessageActivity extends MessageActivity implements IMServiceObserver {
-
-    public static final String SEND_MESSAGE_NAME = "send_message";
-    public static final String CLEAR_MESSAGES = "clear_messages";
+    public static final String SEND_MESSAGE_NAME = "send_group_message";
+    public static final String CLEAR_MESSAGES = "clear_group_messages";
 
     private final int PAGE_SIZE = 10;
 
     protected long currentUID;
-    protected long peerUID;
-    protected String peerName;
+    protected long groupID;
+    protected String groupName;
 
-    public PeerMessageActivity() {
+    public GroupMessageActivity() {
         super();
         sendNotificationName = SEND_MESSAGE_NAME;
         clearNotificationName = CLEAR_MESSAGES;
+        isShowUserName = true;
     }
 
     @Override
@@ -51,22 +52,22 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             Log.e(TAG, "current uid is 0");
             return;
         }
-        peerUID = intent.getLongExtra("peer_uid", 0);
-        if (peerUID == 0) {
+        groupID = intent.getLongExtra("group_id", 0);
+        if (groupID == 0) {
             Log.e(TAG, "peer uid is 0");
             return;
         }
-        peerName = intent.getStringExtra("peer_name");
-        if (peerName == null) {
+        groupName = intent.getStringExtra("group_name");
+        if (groupName == null) {
             Log.e(TAG, "peer name is null");
             return;
         }
 
         this.sender = currentUID;
-        this.receiver = peerUID;
+        this.receiver = groupID;
 
         this.loadConversationData();
-        titleView.setText(peerName);
+        titleView.setText(groupName);
 
         IMService.getInstance().addObserver(this);
     }
@@ -78,16 +79,33 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         IMService.getInstance().removeObserver(this);
     }
 
+    protected String getUserName(long uid) {
+        return "...";
+    }
+
+    private void loadUserName(long uid) {
+        if (names.containsKey(uid)) {
+            return;
+        }
+
+        String name = getUserName(uid);
+        if (!TextUtils.isEmpty(name)) {
+            names.put(uid, name);
+        }
+    }
+
     protected void loadConversationData() {
         messages = new ArrayList<IMessage>();
 
         int count = 0;
-        MessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID);
+        MessageIterator iter = GroupMessageDB.getInstance().newMessageIterator(groupID);
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
                 break;
             }
+            loadUserName(msg.sender);
+            updateNotificationDesc(msg);
             messages.add(0, msg);
             if (++count >= PAGE_SIZE) {
                 break;
@@ -102,12 +120,14 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
 
         IMessage firsMsg = messages.get(0);
         int count = 0;
-        MessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID, firsMsg.msgLocalID);
+        MessageIterator iter = GroupMessageDB.getInstance().newMessageIterator(groupID, firsMsg.msgLocalID);
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
                 break;
             }
+            loadUserName(msg.sender);
+            updateNotificationDesc(msg);
             messages.add(0, msg);
             if (++count >= PAGE_SIZE) {
                 break;
@@ -130,42 +150,11 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
     }
 
     public void onPeerInputting(long uid) {
-        if (uid == peerUID) {
-            setSubtitle("对方正在输入");
-            Timer t = new Timer() {
-                @Override
-                protected void fire() {
-                    setSubtitle();
-                }
-            };
-            long start = uptimeMillis() + 10*1000;
-            t.setTimer(start);
-            t.resume();
-        }
+
     }
 
     public void onPeerMessage(IMMessage msg) {
-        if (msg.sender != peerUID) {
-            return;
-        }
-        Log.i(TAG, "recv msg:" + msg.content);
-        final IMessage imsg = new IMessage();
-        imsg.timestamp = now();
-        imsg.msgLocalID = msg.msgLocalID;
-        imsg.sender = msg.sender;
-        imsg.receiver = msg.receiver;
-        imsg.setContent(msg.content);
-        messages.add(imsg);
 
-        adapter.notifyDataSetChanged();
-        listview.smoothScrollToPosition(messages.size()-1);
-        if (imsg.content instanceof IMessage.Audio) {
-            try {
-                AudioDownloader.getInstance().downloadAudio(imsg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
     private IMessage findMessage(int msgLocalID) {
         for (IMessage imsg : messages) {
@@ -177,7 +166,41 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
     }
 
     public void onPeerMessageACK(int msgLocalID, long uid) {
-        if (peerUID != uid) {
+
+    }
+    public void onPeerMessageRemoteACK(int msgLocalID, long uid) {
+
+    }
+
+    public void onPeerMessageFailure(int msgLocalID, long uid) {
+
+    }
+
+    public void onGroupMessage(IMMessage msg) {
+        if (msg.receiver != groupID) {
+            return;
+        }
+        Log.i(TAG, "recv msg:" + msg.content);
+        final IMessage imsg = new IMessage();
+        imsg.timestamp = now();
+        imsg.msgLocalID = msg.msgLocalID;
+        imsg.sender = msg.sender;
+        imsg.receiver = msg.receiver;
+        imsg.setContent(msg.content);
+
+        loadUserName(imsg.sender);
+        insertMessage(imsg);
+        if (imsg.content instanceof IMessage.Audio) {
+            try {
+                AudioDownloader.getInstance().downloadAudio(imsg);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void onGroupMessageACK(int msgLocalID, long gid) {
+        if (gid != groupID) {
             return;
         }
         Log.i(TAG, "message ack");
@@ -190,23 +213,9 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_ACK;
         adapter.notifyDataSetChanged();
     }
-    public void onPeerMessageRemoteACK(int msgLocalID, long uid) {
-        if (peerUID != uid) {
-            return;
-        }
-        Log.i(TAG, "message remote ack");
 
-        IMessage imsg = findMessage(msgLocalID);
-        if (imsg == null) {
-            Log.i(TAG, "can't find msg:" + msgLocalID);
-            return;
-        }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_PEER_ACK;
-        adapter.notifyDataSetChanged();
-    }
-
-    public void onPeerMessageFailure(int msgLocalID, long uid) {
-        if (peerUID != uid) {
+    public void onGroupMessageFailure(int msgLocalID, long gid) {
+        if (gid != groupID) {
             return;
         }
         Log.i(TAG, "message failure");
@@ -220,29 +229,53 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         adapter.notifyDataSetChanged();
     }
 
-    public void onGroupMessage(IMMessage msg) {
+    public void onGroupNotification(String text) {
+        IMessage.GroupNotification notification = IMessage.newGroupNotification(text);
 
-    }
-    public void onGroupMessageACK(int msgLocalID, long uid) {
+        IMessage imsg = new IMessage();
+        imsg.sender = 0;
+        imsg.receiver = groupID;
+        imsg.timestamp = now();
+        imsg.setContent(notification);
 
-    }
-    public void onGroupMessageFailure(int msgLocalID, long uid) {
+        updateNotificationDesc(imsg);
 
+        insertMessage(imsg);
     }
-    public void onGroupNotification(String notification) {
 
+    private void updateNotificationDesc(IMessage imsg) {
+        if (imsg.content.getType() != IMessage.MessageType.MESSAGE_GROUP_NOTIFICATION) {
+            return;
+        }
+
+        IMessage.GroupNotification notification = (IMessage.GroupNotification)imsg.content;
+        if (notification.type == IMessage.GroupNotification.NOTIFICATION_GROUP_CREATED) {
+            if (notification.master == currentUID) {
+                notification.description = String.format("您创建了\"%s\"群组", notification.groupName);
+            } else {
+                notification.description = String.format("您加入了\"%s\"群组", notification.groupName);
+            }
+        } else if (notification.type == IMessage.GroupNotification.NOTIFICATION_GROUP_DISBAND) {
+            notification.description = "群组已解散";
+        } else if (notification.type == IMessage.GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED) {
+            notification.description = String.format("\"%s\"加入群", getUserName(notification.member));
+        } else if (notification.type == IMessage.GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED) {
+            notification.description = String.format("\"%s\"离开群", getUserName(notification.member));
+        }
     }
+
+
 
     void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
             Outbox ob = Outbox.getInstance();
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
-            ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
+            ob.uploadGroupAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
         } else if (imsg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
             IMessage.Image image = (IMessage.Image)imsg.content;
             //prefix:"file:"
             String path = image.image.substring(5);
-            Outbox.getInstance().uploadImage(imsg, path);
+            Outbox.getInstance().uploadGroupImage(imsg, path);
         } else {
             IMMessage msg = new IMMessage();
             msg.sender = imsg.sender;
@@ -250,16 +283,12 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             msg.content = imsg.content.getRaw();
             msg.msgLocalID = imsg.msgLocalID;
             IMService im = IMService.getInstance();
-            im.sendPeerMessage(msg);
+            im.sendGroupMessage(msg);
         }
     }
 
     void saveMessage(IMessage imsg) {
-        if (imsg.sender == this.currentUID) {
-            PeerMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
-        } else {
-            PeerMessageDB.getInstance().insertMessage(imsg, imsg.sender);
-        }
+        GroupMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
     }
 
     void markMessageFailure(IMessage imsg) {
@@ -269,11 +298,12 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         } else {
             cid = imsg.sender;
         }
-        PeerMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, cid);
+        GroupMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, cid);
     }
 
     void clearConversation() {
-        PeerMessageDB db = PeerMessageDB.getInstance();
-        db.clearCoversation(this.peerUID);
+        GroupMessageDB db = GroupMessageDB.getInstance();
+        db.clearCoversation(this.groupID);
     }
+
 }

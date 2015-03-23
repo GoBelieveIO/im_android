@@ -10,24 +10,8 @@ android {
         versionCode 1020
         versionName "1.0.2"
     }
-    signingConfigs {
-        release {
-            storeFile file("/Users/walker/Dropbox/NGDS_Android/Project/push_newgame/UserGuide/Release/ngds.keystore")
-            storePassword "ngdsngds"
-            keyAlias "ngds"
-            keyPassword "ngdsngds"
-        }
-    }
-    buildTypes {
-        release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-            signingConfig signingConfigs.release
-            applicationVariants.all { variant ->
-                appendVersionNameVersionCode(variant, defaultConfig)
-            }
-        }
-    }
+
+
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -45,9 +29,6 @@ dependencies {
 
     compile 'com.android.support:appcompat-v7:21.+'
     compile 'com.android.support:appcompat-v7:21.0.2'
-
-    //compile 'com.android.support:appcompat-v7:21.+'
-
 
     compile 'com.google.code.gson:gson:2.+'
     compile 'com.netflix.rxjava:rxjava-core:0.17.+'

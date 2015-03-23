@@ -1,11 +1,11 @@
 package com.beetle.im;
 
 /**
- * Created by houxh on 14-7-23.
+ * Created by houxh on 15/3/21.
  */
-public interface IMPeerMessageHandler {
+public interface GroupMessageHandler {
     public boolean handleMessage(IMMessage msg);
     public boolean handleMessageACK(int msgLocalID, long uid);
-    public boolean handleMessageRemoteACK(int msgLocalID, long uid);
     public boolean handleMessageFailure(int msgLocalID, long uid);
+    public boolean handleGroupNotification(String notification);
 }

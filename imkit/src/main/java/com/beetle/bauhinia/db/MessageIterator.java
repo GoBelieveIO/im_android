@@ -1,15 +1,17 @@
 package com.beetle.bauhinia.db;
 
-
 import android.util.Log;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-public class PeerMessageIterator {
+/**
+ * Created by houxh on 15/3/21.
+ */
+public class MessageIterator {
     private ReverseFile revFile;
 
-    public PeerMessageIterator(RandomAccessFile f) throws IOException {
+    public MessageIterator(RandomAccessFile f) throws IOException {
         if (!MessageDB.checkHeader(f)) {
             Log.i("imservice", "check header fail");
             return;
@@ -17,7 +19,7 @@ public class PeerMessageIterator {
         this.revFile = new ReverseFile(f);
     }
 
-    public PeerMessageIterator(RandomAccessFile f, int lastMsgID) throws IOException {
+    public MessageIterator(RandomAccessFile f, int lastMsgID) throws IOException {
         if (!MessageDB.checkHeader(f)) {
             Log.i("imservice", "check header fail");
             return;

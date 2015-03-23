@@ -1,14 +1,13 @@
 package com.beetle.bauhinia.db;
 
 import com.beetle.im.IMMessage;
-import com.beetle.im.IMPeerMessageHandler;
 
 import java.util.Date;
 
 /**
  * Created by houxh on 14-7-22.
  */
-public class PeerMessageHandler implements IMPeerMessageHandler {
+public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
     private static PeerMessageHandler instance = new PeerMessageHandler();
 
     public static PeerMessageHandler getInstance() {

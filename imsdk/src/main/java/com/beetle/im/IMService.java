@@ -60,9 +60,11 @@ public class IMService {
     private String token;
     private String deviceID;
 
-    IMPeerMessageHandler peerMessageHandler;
+    PeerMessageHandler peerMessageHandler;
+    GroupMessageHandler groupMessageHandler;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
+    HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
 
     private byte[] data;
 
@@ -119,12 +121,7 @@ public class IMService {
     public ConnectState getConnectState() {
         return connectState;
     }
-    public void setHost(String host) {
-        this.host = host;
-    }
-    public void setPort(int port) {
-        this.port = port;
-    }
+
     public void setToken(String token) {
         this.token = token;
     }
@@ -132,8 +129,11 @@ public class IMService {
         this.deviceID = deviceID;
     }
 
-    public void setPeerMessageHandler(IMPeerMessageHandler handler) {
+    public void setPeerMessageHandler(PeerMessageHandler handler) {
         this.peerMessageHandler = handler;
+    }
+    public void setGroupMessageHandler(GroupMessageHandler handler) {
+        this.groupMessageHandler = handler;
     }
 
     public void addObserver(IMServiceObserver ob) {
@@ -229,6 +229,18 @@ public class IMService {
         }
 
         peerMessages.put(new Integer(msg.seq), im);
+        return true;
+    }
+
+    public boolean sendGroupMessage(IMMessage im) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_GROUP_IM;
+        msg.body = im;
+        if (!sendMessage(msg)) {
+            return false;
+        }
+
+        groupMessages.put(new Integer(msg.seq), im);
         return true;
     }
 
@@ -403,31 +415,85 @@ public class IMService {
         sendMessage(ack);
     }
 
+    private void handleGroupIMMessage(Message msg) {
+        IMMessage im = (IMMessage)msg.body;
+        Log.d(TAG, "group im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
+        if (groupMessageHandler != null && !groupMessageHandler.handleMessage(im)) {
+            Log.i(TAG, "handle im message fail");
+            return;
+        }
+        publishGroupMessage(im);
+        Message ack = new Message();
+        ack.cmd = Command.MSG_ACK;
+        ack.body = new Integer(msg.seq);
+        sendMessage(ack);
+    }
+
+    private void handleGroupNotification(Message msg) {
+        String notification = (String)msg.body;
+        Log.d(TAG, "group notification:" + notification);
+        if (groupMessageHandler != null && !groupMessageHandler.handleGroupNotification(notification)) {
+            Log.i(TAG, "handle group notification fail");
+            return;
+        }
+        publishGroupNotification(notification);
+
+        Message ack = new Message();
+        ack.cmd = Command.MSG_ACK;
+        ack.body = new Integer(msg.seq);
+        sendMessage(ack);
+
+    }
     private void handleClose() {
         Iterator iter = peerMessages.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
             IMMessage im = entry.getValue();
-            peerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+            if (peerMessageHandler != null) {
+                peerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+            }
             publishPeerMessageFailure(im.msgLocalID, im.receiver);
         }
+
+
         peerMessages.clear();
+
+        iter = groupMessages.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
+            IMMessage im = entry.getValue();
+            if (groupMessageHandler != null) {
+                groupMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+            }
+            publishGroupMessageFailure(im.msgLocalID, im.receiver);
+        }
+        groupMessages.clear();
+
         close();
     }
 
     private void handleACK(Message msg) {
         Integer seq = (Integer)msg.body;
         IMMessage im = peerMessages.get(seq);
-        if (im == null) {
+        if (im != null) {
+            if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+                Log.w(TAG, "handle message ack fail");
+                return;
+            }
+            peerMessages.remove(seq);
+            publishPeerMessageACK(im.msgLocalID, im.receiver);
             return;
         }
+        im = groupMessages.get(seq);
+        if (im != null) {
 
-        if (!peerMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
-            Log.w(TAG, "handle message ack fail");
-            return;
+            if (groupMessageHandler != null && !groupMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+                Log.i(TAG, "handle group message ack fail");
+                return;
+            }
+            groupMessages.remove(seq);
+            publishGroupMessageACK(im.msgLocalID, im.receiver);
         }
-        peerMessages.remove(seq);
-        publishPeerMessageACK(im.msgLocalID, im.receiver);
     }
 
     private void handlePeerACK(Message msg) {
@@ -463,6 +529,10 @@ public class IMService {
             handleInputting(msg);
         } else if (msg.cmd == Command.MSG_PONG) {
             handlePong(msg);
+        } else if (msg.cmd == Command.MSG_GROUP_IM) {
+            handleGroupIMMessage(msg);
+        } else if (msg.cmd == Command.MSG_GROUP_NOTIFICATION) {
+            handleGroupNotification(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
@@ -549,6 +619,35 @@ public class IMService {
         System.arraycopy(p, 0, buf, 4, p.length);
         this.tcp.writeData(buf);
         return true;
+    }
+
+    private void publishGroupNotification(String notification) {
+        for (int i = 0; i < observers.size(); i++ ) {
+            IMServiceObserver ob = observers.get(i);
+            ob.onGroupNotification(notification);
+        }
+    }
+
+    private void publishGroupMessage(IMMessage msg) {
+        for (int i = 0; i < observers.size(); i++ ) {
+            IMServiceObserver ob = observers.get(i);
+            ob.onGroupMessage(msg);
+        }
+    }
+
+    private void publishGroupMessageACK(int msgLocalID, long gid) {
+        for (int i = 0; i < observers.size(); i++ ) {
+            IMServiceObserver ob = observers.get(i);
+            ob.onGroupMessageACK(msgLocalID, gid);
+        }
+    }
+
+
+    private void publishGroupMessageFailure(int msgLocalID, long gid) {
+        for (int i = 0; i < observers.size(); i++ ) {
+            IMServiceObserver ob = observers.get(i);
+            ob.onGroupMessageFailure(msgLocalID, gid);
+        }
     }
 
     private void publishPeerMessage(IMMessage msg) {

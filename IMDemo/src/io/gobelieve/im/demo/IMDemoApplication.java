@@ -1,8 +1,7 @@
-package cn.ngds.im.demo;
+package io.gobelieve.im.demo;
 
 import android.app.Application;
 import android.provider.Settings;
-import android.util.Log;
 
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageHandler;
