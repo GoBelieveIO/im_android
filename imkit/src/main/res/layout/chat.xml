@@ -10,8 +10,6 @@
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         android:layout_gravity="left"
-        app:navigationIcon="@drawable/ic_activity_back"
-        android:navigationIcon="@drawable/ic_activity_back"
         android:background="@color/theme_primary"
         >
         <LinearLayout

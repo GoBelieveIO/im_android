@@ -32,7 +32,6 @@ public class BaseActivity extends ActionBarActivity {
         actionBar = getSupportActionBar();
         if (actionBar != null) {
             if (canBack()) {
-                actionBar.setHomeAsUpIndicator(R.drawable.ic_activity_back);
                 actionBar.setDisplayHomeAsUpEnabled(true);
             } else {
                 actionBar.setDisplayHomeAsUpEnabled(false);
