@@ -18,7 +18,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import com.beetle.push.core.log.NgdsLog;
-import com.beetle.push.core.util.NgdsUtils;
+import com.beetle.push.core.util.Utils;
 import com.beetle.push.type.PushInfo;
 
 public class SmartPushNotification {
@@ -111,7 +111,7 @@ public class SmartPushNotification {
                 .setOngoing(!pushInfo.isClearable())
                 .setTicker(pushInfo.getTitle() + ":" + pushInfo.getContent())
                 .setContentIntent(pendingIntent)
-                .setLargeIcon(((BitmapDrawable) NgdsUtils.getAppIconDrable(mContext)).getBitmap());
+                .setLargeIcon(((BitmapDrawable) Utils.getAppIconDrable(mContext)).getBitmap());
 
             notification = ntBuilder.getNotification();
         } else {
@@ -136,7 +136,7 @@ public class SmartPushNotification {
             notification.defaults |= Notification.DEFAULT_VIBRATE;
         }
         // small icon
-        int statDrawable = NgdsUtils.getAppIcon(mContext);
+        int statDrawable = Utils.getAppIcon(mContext);
         notification.icon = statDrawable;
 
         NotificationManager manager = (NotificationManager) mContext
@@ -163,7 +163,7 @@ public class SmartPushNotification {
 
             if (pushInfo.getOptionParams() != null) {
                 try {
-                    Bundle extras = NgdsUtils.parseJSON2Bundle(pushInfo.getOptionParams());
+                    Bundle extras = Utils.parseJSON2Bundle(pushInfo.getOptionParams());
                     localIntent.putExtras(extras);
                 } catch (Exception e) {
                     // 服务端返回"{}"，不用处理
@@ -200,7 +200,7 @@ public class SmartPushNotification {
 
             if (pushInfo.getOptionParams() != null) {
                 try {
-                    Bundle extras = NgdsUtils.parseJSON2Bundle(pushInfo.getOptionParams());
+                    Bundle extras = Utils.parseJSON2Bundle(pushInfo.getOptionParams());
                     intent.putExtras(extras);
                 } catch (Exception e) {
                     // 服务端返回"{}"，不用处理

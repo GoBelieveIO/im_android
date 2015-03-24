@@ -16,7 +16,7 @@ import com.beetle.push.util.NetWorkUtil;
 import com.beetle.push.face.SmartPushServiceInterface;
 import com.beetle.push.connect.IoLoop;
 import com.beetle.push.core.log.NgdsLog;
-import com.beetle.push.core.util.NgdsUtils;
+import com.beetle.push.core.util.Utils;
 import com.beetle.push.core.util.io.IoUtil;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -105,7 +105,7 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
 
     @Override
     public void onNetworkChange(Context context) {
-        if (NgdsUtils.isOnNet(context)) {
+        if (Utils.isOnNet(context)) {
             mClient.stop();
             mClient.start();
         } else {
@@ -203,11 +203,11 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
         }
         mClient.setHost(DefaultConsts.HOST);
         mClient.setPort(DefaultConsts.PORT);
-        String appid = NgdsUtils.loadAppId(context);
-        String appkey = NgdsUtils.loadAppKey(context);
+        String appid = Utils.loadAppId(context);
+        String appkey = Utils.loadAppKey(context);
         mClient.setAppID(Long.parseLong(appid));
         mClient.setAppKey(appkey);
-        if (NgdsUtils.isOnNet(context)) {
+        if (Utils.isOnNet(context)) {
             mClient.start();
         }
     }

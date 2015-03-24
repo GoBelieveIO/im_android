@@ -9,7 +9,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
-import com.beetle.push.core.util.NgdsSharePreferenceHelper;
+import com.beetle.push.core.util.SharePreferenceHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -115,7 +115,7 @@ public class PhoneModelUtil {
 
     private static void changeTipIsShown(Context context) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(FILE_NAME, 0);
-        NgdsSharePreferenceHelper.save(sharedPreferences, TIP_IS_SHOWN, true);
+        SharePreferenceHelper.save(sharedPreferences, TIP_IS_SHOWN, true);
     }
 
     private static boolean isNeedShowSettingStartTip(Context context) {

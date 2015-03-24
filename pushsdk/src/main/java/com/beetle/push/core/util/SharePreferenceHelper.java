@@ -9,7 +9,7 @@ import com.beetle.push.core.log.NgdsLog;
  * Author:walker lx
  * email:lixinforlove@gmail.com
  */
-public class NgdsSharePreferenceHelper {
+public class SharePreferenceHelper {
     private final static String TAG = "SharePreferenceHelper";
 
     public static void save(SharedPreferences sharedPreferences, String key, Object value) {

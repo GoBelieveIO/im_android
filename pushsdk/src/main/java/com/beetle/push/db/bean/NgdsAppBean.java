@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.text.TextUtils;
 import com.beetle.push.db.NgdsPushDataConsts;
 import com.beetle.push.core.log.NgdsLog;
-import com.beetle.push.core.util.NgdsSharePreferenceHelper;
+import com.beetle.push.core.util.SharePreferenceHelper;
 import com.beetle.push.core.util.io.IoUtil;
 
 import java.util.Arrays;
@@ -44,7 +44,7 @@ public class NgdsAppBean implements NgdsPushDataConsts {
         if (!Arrays.equals(mDeviceToken, deviceToken)) {
             mDeviceToken = deviceToken;
         }
-        NgdsSharePreferenceHelper
+        SharePreferenceHelper
             .save(mSharedPreferences, PushSharePreferenceKey.DEVICE_TOKEN,
                 IoUtil.bin2Hex(deviceToken));
     }

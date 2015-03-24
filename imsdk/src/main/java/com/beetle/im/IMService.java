@@ -5,12 +5,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.util.Log;
 import com.beetle.AsyncTCP;
 import com.beetle.TCPConnectCallback;
 import com.beetle.TCPReadCallback;
-import com.beetle.push.core.util.NgdsUtils;
+
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -97,7 +99,7 @@ public class IMService {
         class NetworkReceiver extends BroadcastReceiver {
             @Override
             public void onReceive (Context context, Intent intent) {
-                if (NgdsUtils.isOnNet(context)) {
+                if (isOnNet(context)) {
                     Log.i(TAG, "connectivity status:on");
                     if (!IMService.this.stopped && !IMService.this.isBackground) {
                         Log.i(TAG, "reconnect");
@@ -110,6 +112,21 @@ public class IMService {
                     }
                 }
             }
+            boolean isOnNet(Context context) {
+                if (null == context) {
+                    Log.e("", "context is null");
+                    return false;
+                }
+                boolean isOnNet = false;
+                ConnectivityManager connectivityManager = (ConnectivityManager) context
+                        .getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
+                if (null != activeNetInfo) {
+                    isOnNet = activeNetInfo.isConnected();
+                }
+                return isOnNet;
+            }
+
         };
 
         NetworkReceiver  receiver = new NetworkReceiver();
