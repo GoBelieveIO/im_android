@@ -19,7 +19,7 @@ package com.beetle.push;
 
 
 public class DefaultConsts {
-    public final static String HOST = "pushnode.gameservice.com";
+    public final static String HOST = "pushnode.gobelieve.io";
 
     public final static int PORT = 6225;
 }
