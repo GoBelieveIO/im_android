@@ -15,8 +15,8 @@ import java.util.List;
  * NgdsLogHandler
  * 处理将日志写入文件的工作
  */
-public class NgdsLogFileHandler {
-    private final static String TAG = "NgdsLogFileHandler";
+public class LogFileHandler {
+    private final static String TAG = "LogFileHandler";
 
     //防止日志丢失,采用两个日志文件轮流进行写入
     private static File mLogFilePartOne;
@@ -24,7 +24,7 @@ public class NgdsLogFileHandler {
     private static File mCurrentLogFile;
     private static FileWriter mFileWriter;
 
-    private static NgdsLogFileHandler mNgdsLog;
+    private static LogFileHandler mNgdsLog;
     private List<String> mLogList;
 
     private Date mDate;
@@ -32,11 +32,11 @@ public class NgdsLogFileHandler {
     private Context mContext;
     private String mLogFileName;
 
-    public static NgdsLogFileHandler getInstance() {
+    public static LogFileHandler getInstance() {
         if (null == mNgdsLog) {
-            synchronized (NgdsLogFileHandler.class) {
+            synchronized (LogFileHandler.class) {
                 if (null == mNgdsLog) {
-                    mNgdsLog = new NgdsLogFileHandler();
+                    mNgdsLog = new LogFileHandler();
                 }
             }
         }
@@ -49,7 +49,7 @@ public class NgdsLogFileHandler {
         initIO();
     }
 
-    private NgdsLogFileHandler() {
+    private LogFileHandler() {
         mLogList = new ArrayList<String>();
         mDate = new Date();
     }

@@ -4,18 +4,18 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 import android.os.PowerManager;
-import android.util.Log;
+
 import com.beetle.push.DefaultConsts;
 import com.beetle.push.connect.Protocol;
 import com.beetle.push.connect.PushClient;
 import com.beetle.push.connect.PushClientObserver;
-import com.beetle.push.db.bean.NgdsAppBean;
+import com.beetle.push.core.log.PushLog;
+import com.beetle.push.db.AppBean;
 import com.beetle.push.type.PushInfo;
 import com.beetle.push.ui.SmartPushNotification;
 import com.beetle.push.util.NetWorkUtil;
 import com.beetle.push.face.SmartPushServiceInterface;
 import com.beetle.push.connect.IoLoop;
-import com.beetle.push.core.log.NgdsLog;
 import com.beetle.push.core.util.Utils;
 import com.beetle.push.core.util.io.IoUtil;
 import org.json.JSONException;
@@ -45,7 +45,7 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
     public void onServiceCreate(Context context) {
         initServiceContext(context);
         System.out.println("local onServiceCreate");
-        NgdsLog.initFileLoger(context, "pushv2");
+        PushLog.initFileLoger(context, "pushv2");
         try {
             IoLoop loop = IoLoop.getDefaultLoop();
             if (!loop.isAlive()) {
@@ -54,7 +54,7 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
             }
         } catch (IOException e) {
             e.printStackTrace();
-            NgdsLog.d(TAG, "registerService io loop fail");
+            PushLog.d(TAG, "registerService io loop fail");
             return;
         }
 
@@ -73,7 +73,7 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
         IoLoop.getDefaultLoop().asyncSend(new IoLoop.IoRunnable() {
             @Override
             public void run() {
-                NgdsLog.d(TAG, "ioloop thread wakeup");
+                PushLog.d(TAG, "ioloop thread wakeup");
                 mClient.sendPing();
             }
         });
@@ -82,13 +82,13 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
     @Override
     public byte[] onP2PConnected(Context context) {
         byte[] deviceToken =
-            NgdsAppBean.getInstance(context).getDeivceToken();
+            AppBean.getInstance(context).getDeivceToken();
         return deviceToken;
     }
 
     @Override
     public void onServiceDestroy(Context context) {
-        NgdsLog.d(TAG, "master service destroy");
+        PushLog.d(TAG, "master service destroy");
         mClient.stop();
         mPushServiceContext = null;
     }
@@ -117,7 +117,7 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
     @Override
     public void onShowNotification(Context context, Object notification) {
         if (null == notification) {
-            NgdsLog.d(TAG, "object is null");
+            PushLog.d(TAG, "object is null");
             return;
         }
         Protocol.Notification notificationIns = (Protocol.Notification) notification;
@@ -125,7 +125,7 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
             String json = new String(notificationIns.content, Charset.forName("UTF-8"));
             JSONObject jsonObject = new JSONObject(json);
             PushInfo pushInfo = new PushInfo(jsonObject);
-            NgdsLog.d(TAG, "receive notification:" + json);
+            PushLog.d(TAG, "receive notification:" + json);
             // 透传消息直接处理
             if (pushInfo.getType() == PushInfo.PUSH_TYPE_DELIVER) {
                 try {
@@ -150,10 +150,10 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
     @Override
     public void onDeviceToken(byte[] deviceToken) {
         if (null == mPushServiceContext) {
-            NgdsLog.d(TAG, "SmartPushService is empty");
+            PushLog.d(TAG, "SmartPushService is empty");
             return;
         }
-        NgdsAppBean.getInstance(mPushServiceContext).setDeviceToken(deviceToken);
+        AppBean.getInstance(mPushServiceContext).setDeviceToken(deviceToken);
         try {
             Method methodOnDeviceToken =
                 mPushServiceContext.getClass().getMethod("onDeviceToken", byte[].class);
@@ -170,7 +170,7 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
     @Override
     public void onPushMessage(Protocol.Notification notification) {
         if (null == mPushServiceContext) {
-            Log.d(TAG, "SmartPushService is empty");
+            android.util.Log.d(TAG, "SmartPushService is empty");
             return;
         }
         try {
@@ -196,10 +196,10 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
 
         mClient = new PushClient(this, wakelock);
 
-        byte[] deviceToken = NgdsAppBean.getInstance(context).getDeivceToken();
+        byte[] deviceToken = AppBean.getInstance(context).getDeivceToken();
         if (null != deviceToken) {
             mClient.setDeviceToken(deviceToken);
-            NgdsLog.d(TAG, "token:" + IoUtil.bin2HexForTest(deviceToken));
+            PushLog.d(TAG, "token:" + IoUtil.bin2HexForTest(deviceToken));
         }
         mClient.setHost(DefaultConsts.HOST);
         mClient.setPort(DefaultConsts.PORT);

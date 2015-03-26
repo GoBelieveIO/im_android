@@ -2,7 +2,7 @@ package com.beetle.push.connect;
 
 
 
-import com.beetle.push.core.log.NgdsLog;
+import com.beetle.push.core.log.PushLog;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -85,7 +85,7 @@ public class TCP implements IoLoop.Handler {
             selectionKey = null;
             return socketChannel;
         } catch (IOException e) {
-            NgdsLog.d(TAG, "configure socket exception:" + e);
+            PushLog.d(TAG, "configure socket exception:" + e);
             return null;
         }
     }
@@ -97,7 +97,7 @@ public class TCP implements IoLoop.Handler {
             selectionKey = socketChannel.register(selector, interestOps);
             selectionKey.attach(this);
         } catch (IOException e) {
-            NgdsLog.d(TAG, "configure socket exception:" + e);
+            PushLog.d(TAG, "configure socket exception:" + e);
         }
     }
 
@@ -110,7 +110,7 @@ public class TCP implements IoLoop.Handler {
     }
 
     public void handleEvent(SelectionKey key) {
-        NgdsLog.d(TAG, "socket readyops:" + key.readyOps());
+        PushLog.d(TAG, "socket readyops:" + key.readyOps());
         if (key.isConnectable() && socketChannel.isConnectionPending()) {
             handleConnect();
             return;
@@ -125,7 +125,7 @@ public class TCP implements IoLoop.Handler {
     }
 
     private void handleConnect() {
-        NgdsLog.d(TAG, "socket connected");
+        PushLog.d(TAG, "socket connected");
         try {
             this.socketChannel.finishConnect();
             selectionKey.interestOps(0);
@@ -146,10 +146,10 @@ public class TCP implements IoLoop.Handler {
         try {
             int nwrite = socketChannel.write(toWrite);
             if (nwrite == 0) {
-                NgdsLog.d(TAG, "write 0....");
+                PushLog.d(TAG, "write 0....");
             }
             int nleft = data.length - nwrite;
-            NgdsLog.d(TAG, "write data left:" + nleft);
+            PushLog.d(TAG, "write data left:" + nleft);
             if (nleft > 0) {
                 byte[] tmp = new byte[nleft];
                 System.arraycopy(data, nwrite, tmp, 0, nleft);
@@ -159,7 +159,7 @@ public class TCP implements IoLoop.Handler {
                 setInterestedInWrite(false);
             }
         } catch (IOException e) {
-            NgdsLog.d(TAG, "write exception:" + e);
+            PushLog.d(TAG, "write exception:" + e);
             setInterestedInWrite(false);
 
             if (this.writeExceptionCallback != null) {
@@ -171,7 +171,7 @@ public class TCP implements IoLoop.Handler {
     private void handleRead() {
         ByteBuffer readBuffer = ByteBuffer.allocate(64 * 1024);
         try {
-            NgdsLog.d(TAG, "read......");
+            PushLog.d(TAG, "read......");
 
             int nread = socketChannel.read(readBuffer);
             if (nread < 0) {
@@ -179,7 +179,7 @@ public class TCP implements IoLoop.Handler {
                 return;
             }
             if (nread == 0) {
-                NgdsLog.d(TAG, "read 0...");
+                PushLog.d(TAG, "read 0...");
                 return;
             }
 
@@ -188,7 +188,7 @@ public class TCP implements IoLoop.Handler {
             readBuffer.get(tmp);
             this.readCallback.onRead(this, tmp);
         } catch (IOException e) {
-            NgdsLog.d(TAG, "read exception:" + e);
+            PushLog.d(TAG, "read exception:" + e);
             this.readCallback.onRead(this, null);
         }
     }
@@ -200,7 +200,7 @@ public class TCP implements IoLoop.Handler {
 
     public void close() {
         try {
-            NgdsLog.d(TAG, "close tcp");
+            PushLog.d(TAG, "close tcp");
             if (selectionKey != null) {
                 selectionKey.cancel();
             }
@@ -208,7 +208,7 @@ public class TCP implements IoLoop.Handler {
                 socketChannel.close();
             }
         } catch (IOException e) {
-            NgdsLog.d(TAG, "close exception:" + e);
+            PushLog.d(TAG, "close exception:" + e);
         }
     }
 
@@ -220,7 +220,7 @@ public class TCP implements IoLoop.Handler {
         this.data = tmp;
 
         setInterestedInWrite(true);
-        NgdsLog.d(TAG, "write data left:" + data.length);
+        PushLog.d(TAG, "write data left:" + data.length);
     }
 
     private void setInterestedInRead(boolean isInterested) {
@@ -265,6 +265,6 @@ public class TCP implements IoLoop.Handler {
             str = str + "|SelectionKey.OP_CONNECT";
         if ((newInterestOps & SelectionKey.OP_ACCEPT) != 0)
             str = str + "|SelectionKey.OP_ACCEPT";
-        NgdsLog.d(TAG, "interest ops:" + str);
+        PushLog.d(TAG, "interest ops:" + str);
     }
 }

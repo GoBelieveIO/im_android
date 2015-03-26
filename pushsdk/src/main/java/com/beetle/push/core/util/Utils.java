@@ -32,9 +32,8 @@ import java.util.UUID;
  * @author 曾广贤 (muroqiu@qq.com)
  */
 public class Utils {
-    private static final String META_APPID = "NGDS_APPID";
-    private static final String META_APPKEY = "NGDS_APPKEY";
-    private static final String META_CHANNEL = "NGDS_CHANNEL";
+    private static final String META_APPID = "GOBELIEVE_APPID";
+    private static final String META_APPKEY = "GOBELIEVE_APPKEY";
 
 
     /**

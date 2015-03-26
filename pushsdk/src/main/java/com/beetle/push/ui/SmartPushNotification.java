@@ -17,7 +17,8 @@ import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
-import com.beetle.push.core.log.NgdsLog;
+
+import com.beetle.push.core.log.PushLog;
 import com.beetle.push.core.util.Utils;
 import com.beetle.push.type.PushInfo;
 
@@ -37,7 +38,7 @@ public class SmartPushNotification {
      * @param pushInfo
      */
     public void showNotification(PushInfo pushInfo) {
-        NgdsLog.d(TAG, "in show notification");
+        PushLog.d(TAG, "in show notification");
         if (pushInfo == null) {
             return;
         }
@@ -99,7 +100,7 @@ public class SmartPushNotification {
             pendingIntent = PendingIntent.getActivity(mContext, 0,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
         } else {
-            NgdsLog.d(TAG, "intent is null ");
+            PushLog.d(TAG, "intent is null ");
         }
         Notification notification = null;
 
@@ -152,7 +153,7 @@ public class SmartPushNotification {
      */
     private Intent getIntentOfStartApp(PushInfo pushInfo, String packageName) {
         if (TextUtils.isEmpty(packageName)) {
-            NgdsLog.e(TAG, "packageName is null");
+            PushLog.e(TAG, "packageName is null");
             return null;
         }
         PackageManager localPackageManager = mContext.getPackageManager();
@@ -170,7 +171,7 @@ public class SmartPushNotification {
                 }
             }
         } else {
-            NgdsLog.e(TAG, "incorrect notification packageName is:" + packageName);
+            PushLog.e(TAG, "incorrect notification packageName is:" + packageName);
         }
 
         return localIntent;

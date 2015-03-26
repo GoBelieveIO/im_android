@@ -1,7 +1,8 @@
 package com.beetle.push.core.util;
 
 import android.content.SharedPreferences;
-import com.beetle.push.core.log.NgdsLog;
+
+import com.beetle.push.core.log.PushLog;
 
 /**
  * SharePreferenceHelper
@@ -22,7 +23,7 @@ public class SharePreferenceHelper {
         } else if (value instanceof Boolean) {
             sharedPreferences.edit().putBoolean(key, (Boolean) value).commit();
         } else {
-            NgdsLog.d(TAG, "NgdsSharePreferenceHelper: Miss type");
+            PushLog.d(TAG, "NgdsSharePreferenceHelper: Miss type");
         }
 
     }

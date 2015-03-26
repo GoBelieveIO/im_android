@@ -1,10 +1,10 @@
-package com.beetle.push.db.bean;
+package com.beetle.push.db;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
-import com.beetle.push.db.NgdsPushDataConsts;
-import com.beetle.push.core.log.NgdsLog;
+
+import com.beetle.push.core.log.PushLog;
 import com.beetle.push.core.util.SharePreferenceHelper;
 import com.beetle.push.core.util.io.IoUtil;
 
@@ -16,24 +16,35 @@ import java.util.Arrays;
  * Description: 搭载sdk应用使用的相关信息
  * Author:walker lx
  */
-public class NgdsAppBean implements NgdsPushDataConsts {
-    private static NgdsAppBean sNgdsAppBean;
+public class AppBean {
+
+    //如果有存储格式或者tag的变动，则增加version版本号并维护版本数据
+    public final int version = 4;
+
+    final String NGDS_SMART_PUSH_FILE_NAME = "push_db_" + version;
+
+
+    public class PushSharePreferenceKey {
+        public final static String DEVICE_TOKEN = "device_token";
+    }
+
+    private static AppBean sNgdsAppBean;
     private SharedPreferences mSharedPreferences;
     private byte[] mDeviceToken;
-    private final static String TAG = "NgdsAppBean";
+    private final static String TAG = "AppBean";
 
 
-    private NgdsAppBean(Context context) {
+    private AppBean(Context context) {
         mSharedPreferences = getSharePreference(context);
         mDeviceToken = loadDeivceTokenStr();
     }
 
 
-    public static NgdsAppBean getInstance(Context context) {
+    public static AppBean getInstance(Context context) {
         if (null == sNgdsAppBean) {
-            synchronized (NgdsAppBean.class) {
+            synchronized (AppBean.class) {
                 if (null == sNgdsAppBean) {
-                    sNgdsAppBean = new NgdsAppBean(context);
+                    sNgdsAppBean = new AppBean(context);
                 }
             }
         }
@@ -53,18 +64,12 @@ public class NgdsAppBean implements NgdsPushDataConsts {
         return mDeviceToken;
     }
 
-    public String getDeivceTokenStr() {
-        if (null == mDeviceToken) {
-            return null;
-        }
-        return IoUtil.bin2Hex(mDeviceToken);
-    }
 
     private byte[] loadDeivceTokenStr() {
         String deviceTokenStr =
             mSharedPreferences.getString(PushSharePreferenceKey.DEVICE_TOKEN, null);
         if (TextUtils.isEmpty(deviceTokenStr)) {
-            NgdsLog.d(TAG, "deviceTokenStr is null");
+            PushLog.d(TAG, "deviceTokenStr is null");
             return null;
         }
         return IoUtil.hex2bin(deviceTokenStr);

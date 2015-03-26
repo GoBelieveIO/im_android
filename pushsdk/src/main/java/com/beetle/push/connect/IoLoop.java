@@ -2,7 +2,7 @@ package com.beetle.push.connect;
 
 
 
-import com.beetle.push.core.log.NgdsLog;
+import com.beetle.push.core.log.PushLog;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -93,9 +93,9 @@ public class IoLoop extends Thread {
     public void setTimeout(long timeout, Timer timer) {
         if (this.timer != null) {
             if (timer == null) {
-                NgdsLog.d(TAG, "cancel timer");
+                PushLog.d(TAG, "cancel timer");
             } else {
-                NgdsLog.d(TAG, "overwrite timer");
+                PushLog.d(TAG, "overwrite timer");
             }
         }
 
@@ -146,7 +146,7 @@ public class IoLoop extends Thread {
             SelectionKey key = iter.next();
             Handler handler = (Handler) key.attachment();
             if (handler == null) {
-                NgdsLog.d(TAG, "null handler");
+                PushLog.d(TAG, "null handler");
                 continue;
             }
             handler.handleEvent(key);
@@ -158,7 +158,7 @@ public class IoLoop extends Thread {
             try {
                 runOnce();
             } catch (IOException e) {
-                NgdsLog.d(TAG, "io exception:" + e);
+                PushLog.d(TAG, "io exception:" + e);
                 return;
             }
         }

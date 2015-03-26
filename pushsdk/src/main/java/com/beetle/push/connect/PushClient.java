@@ -1,7 +1,8 @@
 package com.beetle.push.connect;
 
 import android.os.PowerManager;
-import com.beetle.push.core.log.NgdsLog;
+
+import com.beetle.push.core.log.PushLog;
 import com.beetle.push.core.util.io.IoUtil;
 
 import java.nio.ByteBuffer;
@@ -63,16 +64,16 @@ public class PushClient {
             @Override
             public void onRead(TCP t, byte[] data) {
                 if (data == null || data.length == 0) {
-                    NgdsLog.d(TAG, "tcp closed");
+                    PushLog.d(TAG, "tcp closed");
                     closeTCP();
                     reconnect();
                     return;
                 }
 
-                NgdsLog.d(TAG, "readed data:" + data.length);
+                PushLog.d(TAG, "readed data:" + data.length);
 
                 if (data.length + position > RECV_BUF_SIZE) {
-                    NgdsLog.d(TAG, "recv buffer overflow");
+                    PushLog.d(TAG, "recv buffer overflow");
                     closeTCP();
                     reconnect();
                     return;
@@ -126,7 +127,7 @@ public class PushClient {
                     handleCommand(command);
                 }
                 if (error) {
-                    NgdsLog.d(TAG, "protocol error");
+                    PushLog.d(TAG, "protocol error");
                     closeTCP();
                     reconnect();
                     return;
@@ -135,7 +136,7 @@ public class PushClient {
                 if (offset > 0 && position > offset) {
                     System.arraycopy(recvBuf, offset, recvBuf, 0, position - offset);
                     position -= offset;
-                    NgdsLog.d(TAG, "recv buffer left size:" + position);
+                    PushLog.d(TAG, "recv buffer left size:" + position);
                 } else {
                     position = 0;
                 }
@@ -149,7 +150,7 @@ public class PushClient {
                 IoLoop.getDefaultLoop().setTimeout(0, null);
 
                 if (status != 0) {
-                    NgdsLog.d(TAG, "connect error:" + status);
+                    PushLog.d(TAG, "connect error:" + status);
                     closeTCP();
                     reconnect();
                     return;
@@ -176,7 +177,7 @@ public class PushClient {
         this.onWriteException = new TCP.TCPWriteExceptionCallback() {
             @Override
             public void onWriteException(TCP tcp) {
-                NgdsLog.d(TAG, "tcp write exception");
+                PushLog.d(TAG, "tcp write exception");
                 closeTCP();
                 reconnect();
             }
@@ -193,7 +194,7 @@ public class PushClient {
         this.pongTimeoutTimer = new IoLoop.Timer() {
             @Override
             public void handleTimeout() {
-                NgdsLog.d(TAG, "pong timeout");
+                PushLog.d(TAG, "pong timeout");
                 closeTCP();
                 reconnect();
             }
@@ -209,10 +210,10 @@ public class PushClient {
         IoLoop loop = IoLoop.getDefaultLoop();
         tcp = new TCP(loop.getSelector());
 
-        NgdsLog.d(TAG, "push server:" + host + " port:" + port);
+        PushLog.d(TAG, "push server:" + host + " port:" + port);
         boolean r = tcp.connect(host, port, this.onConnect);
         if (!r) {
-            NgdsLog.d(TAG, "connect host:" + host + " port:" + port + " fail");
+            PushLog.d(TAG, "connect host:" + host + " port:" + port + " fail");
             closeTCP();
             reconnect();
             return;
@@ -223,7 +224,7 @@ public class PushClient {
         loop.setTimeout(60 * 1000, new IoLoop.Timer() {
             @Override
             public void handleTimeout() {
-                NgdsLog.d(TAG, "connect timeout");
+                PushLog.d(TAG, "connect timeout");
                 closeTCP();
                 reconnect();
             }
@@ -242,7 +243,7 @@ public class PushClient {
             pF0 = pF1;
             pF1 = nextConTime;
         }
-        NgdsLog.d(TAG, "connect timer:" + nextConTime);
+        PushLog.d(TAG, "connect timer:" + nextConTime);
         IoLoop loop = IoLoop.getDefaultLoop();
         loop.setTimeout(nextConTime * 1000, connectTimer);
     }
@@ -253,7 +254,7 @@ public class PushClient {
         }
         stopped = false;
 
-        NgdsLog.d(TAG, "registerService push client");
+        PushLog.d(TAG, "registerService push client");
         final IoLoop loop = IoLoop.getDefaultLoop();
         loop.asyncSend(new IoLoop.IoRunnable() {
             @Override
@@ -274,7 +275,7 @@ public class PushClient {
         }
         stopped = true;
 
-        NgdsLog.d(TAG, "stop push client");
+        PushLog.d(TAG, "stop push client");
         final IoLoop loop = IoLoop.getDefaultLoop();
         loop.asyncSend(new IoLoop.IoRunnable() {
             @Override
@@ -343,7 +344,7 @@ public class PushClient {
 
     private void sendAuth() {
         Protocol.Authentication auth = new Protocol.Authentication();
-        NgdsLog.d(TAG, "token:" + IoUtil.bin2HexForTest(mDeviceToken));
+        PushLog.d(TAG, "token:" + IoUtil.bin2HexForTest(mDeviceToken));
         auth.token = mDeviceToken;
         sendCommand(auth);
     }
@@ -352,7 +353,7 @@ public class PushClient {
         if (mClientState != ClientState.CONNECTED) {
             return;
         }
-        NgdsLog.d(TAG, "ping");
+        PushLog.d(TAG, "ping");
         Protocol.Ping p = new Protocol.Ping();
         sendCommand(p);
 
@@ -376,27 +377,27 @@ public class PushClient {
                 handlePong();
                 break;
             default:
-                NgdsLog.d(TAG, "unknown command:" + command.getCmd());
+                PushLog.d(TAG, "unknown command:" + command.getCmd());
                 break;
         }
     }
 
     private void handleDeviceToken(Protocol.ClientDeviceToken deviceToken) {
         mDeviceToken = deviceToken.token;
-        NgdsLog.d(TAG, "device token:" + IoUtil.bin2HexForTest(mDeviceToken));
+        PushLog.d(TAG, "device token:" + IoUtil.bin2HexForTest(mDeviceToken));
         observer.onDeviceToken(mDeviceToken);
         sendAuth();
     }
 
     private void handleAuthStatus(Protocol.AuthenticationStatus authStatus) {
-        NgdsLog.d(TAG, "auth status:" + authStatus.status);
+        PushLog.d(TAG, "auth status:" + authStatus.status);
         if (authStatus.status == AUTH_STATUS_INVALID_TOKEN) {
-            NgdsLog.d(TAG, "auth fail:invalid device token");
+            PushLog.d(TAG, "auth fail:invalid device token");
             this.mDeviceToken = null;
             closeTCP();
             reconnect();
         } else if (authStatus.status == AUTH_STATUS_INTERNAL_ERROR) {
-            NgdsLog.d(TAG, "auth fail:internal error");
+            PushLog.d(TAG, "auth fail:internal error");
             closeTCP();
             reconnect();
         } else {
@@ -405,7 +406,7 @@ public class PushClient {
     }
 
     private void handlePong() {
-        NgdsLog.d(TAG, "pong");
+        PushLog.d(TAG, "pong");
         mWakeLock.release();
         final IoLoop loop = IoLoop.getDefaultLoop();
         //cancel pong timeout
@@ -413,7 +414,7 @@ public class PushClient {
     }
 
     private void handleNotification(Protocol.Notification notification) {
-        NgdsLog.d(TAG, "receive notification nid:" + notification.nid);
+        PushLog.d(TAG, "receive notification nid:" + notification.nid);
         observer.onPushMessage(notification);
 
         Protocol.ACKNotification ack = new Protocol.ACKNotification();
