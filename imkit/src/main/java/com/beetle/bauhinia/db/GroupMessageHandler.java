@@ -27,7 +27,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         IMessage imsg = new IMessage();
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
-        imsg.timestamp = now();
+        imsg.timestamp = msg.timestamp;
         imsg.setContent(msg.content);
         return db.insertMessage(imsg, imsg.receiver);
     }

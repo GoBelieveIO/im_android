@@ -182,7 +182,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
         }
         Log.i(TAG, "recv msg:" + msg.content);
         final IMessage imsg = new IMessage();
-        imsg.timestamp = now();
+        imsg.timestamp = msg.timestamp;
         imsg.msgLocalID = msg.msgLocalID;
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
