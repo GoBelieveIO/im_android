@@ -5,7 +5,6 @@ import android.content.Context;
 import android.os.Build;
 import android.os.PowerManager;
 
-import com.beetle.push.DefaultConsts;
 import com.beetle.push.connect.Protocol;
 import com.beetle.push.connect.PushClient;
 import com.beetle.push.connect.PushClientObserver;
@@ -33,13 +32,24 @@ import java.nio.charset.Charset;
  */
 public class SmartPushServiceProvider implements SmartPushServiceInterface, PushClientObserver {
     private final static String TAG = "SmartPushService";
-    private PushClient mClient;
-    private Context mPushServiceContext;
-
     /**
      * alrammanager 心跳包间隔时间，微信为300s ，qq为180s
      */
     private final static int ALARM_INTERVAL = 6 * 60 * 1000;
+
+    public final static String HOST = "pushnode.gobelieve.io";
+
+    public final static int PORT = 6225;
+
+
+    private PushClient mClient;
+    private Context mPushServiceContext;
+
+    private static String pushHost = HOST;
+
+    public static void setHost(String host) {
+        pushHost = host;
+    }
 
     @Override
     public void onServiceCreate(Context context) {
@@ -201,8 +211,8 @@ public class SmartPushServiceProvider implements SmartPushServiceInterface, Push
             mClient.setDeviceToken(deviceToken);
             PushLog.d(TAG, "token:" + IoUtil.bin2HexForTest(deviceToken));
         }
-        mClient.setHost(DefaultConsts.HOST);
-        mClient.setPort(DefaultConsts.PORT);
+        mClient.setHost(pushHost);
+        mClient.setPort(PORT);
         String appid = Utils.loadAppId(context);
         String appkey = Utils.loadAppKey(context);
         mClient.setAppID(Long.parseLong(appid));

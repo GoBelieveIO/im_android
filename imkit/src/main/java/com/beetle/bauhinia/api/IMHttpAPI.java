@@ -33,7 +33,7 @@ public class IMHttpAPI {
 
     private static IMHttp newIMHttp() {
         RestAdapter adapter = new RestAdapter.Builder()
-                .setEndpoint(API_URL)
+                .setEndpoint(apiURL)
                 .setConverter(new GsonConverter(new Gson()))
                 .setRequestInterceptor(new RequestInterceptor() {
                     @Override
@@ -63,7 +63,13 @@ public class IMHttpAPI {
         return singleton;
     }
 
+    private static String apiURL = API_URL;
     private static String accessToken;
+
+    public static void setAPIURL(String url) {
+        apiURL = url;
+    }
+
     public static void setToken(String token) {
         accessToken = token;
     }

@@ -139,6 +139,9 @@ public class IMService {
         return connectState;
     }
 
+    public void setHost(String host) {
+        this.host = host;
+    }
     public void setToken(String token) {
         this.token = token;
     }
