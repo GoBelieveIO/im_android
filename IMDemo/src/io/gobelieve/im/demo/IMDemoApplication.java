@@ -3,6 +3,8 @@ package io.gobelieve.im.demo;
 import android.app.Application;
 import android.provider.Settings;
 
+import com.beetle.bauhinia.db.GroupMessageDB;
+import com.beetle.bauhinia.db.GroupMessageHandler;
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
@@ -56,8 +58,11 @@ public class IMDemoApplication extends Application {
         fc.setDir(this.getDir("cache", MODE_PRIVATE));
         PeerMessageDB db = PeerMessageDB.getInstance();
         db.setDir(this.getDir("peer", MODE_PRIVATE));
+        GroupMessageDB groupDB = GroupMessageDB.getInstance();
+        groupDB.setDir(this.getDir("group", MODE_PRIVATE));
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
+        mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
     }
 
     public static Application getApplication() {
