@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">IMDemo</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="login_account">发送用户id</string>
+    <string name="login_target_account">接收用户id</string>
+    <string name="login_login">登  录</string>
+    <string name="main_settings">设置</string>
+    <string name="main_contacts">通讯录</string>
+    <string name="setting_notification">接收新消息通知</string>
+    <string name="setting_sound">声音</string>
+    <string name="setting_vibrate">震动</string>
+    <string name="setting_logout">注销</string>
+    <string name="chat_send">发 送</string>
+    <string name="text_ack_msg">已读</string>
+    <string name="text_delivered_msg">送达</string>
+    <string name="text_failure">失败</string>
+    <string name="text_sended_msg">已发送</string>
+    <string name="chat_activity_header">%1$d -> %2$d</string>
+
+</resources>

@@ -60,10 +60,10 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         IMService.getInstance().start();
 
         IMDemoApplication app = (IMDemoApplication)getApplication();
-        byte[] deviceToken = app.getDeviceToken();
-        if (token != null && deviceToken != null && deviceToken.length > 0) {
+        String deviceToken = app.getDeviceToken();
+        if (token != null && deviceToken != null && deviceToken.length() > 0) {
             PostDeviceToken tokenBody = new PostDeviceToken();
-            tokenBody.deviceToken = LoginActivity.bin2Hex(deviceToken);
+            tokenBody.xgDeviceToken = deviceToken;
             IMHttpAPI.Singleton().bindDeviceToken(tokenBody)
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new Action1<Object>() {
@@ -125,9 +125,6 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                 }
                 @Override
                 protected void onPostExecute(String result) {
-
-
-
                     mLoginTask = null;
                     if (result != null && result.length() > 0) {
                         //设置用户id,进入MainActivity

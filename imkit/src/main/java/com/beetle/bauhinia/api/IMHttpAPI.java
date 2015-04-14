@@ -77,7 +77,10 @@ public class IMHttpAPI {
 
     public interface IMHttp {
         @POST("/device/bind")
-        Observable<Object> postDeviceToken(@Body PostDeviceToken token);
+        Observable<Object> bindDeviceToken(@Body PostDeviceToken token);
+
+        @POST("/device/unbind")
+        Observable<Object> unBindDeviceToken(@Body PostDeviceToken token);
 
         @POST("/images")
         Observable<Image> postImages(@Header("Content-Type") String contentType, @Body TypedFile file);
