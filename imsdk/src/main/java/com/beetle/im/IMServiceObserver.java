@@ -5,6 +5,10 @@ package com.beetle.im;
  */
 public interface IMServiceObserver {
     public void onConnectState(IMService.ConnectState state);
+
+    //当前用户ID在其它地方登录
+    public void onLoginPoint(LoginPoint lp);
+
     public void onPeerInputting(long uid);
 
     public void onPeerMessage(IMMessage msg);

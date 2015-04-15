@@ -129,6 +129,10 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         setSubtitle();
     }
 
+    public void onLoginPoint(LoginPoint lp) {
+        Log.i(TAG, "login point:" + lp.deviceID + " platform id:" + lp.platformID);
+    }
+
     public void onPeerInputting(long uid) {
         if (uid == peerUID) {
             setSubtitle("对方正在输入");

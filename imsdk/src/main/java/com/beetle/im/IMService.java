@@ -536,6 +536,10 @@ public class IMService {
         this.pingTimestamp = 0;
     }
 
+    private void handleLoginPoint(Message msg) {
+        publishLoginPoint((LoginPoint) msg.body);
+    }
+
     private void handleMessage(Message msg) {
         if (msg.cmd == Command.MSG_AUTH_STATUS) {
             handleAuthStatus(msg);
@@ -553,6 +557,8 @@ public class IMService {
             handleGroupIMMessage(msg);
         } else if (msg.cmd == Command.MSG_GROUP_NOTIFICATION) {
             handleGroupNotification(msg);
+        } else if (msg.cmd == Command.MSG_LOGIN_POINT) {
+            handleLoginPoint(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
@@ -701,6 +707,13 @@ public class IMService {
         for (int i = 0; i < observers.size(); i++ ) {
             IMServiceObserver ob = observers.get(i);
             ob.onConnectState(connectState);
+        }
+    }
+
+    private void publishLoginPoint(final LoginPoint lp) {
+        for (int i = 0; i < observers.size(); i++) {
+            IMServiceObserver ob = observers.get(i);
+            ob.onLoginPoint(lp);
         }
     }
 }

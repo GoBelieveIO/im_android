@@ -15,6 +15,7 @@ import com.beetle.bauhinia.tools.Outbox;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
+import com.beetle.im.LoginPoint;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -147,6 +148,10 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
             disableSend();
         }
         setSubtitle();
+    }
+
+    public void onLoginPoint(LoginPoint lp) {
+
     }
 
     public void onPeerInputting(long uid) {

@@ -34,6 +34,7 @@ class Command{
     public static final int MSG_PING = 13;
     public static final int MSG_PONG = 14;
     public static final int MSG_AUTH_TOKEN = 15;
+    public static final int MSG_LOGIN_POINT = 16;
 }
 
 
@@ -181,6 +182,19 @@ class Message {
         } else if (cmd == Command.MSG_GROUP_NOTIFICATION) {
             try {
                 this.body = new String(data, pos, data.length - HEAD_SIZE, "UTF-8");
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        } else if (cmd == Command.MSG_LOGIN_POINT) {
+            LoginPoint lp = new LoginPoint();
+            lp.upTimestamp = BytePacket.readInt32(data, pos);
+            pos += 4;
+            lp.platformID = data[pos];
+            pos++;
+            try {
+                lp.deviceID = new String(data, pos, data.length - 13, "UTF-8");
+                this.body = lp;
                 return true;
             } catch (Exception e) {
                 return false;
