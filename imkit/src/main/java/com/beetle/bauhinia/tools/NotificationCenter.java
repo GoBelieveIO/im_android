@@ -19,7 +19,7 @@ public class NotificationCenter {
 
     private class Observer {
         public NotificationCenterObserver ob;
-        public HashSet<String> names = new HashSet<>();
+        public HashSet<String> names = new HashSet<String>();
     }
 
 

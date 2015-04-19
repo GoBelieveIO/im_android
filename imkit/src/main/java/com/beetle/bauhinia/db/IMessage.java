@@ -82,7 +82,7 @@ public class IMessage {
             notification.master = obj.get("master").getAsLong();
             notification.groupName = obj.get("name").getAsString();
 
-            notification.members = new ArrayList<>();
+            notification.members = new ArrayList<Long>();
             JsonArray ary = obj.getAsJsonArray("members");
             Iterator<JsonElement> iter = ary.iterator();
             while (iter.hasNext()) {

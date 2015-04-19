@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
@@ -37,7 +36,6 @@ import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.bauhinia.tools.Outbox;
-import com.google.gson.JsonObject;
 import com.squareup.picasso.Picasso;
 
 import java.io.ByteArrayOutputStream;
@@ -77,8 +75,8 @@ public class MessageActivity extends BaseActivity implements
     protected long receiver;
     protected boolean isShowUserName = false;
 
-    protected HashMap<Long, String> names = new HashMap<>();
-    protected ArrayList<IMessage> messages = new ArrayList<>();
+    protected HashMap<Long, String> names = new HashMap<Long, String>();
+    protected ArrayList<IMessage> messages = new ArrayList<IMessage>();
 
     BaseAdapter adapter;
 
