@@ -378,6 +378,7 @@ public class MessageActivity extends BaseActivity implements
                 default:
                     break;
             }
+            convertView.requestLayout();
             return convertView;
         }
     }
