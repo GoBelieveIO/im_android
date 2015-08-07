@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    package="io.gobelieve.im.demo"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+    <!-- 【必须】 信鸽SDK所需权限 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.RESTART_PACKAGES" />
+    <uses-permission android:name="android.permission.BROADCAST_STICKY" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.RECEIVE_USER_PRESENT" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+    <uses-permission android:name="android.permission.GET_TASKS" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 【可选】 信鸽SDK所需权限 -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BATTERY_STATS" />
+
+
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+
+    <application
+        android:name=".IMDemoApplication"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name">
+
+
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Horizontal_Slide">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 必需： 应用ID -->
+        <meta-data
+            android:name="GOBELIEVE_APPID"
+            android:value="7" />
+
+        <!-- 必需： 应用KEY -->
+        <meta-data
+            android:name="GOBELIEVE_APPKEY"
+            android:value="sVDIlIiDUm7tWPYWhi6kfNbrqui3ez44" />
+
+
+        <activity
+            android:name="com.beetle.bauhinia.PeerMessageActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/imkit.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.beetle.bauhinia.activity.PhotoActivity"
+            android:label="照片"
+            android:theme="@style/imkit.ActionBar">
+        </activity>
+
+        <activity
+            android:name="io.gobelieve.im.demo.AppGroupMessageActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/imkit.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
+
+
+
+        <!-- 【必须】 信鸽receiver广播接收 -->
+        <receiver
+            android:name="com.tencent.android.tpush.XGPushReceiver"
+            android:process=":xg_service_v2" >
+            <intent-filter android:priority="0x7fffffff" >
+                <!-- 【必须】 信鸽SDK的内部广播 -->
+                <action android:name="com.tencent.android.tpush.action.SDK" />
+                <action android:name="com.tencent.android.tpush.action.INTERNAL_PUSH_MESSAGE" />
+                <!-- 【必须】 系统广播：开屏和网络切换 -->
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+
+                <!-- 【可选】 一些常用的系统广播，增强信鸽service的复活机会，请根据需要选择。当然，你也可以添加APP自定义的一些广播让启动service -->
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 【必须】 (2.30及以上版新增)展示通知的activity -->
+        <!-- 【注意】 如果被打开的activity是启动模式为SingleTop，SingleTask或SingleInstance，请根据通知的异常自查列表第8点处理-->
+        <activity
+            android:name="com.tencent.android.tpush.XGPushActivity"
+            android:exported="true" >
+            <intent-filter>
+                <!-- 若使用AndroidStudio，请设置android:name="android.intent.action"-->
+                <action android:name="android.intent.action" />
+            </intent-filter>
+        </activity>
+
+        <!-- 【必须】 信鸽service -->
+        <service
+            android:name="com.tencent.android.tpush.service.XGPushService"
+            android:exported="true"
+            android:persistent="true"
+            android:process=":xg_service_v2" />
+
+        <!-- 【必须】 通知service，此选项有助于提高抵达率 -->
+        <service
+            android:name="com.tencent.android.tpush.rpc.XGRemoteService"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="io.gobelieve.im.demo.PUSH_ACTION" />
+            </intent-filter>
+        </service>
+
+        <!-- 【必须】 请将YOUR_ACCESS_ID修改为APP的AccessId，“21”开头的10位数字，中间没空格 -->
+        <meta-data
+            android:name="XG_V2_ACCESS_ID"
+            android:value="2100103204" />
+        <!-- 【必须】 请将YOUR_ACCESS_KEY修改为APP的AccessKey，“A”开头的12位字符串，中间没空格 -->
+        <meta-data
+            android:name="XG_V2_ACCESS_KEY"
+            android:value="A96BY2QEU51D" />
+
+    </application>
+
+</manifest>

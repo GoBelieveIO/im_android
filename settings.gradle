@@ -1,1 +1,1 @@
-include ':IMDemo', ':imsdk', ':imkit', ':asynctcp', ':pushsdk', ':app'
+include ':IMDemo', ':imsdk', ':imkit', ':asynctcp', ':pushsdk', ':app', ":group_demo"
