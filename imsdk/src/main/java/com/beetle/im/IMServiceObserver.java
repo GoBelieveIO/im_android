@@ -13,7 +13,6 @@ public interface IMServiceObserver {
 
     public void onPeerMessage(IMMessage msg);
     public void onPeerMessageACK(int msgLocalID, long uid);
-    public void onPeerMessageRemoteACK(int msgLocalID, long uid);
     public void onPeerMessageFailure(int msgLocalID, long uid);
 
     public void onGroupMessage(IMMessage msg);

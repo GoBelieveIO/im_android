@@ -61,6 +61,7 @@ public class IMService {
     private int port;
     private String token;
     private String deviceID;
+    private long uid;
 
     PeerMessageHandler peerMessageHandler;
     GroupMessageHandler groupMessageHandler;
@@ -145,6 +146,7 @@ public class IMService {
     public void setToken(String token) {
         this.token = token;
     }
+    public void setUID(long uid) { this.uid = uid; }
     public void setDeviceID(String deviceID) {
         this.deviceID = deviceID;
     }
@@ -424,29 +426,56 @@ public class IMService {
     private void handleIMMessage(Message msg) {
         IMMessage im = (IMMessage)msg.body;
         Log.d(TAG, "im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
-        if (!peerMessageHandler.handleMessage(im)) {
-            Log.i(TAG, "handle im message fail");
-            return;
+
+        if (im.sender == this.uid) {
+            if (!peerMessageHandler.handleMessage(im, im.receiver)) {
+                Log.i(TAG, "handle im message fail");
+                return;
+            }
+        } else {
+            if (!peerMessageHandler.handleMessage(im, im.sender)) {
+                Log.i(TAG, "handle im message fail");
+                return;
+            }
         }
         publishPeerMessage(im);
         Message ack = new Message();
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
+
+        if (im.sender == this.uid) {
+            if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+                Log.w(TAG, "handle message ack fail");
+                return;
+            }
+            publishPeerMessageACK(im.msgLocalID, im.receiver);
+        }
     }
 
     private void handleGroupIMMessage(Message msg) {
         IMMessage im = (IMMessage)msg.body;
         Log.d(TAG, "group im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
+
+
         if (groupMessageHandler != null && !groupMessageHandler.handleMessage(im)) {
             Log.i(TAG, "handle im message fail");
             return;
         }
+
         publishGroupMessage(im);
         Message ack = new Message();
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
+
+        if (im.sender == this.uid) {
+            if (groupMessageHandler != null && !groupMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+                Log.i(TAG, "handle group message ack fail");
+                return;
+            }
+            publishGroupMessageACK(im.msgLocalID, im.receiver);
+        }
     }
 
     private void handleGroupNotification(Message msg) {
@@ -517,11 +546,7 @@ public class IMService {
     }
 
     private void handlePeerACK(Message msg) {
-        MessagePeerACK ack = (MessagePeerACK)msg.body;
-        this.peerMessageHandler.handleMessageRemoteACK(ack.msgLocalID, ack.sender);
-
-        publishPeerMessageRemoteACK(ack.msgLocalID, ack.sender);
-
+        return;
     }
 
     private void handleInputting(Message msg) {
@@ -690,12 +715,6 @@ public class IMService {
         }
     }
 
-    private void publishPeerMessageRemoteACK(int msgLocalID, long uid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onPeerMessageRemoteACK(msgLocalID, uid);
-        }
-    }
     private void publishPeerMessageFailure(int msgLocalID, long uid) {
         for (int i = 0; i < observers.size(); i++ ) {
             IMServiceObserver ob = observers.get(i);

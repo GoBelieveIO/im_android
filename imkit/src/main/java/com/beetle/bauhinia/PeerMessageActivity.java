@@ -149,7 +149,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
     }
 
     public void onPeerMessage(IMMessage msg) {
-        if (msg.sender != peerUID) {
+        if (msg.sender != peerUID && msg.receiver != peerUID) {
             return;
         }
         Log.i(TAG, "recv msg:" + msg.content);
@@ -192,20 +192,6 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             return;
         }
         imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_ACK;
-        adapter.notifyDataSetChanged();
-    }
-    public void onPeerMessageRemoteACK(int msgLocalID, long uid) {
-        if (peerUID != uid) {
-            return;
-        }
-        Log.i(TAG, "message remote ack");
-
-        IMessage imsg = findMessage(msgLocalID);
-        if (imsg == null) {
-            Log.i(TAG, "can't find msg:" + msgLocalID);
-            return;
-        }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_PEER_ACK;
         adapter.notifyDataSetChanged();
     }
 

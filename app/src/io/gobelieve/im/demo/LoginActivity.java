@@ -57,6 +57,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
 
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);
+        IMService.getInstance().setUID(sender);
         IMService.getInstance().start();
 
         IMDemoApplication app = (IMDemoApplication)getApplication();

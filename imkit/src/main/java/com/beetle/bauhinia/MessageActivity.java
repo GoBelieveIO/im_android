@@ -316,11 +316,7 @@ public class MessageActivity extends BaseActivity implements
             }
 
             if (isOutMsg(position)) {
-                if ((msg.flags & MessageFlag.MESSAGE_FLAG_PEER_ACK) != 0) {
-                    Log.i(TAG, "flag remote ack");
-                    ImageView flagView = (ImageView)convertView.findViewById(R.id.flag);
-                    flagView.setImageResource(R.drawable.msg_status_client_received);
-                } else if ((msg.flags & MessageFlag.MESSAGE_FLAG_ACK) != 0) {
+                if ((msg.flags & MessageFlag.MESSAGE_FLAG_ACK) != 0) {
                     Log.i(TAG, "flag server ack");
                     ImageView flagView = (ImageView)convertView.findViewById(R.id.flag);
                     flagView.setImageResource(R.drawable.msg_status_server_receive);
