@@ -23,6 +23,7 @@
         android:background="@drawable/chatfrom_bg"
         android:layout_marginTop="4dp"
         android:layout_marginLeft="10dp"
+        android:layout_marginRight="20dp"
         />
 
 </RelativeLayout>

@@ -20,6 +20,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 
@@ -60,7 +61,7 @@ import static com.beetle.bauhinia.constant.RequestCodes.*;
 
 
 public class MessageActivity extends BaseActivity implements
-        AdapterView.OnItemClickListener, AudioDownloader.AudioDownloaderObserver,
+        AudioDownloader.AudioDownloaderObserver,
         Outbox.OutboxObserver, SwipeRefreshLayout.OnRefreshListener {
 
     protected final String TAG = "imservice";
@@ -209,13 +210,27 @@ public class MessageActivity extends BaseActivity implements
             }
         });
 
-        listview.setOnItemClickListener(this);
-
         SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
         swipeLayout.setOnRefreshListener(this);
 
         adapter = new ChatAdapter();
         listview.setAdapter(adapter);
+
+        listview.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                //hide keyboard
+                if (getWindow().getAttributes().softInputMode != WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN) {
+                    InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (getCurrentFocus() != null) {
+                        inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+                    }
+                }
+                inputMenu.hideExtendMenuContainer();
+                return false;
+            }
+        });
+
 
         setSubtitle();
         setSupportActionBar(toolbar);
@@ -256,13 +271,6 @@ public class MessageActivity extends BaseActivity implements
     }
 
     protected void loadEarlierData() {}
-
-
-
-    @Override
-    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-        onItemClick(i);
-    }
 
     static interface ContentTypes {
         public static int UNKNOWN = 0;
@@ -388,21 +396,29 @@ public class MessageActivity extends BaseActivity implements
                 ViewGroup group = (ViewGroup)convertView.findViewById(R.id.content);
 
                 group.addView(getLayoutInflater().inflate(contentLayout, group, false));
+                group.setOnClickListener(new View.OnClickListener() {
+
+                    @Override
+                    public void onClick(View v) {
+                        IMessage im = (IMessage)v.getTag();
+                        Log.i(TAG, "im:" + im.msgLocalID);
+                        MessageActivity.this.onMessageClicked(im);
+                    }
+                });
             }
 
+            View contentView = convertView.findViewById(R.id.content);
+            contentView.setTag(msg);
+
             if (isOutMsg(position)) {
-                if ((msg.flags & MessageFlag.MESSAGE_FLAG_ACK) != 0) {
-                    Log.i(TAG, "flag server ack");
-                    ImageView flagView = (ImageView)convertView.findViewById(R.id.flag);
-                    flagView.setImageResource(R.drawable.msg_status_server_receive);
-                } else if ((msg.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0) {
+                if ((msg.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0) {
                     //发送失败
                     Log.i(TAG, "flag failure");
-                    ImageView flagView = (ImageView)convertView.findViewById(R.id.flag);
-                    flagView.setImageResource(R.drawable.msg_status_send_error);
+                    ImageView flagView = (ImageView) convertView.findViewById(R.id.flag);
+                    flagView.setVisibility(View.VISIBLE);
                 } else {
-                    ImageView flagView = (ImageView)convertView.findViewById(R.id.flag);
-                    flagView.setImageResource(R.drawable.msg_status_gray_waiting);
+                    ImageView flagView = (ImageView) convertView.findViewById(R.id.flag);
+                    flagView.setVisibility(View.GONE);
                 }
             }
 
@@ -434,7 +450,7 @@ public class MessageActivity extends BaseActivity implements
                     break;
                 case TEXT: {
                     TextView content = (TextView) convertView.findViewById(R.id.text);
-                    content.setFocusable(false);
+                    //content.setFocusable(false);
                     String text = ((IMessage.Text) msg.content).text;
                     content.setText(text);
                 }
@@ -641,13 +657,7 @@ public class MessageActivity extends BaseActivity implements
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_photo) {
-            getPicture();
-            return true;
-        } else if(id == R.id.action_take) {
-            takePicture();
-            return true;
-        } else if (id == R.id.action_clear) {
+        if (id == R.id.action_clear) {
             clearConversation();
             messages = new ArrayList<IMessage>();
             adapter.notifyDataSetChanged();
@@ -665,7 +675,6 @@ public class MessageActivity extends BaseActivity implements
         swipeLayout.setRefreshing(false);
 
         loadEarlierData();
-
     }
 
     protected void setSubtitle() {
@@ -699,36 +708,12 @@ public class MessageActivity extends BaseActivity implements
         audioUtil.release();
     }
 
-    public void switchButton(View view) {
-    /*    if (recordButton.getVisibility() == View.VISIBLE) {
-            recordButton.setVisibility(View.GONE);
-            editText.setVisibility(View.VISIBLE);
-            editText.requestFocus();
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT);
-            if (messages.size() > 0) {
-                listview.setSelection(messages.size());
-            }
-        } else {
-            recordButton.setVisibility(View.VISIBLE);
-            editText.setVisibility(View.GONE);
-            editText.clearFocus();
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(editText.getWindowToken(), 0);
-        }*/
-    }
 
     public static int now() {
         Date date = new Date();
         long t = date.getTime();
         return (int)(t/1000);
     }
-
-    public void onSend(View v) {
-    //    String text = editText.getText().toString();
-    //    sendTextMessage(text);
-    }
-
 
     void sendMessage(IMessage imsg) {
         Log.i(TAG, "not implemented");
@@ -767,12 +752,6 @@ public class MessageActivity extends BaseActivity implements
         sendMessage(imsg);
 
         insertMessage(imsg);
-
-        /*editText.setText("");
-        editText.clearFocus();
-        InputMethodManager inputManager =
-                (InputMethodManager)editText.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);*/
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
         Notification notification = new Notification(imsg, sendNotificationName);
@@ -955,8 +934,7 @@ public class MessageActivity extends BaseActivity implements
         }
     }
 
-    void onItemClick(int position) {
-        final IMessage message = messages.get(position);
+    void onMessageClicked(IMessage message) {
         if (message.content instanceof IMessage.Audio) {
             IMessage.Audio audio = (IMessage.Audio) message.content;
             if (FileCache.getInstance().isCached(audio.url)) {
