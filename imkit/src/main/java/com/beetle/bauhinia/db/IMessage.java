@@ -211,6 +211,7 @@ public class IMessage {
 
     private boolean uploading;
     private boolean playing;
+    private boolean downloading;
 
     private PropertyChangeSupport changeSupport = new PropertyChangeSupport(
             this);
@@ -248,4 +249,41 @@ public class IMessage {
         return this.playing;
     }
 
+    public void setDownloading(boolean downloading) {
+        boolean old = this.downloading;
+        this.downloading = downloading;
+        changeSupport.firePropertyChange("downloading", old, this.downloading);
+    }
+
+    public boolean getDownloading() {
+        return this.downloading;
+    }
+
+    public boolean isFailure() {
+        return (flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0;
+    }
+
+    public void setFailure(boolean f) {
+        boolean old = isFailure();
+        if (f) {
+            flags = flags | MessageFlag.MESSAGE_FLAG_FAILURE;
+        } else {
+            flags = flags & (~MessageFlag.MESSAGE_FLAG_FAILURE);
+        }
+        changeSupport.firePropertyChange("failure", old, f);
+    }
+
+    public boolean isAck() {
+        return (flags & MessageFlag.MESSAGE_FLAG_ACK) != 0;
+    }
+
+    public void setAck(boolean ack) {
+        boolean old = isAck();
+        if (ack) {
+            flags = flags | MessageFlag.MESSAGE_FLAG_ACK;
+        } else {
+            flags = flags & (~MessageFlag.MESSAGE_FLAG_ACK);
+        }
+        changeSupport.firePropertyChange("ack", old, ack);
+    }
 }

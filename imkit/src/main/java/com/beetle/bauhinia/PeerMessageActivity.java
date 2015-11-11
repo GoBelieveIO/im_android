@@ -5,18 +5,15 @@ import android.os.*;
 import android.util.Log;
 
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.im.*;
 
-import com.beetle.bauhinia.tools.AudioDownloader;
 import com.beetle.bauhinia.tools.FileCache;
 
 import com.beetle.bauhinia.tools.Outbox;
 import com.beetle.im.Timer;
 
-import java.io.IOException;
 import java.util.*;
 
 
@@ -93,6 +90,8 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
                 break;
             }
         }
+
+        downloadMessageContent(messages, count);
     }
 
     protected void loadEarlierData() {
@@ -114,6 +113,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             }
         }
         if (count > 0) {
+            downloadMessageContent(messages, count);
             adapter.notifyDataSetChanged();
             listview.setSelection(count);
         }
@@ -161,15 +161,11 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         imsg.setContent(msg.content);
         messages.add(imsg);
 
+        downloadMessageContent(imsg);
+
         adapter.notifyDataSetChanged();
         listview.smoothScrollToPosition(messages.size()-1);
-        if (imsg.content instanceof IMessage.Audio) {
-            try {
-                AudioDownloader.getInstance().downloadAudio(imsg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+
     }
     private IMessage findMessage(int msgLocalID) {
         for (IMessage imsg : messages) {
@@ -191,8 +187,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             Log.i(TAG, "can't find msg:" + msgLocalID);
             return;
         }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_ACK;
-        adapter.notifyDataSetChanged();
+        imsg.setAck(true);
     }
 
     public void onPeerMessageFailure(int msgLocalID, long uid) {
@@ -206,8 +201,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             Log.i(TAG, "can't find msg:" + msgLocalID);
             return;
         }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_FAILURE;
-        adapter.notifyDataSetChanged();
+        imsg.setFailure(true);
     }
 
     public void onGroupMessage(IMMessage msg) {

@@ -112,6 +112,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
                 break;
             }
         }
+        downloadMessageContent(messages, count);
     }
 
     protected void loadEarlierData() {
@@ -135,6 +136,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
             }
         }
         if (count > 0) {
+            downloadMessageContent(messages, count);
             adapter.notifyDataSetChanged();
             listview.setSelection(count);
         }

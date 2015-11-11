@@ -339,40 +339,44 @@ public class MessageActivity extends BaseActivity implements
             return 12;
         }
 
-        class AudioHolder  {
-            ImageView control;
-            ProgressBar progress;
-            TextView duration;
-
-            AudioHolder(View view) {
-                control = (ImageView)view.findViewById(R.id.play_control);
-                progress = (ProgressBar)view.findViewById(R.id.progress);
-                duration = (TextView)view.findViewById(R.id.duration);
-            }
-        }
-
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             IMessage msg = messages.get(position);
             MessageRowView rowView = (MessageRowView)convertView;
             if (rowView == null) {
-                rowView = new MessageRowView(MessageActivity.this, msg, !isOutMsg(position), isShowUserName);
-                View contentView = rowView.getContentView();
-                contentView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        IMessage im = (IMessage)v.getTag();
-                        Log.i(TAG, "im:" + im.msgLocalID);
-                        MessageActivity.this.onMessageClicked(im);
-                    }
-                });
+                IMessage.MessageType msgType = msg.content.getType();
+                switch (msgType) {
+                    case MESSAGE_IMAGE:
+                        rowView = new MessageImageView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        break;
+                    case MESSAGE_AUDIO:
+                        rowView = new MessageAudioView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        break;
+                    case MESSAGE_TEXT:
+                        rowView = new MessageTextView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        break;
+                    case MESSAGE_GROUP_NOTIFICATION:
+                        rowView = new MessageNotificationView(MessageActivity.this);
+                        break;
+                    default:
+                        rowView = new MessageTextView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        break;
+                }
+
+                if (rowView != null) {
+                    View contentView = rowView.getContentView();
+                    contentView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            IMessage im = (IMessage)v.getTag();
+                            Log.i(TAG, "im:" + im.msgLocalID);
+                            MessageActivity.this.onMessageClicked(im);
+                        }
+                    });
+                }
             }
 
-            boolean playing = false;
-            if (audioUtil.isPlaying() && playingMessage != null && msg.msgLocalID == playingMessage.msgLocalID) {
-                playing = true;
-            }
-            rowView.setMessage(msg, !isOutMsg(position), playing);
+            rowView.setMessage(msg, !isOutMsg(position));
             return rowView;
         }
     }
@@ -870,6 +874,31 @@ public class MessageActivity extends BaseActivity implements
         }
     }
 
+    protected void downloadMessageContent(IMessage msg) {
+        if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
+            IMessage.Audio audio = (IMessage.Audio) msg.content;
+            AudioDownloader downloader = AudioDownloader.getInstance();
+            if (!FileCache.getInstance().isCached(audio.url) && !downloader.isDownloading(msg)) {
+                try {
+                    downloader.downloadAudio(msg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            msg.setDownloading(downloader.isDownloading(msg));
+            msg.setUploading(Outbox.getInstance().isUploading(msg));
+        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
+            msg.setUploading(Outbox.getInstance().isUploading(msg));
+        }
+    }
+
+    protected void downloadMessageContent(ArrayList<IMessage> messages, int count) {
+        for (int i = 0; i < count; i++) {
+            IMessage msg = messages.get(i);
+            downloadMessageContent(msg);
+        }
+    }
+
     @Override
     public void onAudioDownloadSuccess(IMessage msg) {
         Log.i(TAG, "audio download success");
@@ -889,8 +918,7 @@ public class MessageActivity extends BaseActivity implements
     public void onAudioUploadFail(IMessage msg) {
         Log.i(TAG, "audio upload fail");
         markMessageFailure(msg);
-        msg.flags = msg.flags | MessageFlag.MESSAGE_FLAG_FAILURE;
-        adapter.notifyDataSetChanged();
+        msg.setFailure(true);
     }
 
     @Override
@@ -902,7 +930,6 @@ public class MessageActivity extends BaseActivity implements
     public void onImageUploadFail(IMessage msg) {
         Log.i(TAG, "image upload fail");
         this.markMessageFailure(msg);
-        msg.flags = msg.flags | MessageFlag.MESSAGE_FLAG_FAILURE;
-        adapter.notifyDataSetChanged();
+        msg.setFailure(true);
     }
 }
