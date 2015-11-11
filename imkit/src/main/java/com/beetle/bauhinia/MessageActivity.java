@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
@@ -36,6 +37,8 @@ import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.bauhinia.tools.Outbox;
+import com.easemob.easeui.widget.EaseChatExtendMenu;
+import com.easemob.easeui.widget.EaseChatInputMenu;
 import com.squareup.picasso.Picasso;
 
 import java.io.ByteArrayOutputStream;
@@ -102,12 +105,47 @@ public class MessageActivity extends BaseActivity implements
     AudioUtil audioUtil;
 
     ListView listview;
-    EditText editText;
     TextView titleView;
     TextView subtitleView;
     Toolbar toolbar;
-    Button recordButton;
-    Button sendButton;
+
+    static final int ITEM_TAKE_PICTURE = 1;
+    static final int ITEM_PICTURE = 2;
+    static final int ITEM_LOCATION = 3;
+
+    protected int[] itemStrings = { R.string.attach_take_pic, R.string.attach_picture, R.string.attach_location };
+    protected int[] itemdrawables = { R.drawable.ease_chat_takepic_selector, R.drawable.ease_chat_image_selector,
+            R.drawable.ease_chat_location_selector };
+    protected int[] itemIds = { ITEM_TAKE_PICTURE, ITEM_PICTURE, ITEM_LOCATION };
+
+
+    protected MyItemClickListener extendMenuItemClickListener;
+    protected EaseChatInputMenu inputMenu;
+
+    /**
+     * 扩展菜单栏item点击事件
+     *
+     */
+    class MyItemClickListener implements EaseChatExtendMenu.EaseChatExtendMenuItemClickListener{
+        @Override
+        public void onClick(int itemId, View view) {
+            switch (itemId) {
+                case ITEM_TAKE_PICTURE: // 拍照
+                    takePicture();
+                    break;
+                case ITEM_PICTURE:
+                    getPicture(); // 图库选择图片
+                    break;
+                case ITEM_LOCATION: // 位置
+                    //startActivityForResult(new Intent(getActivity(), EaseBaiduMapActivity.class), REQUEST_CODE_MAP);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,12 +157,57 @@ public class MessageActivity extends BaseActivity implements
         Log.i(TAG, "record file name:" + recordFileName);
 
         listview = (ListView)findViewById(R.id.list_view);
-        recordButton = (Button)findViewById(R.id.audio_recorder);
         titleView = (TextView)findViewById(R.id.title);
         subtitleView = (TextView)findViewById(R.id.subtitle);
         toolbar = (Toolbar)findViewById(R.id.support_toolbar);
-        sendButton = (Button)findViewById(R.id.btn_send);
-        editText = (EditText)findViewById(R.id.text_message);
+
+        extendMenuItemClickListener = new MyItemClickListener();
+        inputMenu = (EaseChatInputMenu)findViewById(R.id.input_menu);
+        registerExtendMenuItem();
+        // init input menu
+        inputMenu.init();
+        inputMenu.setChatInputMenuListener(new EaseChatInputMenu.ChatInputMenuListener() {
+
+            @Override
+            public void onSendMessage(String content) {
+                // 发送文本消息
+                sendTextMessage(content);
+            }
+
+            @Override
+            public boolean onPressToSpeakBtnTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        try {
+                            v.setPressed(true);
+                            MessageActivity.this.startRecord();
+                        } catch (Exception e) {
+                            v.setPressed(false);
+                        }
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        if (event.getY() < 0) {
+                             MessageActivity.this.showReleaseToCancelHint();
+                        } else {
+                             MessageActivity.this.showMoveUpToCancelHint();
+                        }
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        v.setPressed(false);
+                        if (event.getY() < 0) {
+                            // discard the recorded audio.
+                            MessageActivity.this.discardRecord();
+                        } else {
+                            // stop recording and send voice file
+                            MessageActivity.this.stopRecord();
+                        }
+                        return true;
+                    default:
+                        MessageActivity.this.discardRecord();
+                        return false;
+                }
+            }
+        });
 
         listview.setOnItemClickListener(this);
 
@@ -134,10 +217,8 @@ public class MessageActivity extends BaseActivity implements
         adapter = new ChatAdapter();
         listview.setAdapter(adapter);
 
-
         setSubtitle();
         setSupportActionBar(toolbar);
-
 
         audioUtil = new AudioUtil(this);
         audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -155,28 +236,22 @@ public class MessageActivity extends BaseActivity implements
 
         audioRecorder = new AudioRecorder(this, this.recordFileName);
 
-        recordButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    MessageActivity.this.startRecord();
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    Log.i(TAG, "recording end by action button up");
-                    MessageActivity.this.stopRecord();
-                } else if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
-                    Log.i(TAG, "recording end by action button outside");
-                    MessageActivity.this.startRecord();
-                }
-                return false;
-            }
-        });
-
         AudioDownloader.getInstance().addObserver(this);
 
         Outbox.getInstance().addObserver(this);
 
         if (IMService.getInstance().getConnectState() != IMService.ConnectState.STATE_CONNECTED) {
             disableSend();
+        }
+    }
+
+
+    /**
+     * 注册底部菜单扩展栏item; 覆盖此方法时如果不覆盖已有item，item的id需大于3
+     */
+    protected void registerExtendMenuItem(){
+        for(int i = 0; i < itemStrings.length; i++){
+            inputMenu.registerExtendMenuItem(itemStrings[i], itemdrawables[i], itemIds[i], extendMenuItemClickListener);
         }
     }
 
@@ -381,17 +456,11 @@ public class MessageActivity extends BaseActivity implements
 
 
     protected void disableSend() {
-        recordButton.setEnabled(false);
-        sendButton.setEnabled(false);
-        findViewById(R.id.button_switch).setEnabled(false);
-        editText.setEnabled(false);
+        inputMenu.disableSend();
     }
 
     protected void enableSend() {
-        recordButton.setEnabled(true);
-        sendButton.setEnabled(true);
-        findViewById(R.id.button_switch).setEnabled(true);
-        editText.setEnabled(true);
+        inputMenu.enableSend();
     }
 
 
@@ -405,7 +474,17 @@ public class MessageActivity extends BaseActivity implements
                 }
             });
         }
+    }
 
+
+    private void showReleaseToCancelHint() {
+        recordingText.setText(getString(R.string.release_to_cancel));
+        recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
+    }
+
+    private void showMoveUpToCancelHint() {
+        recordingText.setText(getString(R.string.move_up_to_cancel));
+        recordingText.setBackgroundColor(Color.TRANSPARENT);
     }
 
     private void showRecordDialog() {
@@ -424,7 +503,8 @@ public class MessageActivity extends BaseActivity implements
 
         recordingText = (TextView) layout
                 .findViewById(R.id.conversation_recording_text);
-        recordingText.setText("正在录音");
+
+        showMoveUpToCancelHint();
 
         builder = new AlertDialog.Builder(this);
         alertDialog = builder.create();
@@ -509,6 +589,26 @@ public class MessageActivity extends BaseActivity implements
         recordingTimer.schedule(new VolumeTimerTask(), 0, 100);
 
         showRecordDialog();
+    }
+
+    private void discardRecord() {
+        // stop sixty seconds limit
+        if (sixtySecondsTimer != null) {
+            sixtySecondsTimer.cancel();
+            sixtySecondsTimer = null;
+        }
+        // stop volume task
+        if (recordingTimer != null) {
+            recordingTimer.cancel();
+            recordingTimer = null;
+        }
+        if (alertDialog != null) {
+            alertDialog.dismiss();
+        }
+
+        if (MessageActivity.this.audioRecorder.isRecording()) {
+            MessageActivity.this.audioRecorder.stopRecord();
+        }
     }
 
     private void stopRecord() {
@@ -600,7 +700,7 @@ public class MessageActivity extends BaseActivity implements
     }
 
     public void switchButton(View view) {
-        if (recordButton.getVisibility() == View.VISIBLE) {
+    /*    if (recordButton.getVisibility() == View.VISIBLE) {
             recordButton.setVisibility(View.GONE);
             editText.setVisibility(View.VISIBLE);
             editText.requestFocus();
@@ -615,7 +715,7 @@ public class MessageActivity extends BaseActivity implements
             editText.clearFocus();
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(editText.getWindowToken(), 0);
-        }
+        }*/
     }
 
     public static int now() {
@@ -625,8 +725,8 @@ public class MessageActivity extends BaseActivity implements
     }
 
     public void onSend(View v) {
-        String text = editText.getText().toString();
-        sendTextMessage(text);
+    //    String text = editText.getText().toString();
+    //    sendTextMessage(text);
     }
 
 
@@ -668,11 +768,11 @@ public class MessageActivity extends BaseActivity implements
 
         insertMessage(imsg);
 
-        editText.setText("");
+        /*editText.setText("");
         editText.clearFocus();
         InputMethodManager inputManager =
                 (InputMethodManager)editText.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+        inputManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);*/
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
         Notification notification = new Notification(imsg, sendNotificationName);

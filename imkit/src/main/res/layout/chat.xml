@@ -36,6 +36,9 @@
         </LinearLayout>
     </android.support.v7.widget.Toolbar>
 
+
+
+
     <android.support.v4.widget.SwipeRefreshLayout
         android:id="@+id/swipe_container"
         android:layout_width="match_parent"
@@ -56,50 +59,56 @@
 
     </android.support.v4.widget.SwipeRefreshLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
+    <com.easemob.easeui.widget.EaseChatInputMenu
+        android:id="@+id/input_menu"
         android:layout_weight="0"
-        >
-        <Button
-            android:id="@+id/button_switch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0"
-            android:text="切换"
-            android:onClick="switchButton"
-            />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
-        <EditText
-            android:id="@+id/text_message"
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
-            android:background="@drawable/login_edit_normal"
-            android:singleLine="true"
-            android:textSize="18sp"
-            android:textColor="#000000"
-            android:layout_weight="1"
-            />
+    <!--<LinearLayout-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:orientation="horizontal"-->
+        <!--android:layout_weight="0"-->
+        <!-->-->
+        <!--<Button-->
+            <!--android:id="@+id/button_switch"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_weight="0"-->
+            <!--android:text="切换"-->
+            <!--android:onClick="switchButton"-->
+            <!--/>-->
 
-        <Button
-            android:id="@+id/audio_recorder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="按住录音"
-            />
+        <!--<EditText-->
+            <!--android:id="@+id/text_message"-->
+            <!--android:visibility="gone"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginLeft="10dp"-->
+            <!--android:layout_marginRight="10dp"-->
+            <!--android:background="@drawable/login_edit_normal"-->
+            <!--android:singleLine="true"-->
+            <!--android:textSize="18sp"-->
+            <!--android:textColor="#000000"-->
+            <!--android:layout_weight="1"-->
+            <!--/>-->
 
-        <Button
-            android:id="@+id/btn_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="发送"
-            android:onClick="onSend"
-            android:layout_weight="0" />
-    </LinearLayout>
+        <!--<Button-->
+            <!--android:id="@+id/audio_recorder"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_weight="1"-->
+            <!--android:text="按住录音"-->
+            <!--/>-->
+
+        <!--<Button-->
+            <!--android:id="@+id/btn_send"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:text="发送"-->
+            <!--android:onClick="onSend"-->
+            <!--android:layout_weight="0" />-->
+    <!--</LinearLayout>-->
 </LinearLayout>
 
