@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
@@ -436,6 +437,7 @@ public class MessageActivity extends BaseActivity implements
         builder = new AlertDialog.Builder(this);
         alertDialog = builder.create();
         alertDialog.show();
+        alertDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         alertDialog.getWindow().setContentView(layout);
     }
 
