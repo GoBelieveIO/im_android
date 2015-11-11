@@ -239,7 +239,10 @@ public class MessageActivity extends BaseActivity implements
         audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-                adapter.notifyDataSetChanged();
+                if (MessageActivity.this.playingMessage != null) {
+                    MessageActivity.this.playingMessage.setPlaying(false);
+                    MessageActivity.this.playingMessage = null;
+                }
             }
         });
         audioUtil.setOnStopListener(new AudioUtil.OnStopListener() {
@@ -351,53 +354,11 @@ public class MessageActivity extends BaseActivity implements
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             IMessage msg = messages.get(position);
-            if (convertView == null) {
-                final int contentLayout;
-                int mediaType = getMediaType(position);
-                switch (mediaType) {
-                    case TEXT:
-                    case NOTIFICATION:
-                    default:
-                        contentLayout = R.layout.chat_content_text;
-                        break;
-                    case AUDIO:
-                        contentLayout = R.layout.chat_content_audio;
-                        break;
-                    case IMAGE:
-                        contentLayout = R.layout.chat_content_image;
-                        break;
-                }
-
-                if (mediaType == NOTIFICATION) {
-                    convertView = getLayoutInflater().inflate(
-                            R.layout.chat_container_center, null);
-                } else if (isOutMsg(position)) {
-                    convertView = getLayoutInflater().inflate(
-                            R.layout.chat_container_right, null);
-                } else {
-                    convertView = getLayoutInflater().inflate(
-                            R.layout.chat_container_left, null);
-
-                    if (isShowUserName) {
-                        TextView textView = (TextView)convertView.findViewById(R.id.name);
-                        if (names.containsKey(msg.sender)) {
-                            String name = names.get(msg.sender);
-                            textView.setText(name);
-                            textView.setVisibility(View.VISIBLE);
-                        } else {
-                            textView.setVisibility(View.GONE);
-                        }
-                    } else {
-                        TextView textView = (TextView)convertView.findViewById(R.id.name);
-                        textView.setVisibility(View.GONE);
-                    }
-                }
-
-                ViewGroup group = (ViewGroup)convertView.findViewById(R.id.content);
-
-                group.addView(getLayoutInflater().inflate(contentLayout, group, false));
-                group.setOnClickListener(new View.OnClickListener() {
-
+            MessageRowView rowView = (MessageRowView)convertView;
+            if (rowView == null) {
+                rowView = new MessageRowView(MessageActivity.this, msg, !isOutMsg(position), isShowUserName);
+                View contentView = rowView.getContentView();
+                contentView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         IMessage im = (IMessage)v.getTag();
@@ -407,66 +368,12 @@ public class MessageActivity extends BaseActivity implements
                 });
             }
 
-            View contentView = convertView.findViewById(R.id.content);
-            contentView.setTag(msg);
-
-            if (isOutMsg(position)) {
-                if ((msg.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0) {
-                    //发送失败
-                    Log.i(TAG, "flag failure");
-                    ImageView flagView = (ImageView) convertView.findViewById(R.id.flag);
-                    flagView.setVisibility(View.VISIBLE);
-                } else {
-                    ImageView flagView = (ImageView) convertView.findViewById(R.id.flag);
-                    flagView.setVisibility(View.GONE);
-                }
+            boolean playing = false;
+            if (audioUtil.isPlaying() && playingMessage != null && msg.msgLocalID == playingMessage.msgLocalID) {
+                playing = true;
             }
-
-            switch (getMediaType(position)) {
-                case IMAGE:
-                    ImageView imageView = (ImageView)convertView.findViewById(R.id.image);
-                    Picasso.with(getBaseContext())
-                            .load(((IMessage.Image) msg.content).image + "@256w_256h_0c")
-                            .into(imageView);
-                    break;
-                case AUDIO:
-                    final IMessage.Audio audio = (IMessage.Audio) msg.content;
-                    AudioHolder audioHolder =  new AudioHolder(convertView);
-                    audioHolder.progress.setMax((int) audio.duration);
-                    if (audioUtil.isPlaying() && playingMessage != null && msg.msgLocalID == playingMessage.msgLocalID) {
-                        audioHolder.control.setImageResource(R.drawable.chatto_voice_playing_f2);
-                    } else {
-                        audioHolder.control.setImageResource(R.drawable.chatto_voice_playing);
-                        audioHolder.progress.setProgress(0);
-                    }
-                    Period period = new Period().withSeconds((int) audio.duration);
-                    PeriodFormatter periodFormatter = new PeriodFormatterBuilder()
-                            .appendMinutes()
-                            .appendSeparator(":")
-                            .appendSeconds()
-                            .appendSuffix("\"")
-                            .toFormatter();
-                    audioHolder.duration.setText(periodFormatter.print(period));
-                    break;
-                case TEXT: {
-                    TextView content = (TextView) convertView.findViewById(R.id.text);
-                    //content.setFocusable(false);
-                    String text = ((IMessage.Text) msg.content).text;
-                    content.setText(text);
-                }
-                    break;
-                case NOTIFICATION: {
-                    TextView content = (TextView) convertView.findViewById(R.id.text);
-                    content.setFocusable(false);
-                    String text = ((IMessage.GroupNotification) msg.content).description;
-                    content.setText(text);
-                }
-                    break;
-                default:
-                    break;
-            }
-            convertView.requestLayout();
-            return convertView;
+            rowView.setMessage(msg, !isOutMsg(position), playing);
+            return rowView;
         }
     }
 
@@ -925,9 +832,20 @@ public class MessageActivity extends BaseActivity implements
                 if (audioRecorder.isRecording()) {
                     audioRecorder.stopRecord();
                 }
-                audioUtil.startPlay(FileCache.getInstance().getCachedFilePath(audio.url));
-                playingMessage = message;
-                adapter.notifyDataSetChanged();
+                if (playingMessage != null && playingMessage == message) {
+                    //停止播放
+                    audioUtil.stopPlay();
+                    playingMessage.setPlaying(false);
+                    playingMessage = null;
+                } else {
+                    if (playingMessage != null) {
+                        audioUtil.stopPlay();
+                        playingMessage.setPlaying(false);
+                    }
+                    audioUtil.startPlay(FileCache.getInstance().getCachedFilePath(audio.url));
+                    playingMessage = message;
+                    message.setPlaying(true);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -978,7 +896,6 @@ public class MessageActivity extends BaseActivity implements
     @Override
     public void onImageUploadSuccess(IMessage imsg, String url) {
         Log.i(TAG, "image upload success:" + url);
-
     }
 
     @Override

@@ -6,6 +6,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -206,5 +208,44 @@ public class IMessage {
     public long receiver;
     public MessageContent content;
     public int timestamp;
+
+    private boolean uploading;
+    private boolean playing;
+
+    private PropertyChangeSupport changeSupport = new PropertyChangeSupport(
+            this);
+
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        changeSupport.addPropertyChangeListener(listener);
+    }
+
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        changeSupport.removePropertyChangeListener(listener);
+    }
+
+    public void addPropertyChangeListener(String propertyName,
+                                          PropertyChangeListener listener) {
+        changeSupport.addPropertyChangeListener(propertyName, listener);
+    }
+
+    public void setUploading(boolean uploading) {
+        boolean old = this.uploading;
+        this.uploading = uploading;
+        changeSupport.firePropertyChange("uploading", old, this.uploading);
+    }
+
+    public boolean getUploading() {
+        return this.uploading;
+    }
+
+    public void setPlaying(boolean playing) {
+        boolean old = this.playing;
+        this.playing = playing;
+        changeSupport.firePropertyChange("playing", old, this.playing);
+    }
+
+    public boolean getPlaying() {
+        return this.playing;
+    }
 
 }
