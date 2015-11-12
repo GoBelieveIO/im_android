@@ -25,6 +25,12 @@
     <uses-permission android:name="android.permission.BATTERY_STATS" />
 
 
+    <!--高德地图所需权限-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
@@ -48,6 +54,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--高德地图配置-->
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="fe4ad96eb93239914540892d3dfb76f7" />
 
         <!-- 必需： 应用ID -->
         <meta-data
@@ -76,6 +87,16 @@
             android:theme="@style/imkit.ActionBar">
         </activity>
 
+        <activity
+            android:name="com.beetle.bauhinia.MapActivity"
+            android:label="位置"
+            android:theme="@style/imkit.ActionBar">
+        </activity>
+        <activity
+            android:name="com.beetle.bauhinia.LocationPickerActivity"
+            android:label="位置"
+            android:theme="@style/imkit.ActionBar">
+        </activity>
 
 
         <!-- 【必须】 信鸽receiver广播接收 -->

@@ -105,11 +105,17 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
             if (msg == null) {
                 break;
             }
-            loadUserName(msg.sender);
-            updateNotificationDesc(msg);
-            messages.add(0, msg);
-            if (++count >= PAGE_SIZE) {
-                break;
+
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
+                IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else {
+                loadUserName(msg.sender);
+                updateNotificationDesc(msg);
+                messages.add(0, msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
             }
         }
         downloadMessageContent(messages, count);
@@ -128,11 +134,17 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
             if (msg == null) {
                 break;
             }
-            loadUserName(msg.sender);
-            updateNotificationDesc(msg);
-            messages.add(0, msg);
-            if (++count >= PAGE_SIZE) {
-                break;
+
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
+                IMessage.Attachment attachment = (IMessage.Attachment) msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else {
+                loadUserName(msg.sender);
+                updateNotificationDesc(msg);
+                messages.add(0, msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
             }
         }
         if (count > 0) {

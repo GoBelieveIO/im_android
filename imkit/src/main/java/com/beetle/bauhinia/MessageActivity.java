@@ -1,5 +1,6 @@
 package com.beetle.bauhinia;
 
+import android.accounts.Account;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -15,6 +16,7 @@ import android.provider.MediaStore;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.Toolbar;
 import android.text.ClipboardManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,8 +28,12 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 
+import com.amap.api.services.core.LatLonPoint;
+import com.amap.api.services.geocoder.GeocodeResult;
+import com.amap.api.services.geocoder.GeocodeSearch;
+import com.amap.api.services.geocoder.RegeocodeQuery;
+import com.amap.api.services.geocoder.RegeocodeResult;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.tools.AudioRecorder;
 import com.beetle.bauhinia.tools.AudioUtil;
 import com.beetle.bauhinia.tools.DeviceUtil;
@@ -42,12 +48,10 @@ import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.bauhinia.tools.Outbox;
 import com.easemob.easeui.widget.EaseChatExtendMenu;
 import com.easemob.easeui.widget.EaseChatInputMenu;
-import com.squareup.picasso.Picasso;
+
 
 import java.io.ByteArrayOutputStream;
-import org.joda.time.Period;
-import org.joda.time.format.PeriodFormatter;
-import org.joda.time.format.PeriodFormatterBuilder;
+
 
 import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
 
@@ -71,8 +75,6 @@ public class MessageActivity extends BaseActivity implements
 
     protected final String TAG = "imservice";
 
-
-
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
 
@@ -86,6 +88,7 @@ public class MessageActivity extends BaseActivity implements
 
     protected HashMap<Long, String> names = new HashMap<Long, String>();
     protected ArrayList<IMessage> messages = new ArrayList<IMessage>();
+    protected HashMap<Integer, IMessage.Attachment> attachments = new HashMap<Integer, IMessage.Attachment>();
 
     BaseAdapter adapter;
 
@@ -143,15 +146,13 @@ public class MessageActivity extends BaseActivity implements
                     getPicture(); // 图库选择图片
                     break;
                 case ITEM_LOCATION: // 位置
-                    //startActivityForResult(new Intent(getActivity(), EaseBaiduMapActivity.class), REQUEST_CODE_MAP);
+                    startActivityForResult(new Intent(MessageActivity.this, LocationPickerActivity.class), PICK_LOCATION);
                     break;
                 default:
                     break;
             }
         }
     }
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -362,6 +363,9 @@ public class MessageActivity extends BaseActivity implements
                         break;
                     case MESSAGE_GROUP_NOTIFICATION:
                         rowView = new MessageNotificationView(MessageActivity.this);
+                        break;
+                    case MESSAGE_LOCATION:
+                        rowView = new MessageLocationView(MessageActivity.this, !isOutMsg(position), isShowUserName);
                         break;
                     default:
                         rowView = new MessageTextView(MessageActivity.this, !isOutMsg(position), isShowUserName);
@@ -866,7 +870,8 @@ public class MessageActivity extends BaseActivity implements
         Bitmap bmp;
         if (requestCode == TAKE_PICTURE) {
             bmp = (Bitmap) data.getExtras().get("data");
-        } else if (requestCode == SELECT_PICTURE || requestCode == SELECT_PICTURE_KITKAT)  {
+
+        } else if (requestCode == SELECT_PICTURE || requestCode == SELECT_PICTURE_KITKAT) {
             try {
                 Uri selectedImageUri = data.getData();
                 Log.i(TAG, "selected image uri:" + selectedImageUri);
@@ -874,15 +879,48 @@ public class MessageActivity extends BaseActivity implements
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 bmp = BitmapFactory.decodeStream(is, null, options);
+                sendImageMessage(bmp);
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
             }
+        } else if (requestCode == PICK_LOCATION) {
+            float longitude = data.getFloatExtra("longitude", 0);
+            float latitude = data.getFloatExtra("latitude", 0);
+            String address = data.getStringExtra("address");
+
+            Log.i(TAG, "address:" + address + " longitude:" + longitude + " latitude:" + latitude);
+
+            IMessage imsg = new IMessage();
+            imsg.sender = this.sender;
+            imsg.receiver = this.receiver;
+            IMessage.Location loc = IMessage.newLocation(latitude, longitude);
+            imsg.setContent(loc);
+            imsg.timestamp = now();
+            saveMessage(imsg);
+
+            loc.address = address;
+            if (TextUtils.isEmpty(loc.address)) {
+                queryLocation(imsg);
+            } else {
+                IMessage attachment = new IMessage();
+                attachment.content = IMessage.newAttachment(imsg.msgLocalID, loc.address);
+                attachment.sender = imsg.sender;
+                attachment.receiver = imsg.receiver;
+                saveMessage(attachment);
+            }
+
+            insertMessage(imsg);
+            sendMessage(imsg);
+
+            NotificationCenter nc = NotificationCenter.defaultCenter();
+            Notification notification = new Notification(imsg, sendNotificationName);
+            nc.postNotification(notification);
         } else {
             Log.i(TAG, "invalide request code:" + requestCode);
             return;
         }
-        sendImageMessage(bmp);
+
     }
 
 
@@ -929,6 +967,10 @@ public class MessageActivity extends BaseActivity implements
         } else if (message.content instanceof IMessage.Image) {
             IMessage.Image image = (IMessage.Image) message.content;
             startActivity(PhotoActivity.newIntent(this, image.image));
+        } else if (message.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
+            Log.i(TAG, "location message clicked");
+            IMessage.Location loc = (IMessage.Location)message.content;
+            startActivity(MapActivity.newIntent(this, loc.longitude, loc.latitude));
         }
     }
 
@@ -947,7 +989,54 @@ public class MessageActivity extends BaseActivity implements
             msg.setUploading(Outbox.getInstance().isUploading(msg));
         } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
             msg.setUploading(Outbox.getInstance().isUploading(msg));
+        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
+            IMessage.Location loc = (IMessage.Location)msg.content;
+            IMessage.Attachment attachment = attachments.get(msg.msgLocalID);
+            if (attachment != null) {
+                loc.address = attachment.address;
+            }
+
+            if (TextUtils.isEmpty(loc.address)) {
+                queryLocation(msg);
+            }
         }
+    }
+
+    private void queryLocation(final IMessage msg) {
+        final IMessage.Location loc = (IMessage.Location)msg.content;
+
+        msg.setGeocoding(true);
+        // 第一个参数表示一个Latlng，第二参数表示范围多少米，第三个参数表示是火系坐标系还是GPS原生坐标系
+        RegeocodeQuery query = new RegeocodeQuery(new LatLonPoint(loc.latitude, loc.longitude), 200, GeocodeSearch.AMAP);
+
+        GeocodeSearch mGeocodeSearch = new GeocodeSearch(this);
+        mGeocodeSearch.setOnGeocodeSearchListener(new GeocodeSearch.OnGeocodeSearchListener() {
+            @Override
+            public void onRegeocodeSearched(RegeocodeResult regeocodeResult, int i) {
+                if (i == 0 && regeocodeResult != null && regeocodeResult.getRegeocodeAddress() != null
+                        && regeocodeResult.getRegeocodeAddress().getFormatAddress() != null) {
+                    String address = regeocodeResult.getRegeocodeAddress().getFormatAddress();
+                    Log.i(TAG, "address:" + address);
+                    loc.address = address;
+
+                    IMessage attachment = new IMessage();
+                    attachment.content = IMessage.newAttachment(msg.msgLocalID, address);
+                    attachment.sender = msg.sender;
+                    attachment.receiver = msg.receiver;
+                    saveMessage(attachment);
+                } else {
+                    // 定位失败;
+                }
+                msg.setGeocoding(false);
+            }
+
+            @Override
+            public void onGeocodeSearched(GeocodeResult geocodeResult, int i) {
+
+            }
+        });
+
+        mGeocodeSearch.getFromLocationAsyn(query);// 设置同步逆地理编码请求
     }
 
     protected void downloadMessageContent(ArrayList<IMessage> messages, int count) {

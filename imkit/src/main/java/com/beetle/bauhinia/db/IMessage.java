@@ -23,14 +23,16 @@ public class IMessage {
     public static final String LOCATION = "location";
     public static final String AUDIO = "audio";
     public static final String NOTIFICATION = "notification";
-
+    public static final String ATTACHMENT = "attachment";
 
     public static enum MessageType {
         MESSAGE_UNKNOWN,
         MESSAGE_TEXT,
         MESSAGE_AUDIO,
         MESSAGE_IMAGE,
+        MESSAGE_LOCATION,
         MESSAGE_GROUP_NOTIFICATION,
+        MESSAGE_ATTACHMENT
     }
 
     static Gson gson = new GsonBuilder().create();
@@ -66,6 +68,32 @@ public class IMessage {
         image.raw = content.toString();
         image.image = url;
         return image;
+    }
+
+    public static Location newLocation(float latitude, float longitude) {
+        Location location = new Location();
+        JsonObject content = new JsonObject();
+        JsonObject locationJson = new JsonObject();
+        locationJson.addProperty("latitude", latitude);
+        locationJson.addProperty("longitude", longitude);
+        content.add(LOCATION, locationJson);
+        location.raw = content.toString();
+        location.longitude = longitude;
+        location.latitude = latitude;
+        return location;
+    }
+
+    public static Attachment newAttachment(int msgLocalID, String address) {
+        Attachment attachment = new Attachment();
+        JsonObject content = new JsonObject();
+        JsonObject attachmentJson = new JsonObject();
+        attachmentJson.addProperty("msg_id", msgLocalID);
+        attachmentJson.addProperty("address", address);
+        content.add(ATTACHMENT, attachmentJson);
+        attachment.raw = content.toString();
+        attachment.address = address;
+        attachment.msg_id = msgLocalID;
+        return attachment;
     }
 
     public static GroupNotification newGroupNotification(String text) {
@@ -147,6 +175,8 @@ public class IMessage {
     public static class Location extends MessageContent {
         public float latitude;
         public float longitude;
+        public String address;
+        public MessageType getType() { return MessageType.MESSAGE_LOCATION; }
     }
 
     public static class GroupNotification extends MessageContent {
@@ -174,6 +204,14 @@ public class IMessage {
         public long member;
     }
 
+    public static class Attachment extends MessageContent {
+        public int msg_id;
+        public String address;
+
+        public MessageType getType() {
+            return MessageType.MESSAGE_ATTACHMENT;
+        }
+    }
 
     public static class Unknown extends MessageContent {}
 
@@ -188,6 +226,10 @@ public class IMessage {
                 content = gson.fromJson(element.get(AUDIO), Audio.class);
             } else if (element.has(NOTIFICATION)) {
                 content = newGroupNotification(element.get(NOTIFICATION).getAsString());
+            } else if (element.has(LOCATION)) {
+                content = gson.fromJson(element.get(LOCATION), Location.class);
+            } else if (element.has(ATTACHMENT)) {
+                content = gson.fromJson(element.get(ATTACHMENT), Attachment.class);
             } else {
                 content = new Unknown();
             }
@@ -212,6 +254,7 @@ public class IMessage {
     private boolean uploading;
     private boolean playing;
     private boolean downloading;
+    private boolean geocoding;
 
     private PropertyChangeSupport changeSupport = new PropertyChangeSupport(
             this);
@@ -285,5 +328,15 @@ public class IMessage {
             flags = flags & (~MessageFlag.MESSAGE_FLAG_ACK);
         }
         changeSupport.firePropertyChange("ack", old, ack);
+    }
+
+    public boolean getGeocoding() {
+        return this.geocoding;
+    }
+
+    public void setGeocoding(boolean geocoding) {
+        boolean old = this.geocoding;
+        this.geocoding = geocoding;
+        changeSupport.firePropertyChange("geocoding", old, geocoding);
     }
 }

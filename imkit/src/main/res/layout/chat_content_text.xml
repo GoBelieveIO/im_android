@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/text"
     android:layout_width="wrap_content"
     android:layout_height="match_parent"
-    android:id="@+id/text"
-    style="@style/chat_content_date_style"
-    />
+    android:autoLink="web"
+    android:layout_centerInParent="true"
+    android:gravity="center|left"
+    android:paddingRight="6dp"
+    android:paddingLeft="1dp"
+    android:minHeight="38dp"
+    android:lineSpacingExtra="2dp"
+    android:textColor="#000000"
+    android:maxWidth="225.0dp"
+    android:textSize="15sp" />

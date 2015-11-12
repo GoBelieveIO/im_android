@@ -85,9 +85,15 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             if (msg == null) {
                 break;
             }
-            messages.add(0, msg);
-            if (++count >= PAGE_SIZE) {
-                break;
+
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
+                IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else {
+                messages.add(0, msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
             }
         }
 
@@ -107,9 +113,15 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             if (msg == null) {
                 break;
             }
-            messages.add(0, msg);
-            if (++count >= PAGE_SIZE) {
-                break;
+
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
+                IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else{
+                messages.add(0, msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
             }
         }
         if (count > 0) {
