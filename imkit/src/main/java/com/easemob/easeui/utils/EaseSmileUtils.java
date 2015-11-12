@@ -62,8 +62,86 @@ public class EaseSmileUtils {
 	public static final String ee_33 = "[(F)]";
 	public static final String ee_34 = "[(W)]";
 	public static final String ee_35 = "[(D)]";
-	
-	private static final Factory spannableFactory = Spannable.Factory
+
+
+    public static final String ee_unicode_1 = EmojiCodeToString(0x1F60a);
+    public static final String ee_unicode_2 = EmojiCodeToString(0x1F603);
+	public static final String ee_unicode_3 = EmojiCodeToString(0x1F609);
+	public static final String ee_unicode_4 = EmojiCodeToString(0x1F62e);
+	public static final String ee_unicode_5 = EmojiCodeToString(0x1F60b);
+	public static final String ee_unicode_6 = EmojiCodeToString(0x1F60e);
+	public static final String ee_unicode_7 = EmojiCodeToString(0x1F621);
+	public static final String ee_unicode_8 = EmojiCodeToString(0x1F616);
+	public static final String ee_unicode_9 = EmojiCodeToString(0x1F633);
+    public static final String ee_unicode_10 = EmojiCodeToString(0x1F61e); 
+	public static final String ee_unicode_11 = EmojiCodeToString(0x1F62d); 
+	public static final String ee_unicode_12 = EmojiCodeToString(0x1F610); 
+	public static final String ee_unicode_13 = EmojiCodeToString(0x1F607); 
+	public static final String ee_unicode_14 = EmojiCodeToString(0x1F62c); 
+	public static final String ee_unicode_15 = EmojiCodeToString(0x1F606); 
+	public static final String ee_unicode_16 = EmojiCodeToString(0x1F631); 
+	public static final String ee_unicode_17 = EmojiCodeToString(0x1F385); 
+	public static final String ee_unicode_18 = EmojiCodeToString(0x1F634); 
+	public static final String ee_unicode_19 = EmojiCodeToString(0x1F615); 
+	public static final String ee_unicode_20 = EmojiCodeToString(0x1F637); 
+	public static final String ee_unicode_21 = EmojiCodeToString(0x1F62f); 
+	public static final String ee_unicode_22 = EmojiCodeToString(0x1F60f); 
+	public static final String ee_unicode_23 = EmojiCodeToString(0x1F611); 
+	public static final String ee_unicode_24 = EmojiCodeToString(0x1F496); 
+	public static final String ee_unicode_25 = EmojiCodeToString(0x1F494); 
+	public static final String ee_unicode_26 = EmojiCodeToString(0x1F319); 
+	public static final String ee_unicode_27 = EmojiCodeToString(0x1f31f); 
+	public static final String ee_unicode_28 = EmojiCodeToString(0x1f31e); 
+	public static final String ee_unicode_29 = EmojiCodeToString(0x1F308); 
+	public static final String ee_unicode_30 = EmojiCodeToString(0x1F60d); 
+	public static final String ee_unicode_31 = EmojiCodeToString(0x1F61a); 
+	public static final String ee_unicode_32 = EmojiCodeToString(0x1F48b); 
+	public static final String ee_unicode_33 = EmojiCodeToString(0x1F339); 
+	public static final String ee_unicode_34 = EmojiCodeToString(0x1F342); 
+	public static final String ee_unicode_35 = EmojiCodeToString(0x1F44d);
+
+    private static final Map<String, String> emojiMap = new HashMap<String, String>();
+
+    static {
+        emojiMap.put(ee_1, ee_unicode_1);
+        emojiMap.put(ee_2, ee_unicode_2);
+        emojiMap.put(ee_3, ee_unicode_3);
+        emojiMap.put(ee_4, ee_unicode_4);
+        emojiMap.put(ee_5, ee_unicode_5);
+        emojiMap.put(ee_6, ee_unicode_6);
+        emojiMap.put(ee_7, ee_unicode_7);
+        emojiMap.put(ee_8, ee_unicode_8);
+        emojiMap.put(ee_9, ee_unicode_9);
+        emojiMap.put(ee_10, ee_unicode_10);
+        emojiMap.put(ee_11, ee_unicode_11);
+        emojiMap.put(ee_12, ee_unicode_12);
+        emojiMap.put(ee_13, ee_unicode_13);
+        emojiMap.put(ee_14, ee_unicode_14);
+        emojiMap.put(ee_15, ee_unicode_15);
+        emojiMap.put(ee_16, ee_unicode_16);
+        emojiMap.put(ee_17, ee_unicode_17);
+        emojiMap.put(ee_18, ee_unicode_18);
+        emojiMap.put(ee_19, ee_unicode_19);
+        emojiMap.put(ee_20, ee_unicode_20);
+        emojiMap.put(ee_21, ee_unicode_21);
+        emojiMap.put(ee_22, ee_unicode_22);
+        emojiMap.put(ee_23, ee_unicode_23);
+        emojiMap.put(ee_24, ee_unicode_24);
+        emojiMap.put(ee_25, ee_unicode_25);
+        emojiMap.put(ee_26, ee_unicode_26);
+        emojiMap.put(ee_27, ee_unicode_27);
+        emojiMap.put(ee_28, ee_unicode_28);
+        emojiMap.put(ee_29, ee_unicode_29);
+        emojiMap.put(ee_30, ee_unicode_30);
+        emojiMap.put(ee_31, ee_unicode_31);
+        emojiMap.put(ee_32, ee_unicode_32);
+        emojiMap.put(ee_33, ee_unicode_33);
+        emojiMap.put(ee_34, ee_unicode_34);
+        emojiMap.put(ee_35, ee_unicode_35);
+    }
+
+
+    private static final Factory spannableFactory = Spannable.Factory
 	        .getInstance();
 	
 	private static final Map<Pattern, Integer> emoticons = new HashMap<Pattern, Integer>();
@@ -111,6 +189,21 @@ public class EaseSmileUtils {
 	    simlesSize = emoticons.size();
 	}
 
+    private static int EMOJI_CODE_TO_SYMBOL(int x) {
+        return ((((0x808080F0 | (x & 0x3F000) >> 4) | (x & 0xFC0) << 10) | (x & 0x1C0000) << 18) | (x & 0x3F) << 24);
+    }
+
+    private static String EmojiCodeToString(int x) {
+        int sym = EMOJI_CODE_TO_SYMBOL(x);
+        byte data[] = {(byte)(sym&0x00ff), (byte)(sym>>8&0x00ff), (byte)(sym>>16&0x00ff), (byte)(sym>>24)};
+        try {
+            return new String(data, 0, 4, "UTF-8");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
 	private static void addPattern(Map<Pattern, Integer> map, String smile,
 	        int resource) {
 	    map.put(Pattern.compile(Pattern.quote(smile)), resource);
@@ -153,6 +246,14 @@ public class EaseSmileUtils {
 	    addSmiles(context, spannable);
 	    return spannable;
 	}
+
+    public static String getSmiledUnicodeText(Context context, CharSequence text) {
+        if (emojiMap.containsKey(text)) {
+            return emojiMap.get(text);
+        } else {
+            return "";
+        }
+    }
 	
 	public static boolean containsKey(String key){
 		boolean b = false;

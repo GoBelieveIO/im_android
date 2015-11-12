@@ -103,7 +103,10 @@ public class EaseEmojiconMenu extends EaseEmojiconMenuBase{
 	                            // 这里用的反射，所以混淆的时候不要混淆SmileUtils这个类
 	                            Class clz = Class.forName("com.easemob.easeui.utils.EaseSmileUtils");
 	                            Field field = clz.getField(filename);
-	                            CharSequence cs = EaseSmileUtils.getSmiledText(context,(String) field.get(null));
+                                //before 4.4
+	                            //CharSequence cs = EaseSmileUtils.getSmiledText(context,(String) field.get(null));
+                                //after 4.4
+                                String cs = EaseSmileUtils.getSmiledUnicodeText(context,(String) field.get(null));
 	                            listener.onExpressionClicked(cs);
 	                        } catch (Exception e) {
 	                            e.printStackTrace();
@@ -125,10 +128,8 @@ public class EaseEmojiconMenu extends EaseEmojiconMenuBase{
 	private List<String> getExpressionRes(int getSum) {
 		List<String> reslist = new ArrayList<String>();
 		for (int x = 1; x <= getSum; x++) {
-			String filename = "ee_" + x;
-
+            String filename = "ee_" + x;
 			reslist.add(filename);
-
 		}
 		return reslist;
 
