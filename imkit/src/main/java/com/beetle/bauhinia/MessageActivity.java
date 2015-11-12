@@ -288,6 +288,7 @@ public class MessageActivity extends BaseActivity implements
         public static int LOCATION = 6;
         public static int TEXT = 8;
         public static int NOTIFICATION = 10;
+        public static int TIMEBASE = 12;
     }
 
     class ChatAdapter extends BaseAdapter implements ContentTypes {
@@ -328,6 +329,8 @@ public class MessageActivity extends BaseActivity implements
                 media = LOCATION;
             } else if (msg.content instanceof IMessage.GroupNotification) {
                 media = NOTIFICATION;
+            } else if (msg.content instanceof IMessage.TimeBase) {
+                media = TIMEBASE;
             } else {
                 media = UNKNOWN;
             }
@@ -342,7 +345,7 @@ public class MessageActivity extends BaseActivity implements
 
         @Override
         public int getViewTypeCount() {
-            return 12;
+            return 14;
         }
 
         @Override
@@ -366,6 +369,9 @@ public class MessageActivity extends BaseActivity implements
                         break;
                     case MESSAGE_LOCATION:
                         rowView = new MessageLocationView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        break;
+                    case MESSAGE_TIME_BASE:
+                        rowView = new MessageTimeBaseView(MessageActivity.this);
                         break;
                     default:
                         rowView = new MessageTextView(MessageActivity.this, !isOutMsg(position), isShowUserName);
@@ -429,7 +435,13 @@ public class MessageActivity extends BaseActivity implements
                 }
             }
 
-            rowView.setMessage(msg, !isOutMsg(position));
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_TIME_BASE) {
+                MessageTimeBaseView timeBaseView = (MessageTimeBaseView)rowView;
+                String s = formatTimeBase(((IMessage.TimeBase)msg.content).timestamp);
+                timeBaseView.setTimeBaseMessage(msg, s);
+            } else {
+                rowView.setMessage(msg, !isOutMsg(position));
+            }
             return rowView;
         }
     }
@@ -704,7 +716,118 @@ public class MessageActivity extends BaseActivity implements
         Log.i(TAG, "not implemented");
     }
 
+    private String formatTimeBase(long ts) {
+        String s = "";
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis((long)(ts) * 1000);
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH);
+        int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH);
+        int hour = cal.get(Calendar.HOUR_OF_DAY);
+        int minute = cal.get(Calendar.MINUTE);
+        int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+        String weeks[] = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+        if (isToday(ts)) {
+            s = String.format("%02d:%02d", hour, minute);
+        } else if (isYesterday(ts)) {
+            s = String.format("昨天 %02d:%02d", hour, minute);
+        } else if (isInWeek(ts)) {
+            s = String.format("%s %02d:%02d", weeks[dayOfWeek - 1], hour, minute);
+        } else if (isInYear(ts)) {
+            s = String.format("%02d-%02d %02d:%02d", month+1, dayOfMonth, hour, minute);
+        } else {
+            s = String.format("%d-%02d-%02d %02d:%02d", year, month+1, dayOfMonth, hour, minute);
+        }
+        return s;
+    }
+
+    private boolean isToday(long ts) {
+        int now = now();
+        return isSameDay(now, ts);
+    }
+
+    private boolean isYesterday(long ts) {
+        int now = now();
+        int yesterday = now - 24*60*60;
+        return isSameDay(ts, yesterday);
+    }
+
+    private boolean isInWeek(long ts) {
+        int now = now();
+        //6天前
+        long day6 = now - 6*24*60*60;
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(day6 * 1000);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        int zero = (int)(cal.getTimeInMillis()/1000);
+        return (ts >= zero);
+    }
+
+    private boolean isInYear(long ts) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(ts*1000);
+        int year = cal.get(Calendar.YEAR);
+
+        cal.setTime(new Date());
+        int y = cal.get(Calendar.YEAR);
+
+        return (year == y);
+    }
+
+    private boolean isSameDay(long ts1, long ts2) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(ts1 * 1000);
+        int year1 = cal.get(Calendar.YEAR);
+        int month1 = cal.get(Calendar.MONTH);
+        int day1 = cal.get(Calendar.DAY_OF_MONTH);
+
+
+        cal.setTimeInMillis(ts2 * 1000);
+        int year2 = cal.get(Calendar.YEAR);
+        int month2 = cal.get(Calendar.MONTH);
+        int day2 = cal.get(Calendar.DAY_OF_MONTH);
+
+        return ((year1==year2) && (month1==month2) && (day1==day2));
+    }
+
+    protected void resetMessageTimeBase() {
+        ArrayList<IMessage> newMessages = new ArrayList<IMessage>();
+        IMessage lastMsg = null;
+        for (int i = 0; i < messages.size(); i++) {
+            IMessage msg = messages.get(i);
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_TIME_BASE) {
+                continue;
+            }
+            //间隔10分钟，添加时间分割线
+            if (lastMsg == null || msg.timestamp - lastMsg.timestamp > 10*60) {
+                IMessage.TimeBase timeBase = IMessage.newTimeBase(msg.timestamp);
+                IMessage t = new IMessage();
+                t.content = timeBase;
+                t.timestamp = msg.timestamp;
+                newMessages.add(t);
+            }
+            newMessages.add(msg);
+
+            lastMsg = msg;
+        }
+        messages = newMessages;
+    }
+
     void insertMessage(IMessage imsg) {
+        IMessage lastMsg = null;
+        if (messages.size() > 0) {
+            lastMsg = messages.get(messages.size() - 1);
+        }
+        //间隔10分钟，添加时间分割线
+        if (lastMsg == null || imsg.timestamp - lastMsg.timestamp > 10*60) {
+            IMessage.TimeBase timeBase = IMessage.newTimeBase(imsg.timestamp);
+            IMessage t = new IMessage();
+            t.content = timeBase;
+            t.timestamp = imsg.timestamp;
+            messages.add(t);
+        }
+
         messages.add(imsg);
 
         adapter.notifyDataSetChanged();

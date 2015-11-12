@@ -208,14 +208,9 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
         imsg.setContent(msg.content);
 
         loadUserName(imsg.sender);
+
+        downloadMessageContent(imsg);
         insertMessage(imsg);
-        if (imsg.content instanceof IMessage.Audio) {
-            try {
-                AudioDownloader.getInstance().downloadAudio(imsg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     public void onGroupMessageACK(int msgLocalID, long gid) {
@@ -229,8 +224,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
             Log.i(TAG, "can't find msg:" + msgLocalID);
             return;
         }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_ACK;
-        adapter.notifyDataSetChanged();
+        imsg.setAck(true);
     }
 
     public void onGroupMessageFailure(int msgLocalID, long gid) {
@@ -244,8 +238,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
             Log.i(TAG, "can't find msg:" + msgLocalID);
             return;
         }
-        imsg.flags = imsg.flags | MessageFlag.MESSAGE_FLAG_FAILURE;
-        adapter.notifyDataSetChanged();
+        imsg.setFailure(true);
     }
 
     public void onGroupNotification(String text) {

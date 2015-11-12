@@ -75,6 +75,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         IMService.getInstance().removeObserver(this);
     }
 
+
     protected void loadConversationData() {
         messages = new ArrayList<IMessage>();
 
@@ -98,6 +99,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         }
 
         downloadMessageContent(messages, count);
+        resetMessageTimeBase();
     }
 
     protected void loadEarlierData() {
@@ -105,9 +107,20 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
             return;
         }
 
-        IMessage firsMsg = messages.get(0);
+        IMessage firstMsg = null;
+        for (int i  = 0; i < messages.size(); i++) {
+            IMessage msg = messages.get(i);
+            if (msg.msgLocalID > 0) {
+                firstMsg = msg;
+                break;
+            }
+        }
+        if (firstMsg == null) {
+            return;
+        }
+
         int count = 0;
-        MessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID, firsMsg.msgLocalID);
+        MessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID, firstMsg.msgLocalID);
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
@@ -126,6 +139,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         }
         if (count > 0) {
             downloadMessageContent(messages, count);
+            resetMessageTimeBase();
             adapter.notifyDataSetChanged();
             listview.setSelection(count);
         }
@@ -171,13 +185,10 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
-        messages.add(imsg);
 
         downloadMessageContent(imsg);
 
-        adapter.notifyDataSetChanged();
-        listview.smoothScrollToPosition(messages.size()-1);
-
+        insertMessage(imsg);
     }
     private IMessage findMessage(int msgLocalID) {
         for (IMessage imsg : messages) {

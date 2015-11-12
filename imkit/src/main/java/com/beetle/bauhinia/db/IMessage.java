@@ -24,6 +24,7 @@ public class IMessage {
     public static final String AUDIO = "audio";
     public static final String NOTIFICATION = "notification";
     public static final String ATTACHMENT = "attachment";
+    public static final String TIMEBASE = "timebase";
 
     public static enum MessageType {
         MESSAGE_UNKNOWN,
@@ -32,7 +33,8 @@ public class IMessage {
         MESSAGE_IMAGE,
         MESSAGE_LOCATION,
         MESSAGE_GROUP_NOTIFICATION,
-        MESSAGE_ATTACHMENT
+        MESSAGE_ATTACHMENT,
+        MESSAGE_TIME_BASE //虚拟的消息，不会存入磁盘
     }
 
     static Gson gson = new GsonBuilder().create();
@@ -94,6 +96,15 @@ public class IMessage {
         attachment.address = address;
         attachment.msg_id = msgLocalID;
         return attachment;
+    }
+
+    public static TimeBase newTimeBase(int timestamp) {
+        TimeBase tb = new TimeBase();
+        JsonObject content = new JsonObject();
+        content.addProperty("timestamp", timestamp);
+        tb.raw = content.toString();
+        tb.timestamp = timestamp;
+        return tb;
     }
 
     public static GroupNotification newGroupNotification(String text) {
@@ -179,6 +190,13 @@ public class IMessage {
         public MessageType getType() { return MessageType.MESSAGE_LOCATION; }
     }
 
+    public static class TimeBase extends MessageContent {
+        public int timestamp;
+        public MessageType getType() {
+            return MessageType.MESSAGE_TIME_BASE;
+        }
+    }
+
     public static class GroupNotification extends MessageContent {
         public static final int NOTIFICATION_GROUP_CREATED = 1;//群创建
         public static final int NOTIFICATION_GROUP_DISBAND = 2;//群解散
@@ -249,7 +267,7 @@ public class IMessage {
     public long sender;
     public long receiver;
     public MessageContent content;
-    public int timestamp;
+    public int timestamp;//单位秒
 
     private boolean uploading;
     private boolean playing;
