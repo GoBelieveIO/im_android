@@ -308,6 +308,16 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
         GroupMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, cid);
     }
 
+    void eraseMessageFailure(IMessage imsg) {
+        long cid = 0;
+        if (imsg.sender == this.currentUID) {
+            cid = imsg.receiver;
+        } else {
+            cid = imsg.sender;
+        }
+        GroupMessageDB.getInstance().eraseMessageFailure(imsg.msgLocalID, cid);
+    }
+
     void clearConversation() {
         GroupMessageDB db = GroupMessageDB.getInstance();
         db.clearCoversation(this.groupID);

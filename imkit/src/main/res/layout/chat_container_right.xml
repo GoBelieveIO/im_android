@@ -7,7 +7,7 @@
     android:layout_marginRight="5dp"
     android:gravity="right"
     android:focusable="false"
-    android:descendantFocusability="blocksDescendants"
+    android:descendantFocusability="afterDescendants"
     >
 
     <FrameLayout

@@ -256,6 +256,16 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         PeerMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, cid);
     }
 
+    void eraseMessageFailure(IMessage imsg) {
+        long cid = 0;
+        if (imsg.sender == this.currentUID) {
+            cid = imsg.receiver;
+        } else {
+            cid = imsg.sender;
+        }
+        PeerMessageDB.getInstance().eraseMessageFailure(imsg.msgLocalID, cid);
+    }
+
     void clearConversation() {
         PeerMessageDB db = PeerMessageDB.getInstance();
         db.clearCoversation(this.peerUID);

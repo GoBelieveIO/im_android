@@ -14,6 +14,7 @@ import android.os.*;
 import android.provider.MediaStore;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.Toolbar;
+import android.text.ClipboardManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -48,6 +49,8 @@ import org.joda.time.Period;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
+import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
+
 import java.io.File;
 import java.io.FileInputStream;
 
@@ -63,7 +66,8 @@ import static com.beetle.bauhinia.constant.RequestCodes.*;
 
 public class MessageActivity extends BaseActivity implements
         AudioDownloader.AudioDownloaderObserver,
-        Outbox.OutboxObserver, SwipeRefreshLayout.OnRefreshListener {
+        Outbox.OutboxObserver,
+        SwipeRefreshLayout.OnRefreshListener {
 
     protected final String TAG = "imservice";
 
@@ -374,6 +378,50 @@ public class MessageActivity extends BaseActivity implements
                             MessageActivity.this.onMessageClicked(im);
                         }
                     });
+                    contentView.setOnLongClickListener(new View.OnLongClickListener() {
+                        @Override
+                        public boolean onLongClick(View v) {
+                            final IMessage im = (IMessage)v.getTag();
+
+                            ArrayList<ChatQuickAction> actions = new ArrayList<ChatQuickAction>();
+
+                            if (im.isFailure()) {
+                                actions.add(ChatQuickAction.RESEND);
+                            }
+
+                            if (im.content.getType() == IMessage.MessageType.MESSAGE_TEXT) {
+                                actions.add(ChatItemQuickAction.ChatQuickAction.COPY);
+                            }
+
+                            if (actions.size() == 0) {
+                                return true;
+                            }
+
+                            ChatItemQuickAction.showAction(MessageActivity.this,
+                                    actions.toArray(new ChatQuickAction[actions.size()]),
+                                    new ChatItemQuickAction.ChatQuickActionResult() {
+
+                                        @Override
+                                        public void onSelect(ChatQuickAction action) {
+                                            switch (action) {
+                                                case COPY:
+                                                    ClipboardManager clipboard =
+                                                            (ClipboardManager)MessageActivity.this
+                                                                    .getSystemService(Context.CLIPBOARD_SERVICE);
+                                                    clipboard.setText(((IMessage.Text) im.content).text);
+                                                    break;
+                                                case RESEND:
+                                                    MessageActivity.this.resend(im);
+                                                    break;
+                                                default:
+                                                    break;
+                                            }
+                                        }
+                                    }
+                            );
+                            return true;
+                        }
+                    });
                 }
             }
 
@@ -381,7 +429,6 @@ public class MessageActivity extends BaseActivity implements
             return rowView;
         }
     }
-
 
     protected void disableSend() {
         inputMenu.disableSend();
@@ -391,6 +438,11 @@ public class MessageActivity extends BaseActivity implements
         inputMenu.enableSend();
     }
 
+    void resend(IMessage msg) {
+        eraseMessageFailure(msg);
+        msg.setFailure(false);
+        this.sendMessage(msg);
+    }
 
     private class VolumeTimerTask extends TimerTask {
         @Override
@@ -637,6 +689,10 @@ public class MessageActivity extends BaseActivity implements
     }
 
     void markMessageFailure(IMessage imsg) {
+        Log.i(TAG, "not implemented");
+    }
+
+    void eraseMessageFailure(IMessage imsg) {
         Log.i(TAG, "not implemented");
     }
 

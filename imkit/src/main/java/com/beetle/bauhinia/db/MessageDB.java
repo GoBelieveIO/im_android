@@ -159,4 +159,26 @@ public class MessageDB {
             return false;
         }
     }
+
+    public static boolean eraseFlag(RandomAccessFile f, int msgLocalID, int flag) {
+        try {
+            f.seek(msgLocalID);
+            byte[] buf = new byte[12];
+            int n = f.read(buf);
+            if (n != 12) {
+                return false;
+            }
+            int magic = BytePacket.readInt32(buf, 0);
+            if (magic != IMMAGIC) {
+                return false;
+            }
+            int flags = BytePacket.readInt32(buf, 8);
+            flags &= ~flag;
+            f.seek(msgLocalID + 8);
+            f.writeInt(flags);
+            return true;
+        } catch(Exception e) {
+            return false;
+        }
+    }
 }
