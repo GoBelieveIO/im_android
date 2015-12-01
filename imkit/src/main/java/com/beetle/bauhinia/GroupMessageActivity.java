@@ -187,9 +187,6 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
     public void onPeerMessageACK(int msgLocalID, long uid) {
 
     }
-    public void onPeerMessageRemoteACK(int msgLocalID, long uid) {
-
-    }
 
     public void onPeerMessageFailure(int msgLocalID, long uid) {
 
@@ -243,6 +240,10 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
 
     public void onGroupNotification(String text) {
         IMessage.GroupNotification notification = IMessage.newGroupNotification(text);
+
+        if (notification.groupID != groupID) {
+            return;
+        }
 
         IMessage imsg = new IMessage();
         imsg.sender = 0;
