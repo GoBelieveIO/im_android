@@ -23,27 +23,6 @@
 
     </style>
 
-    <style name="chat_content_date_style">
-        <item name="android:minHeight">47dp</item>
-        <item name="android:gravity">center</item>
-        <item name="android:textSize">@dimen/h3</item>
-        <item name="android:lineSpacingExtra">2dp</item>
-        <item name="android:clickable">true</item>
-        <item name="android:focusable">true</item>
-    </style>
-
-    <style name="chat_text_name_style">
-        <item name="android:textColor">#818181</item>
-        <item name="android:textSize">15sp</item>
-        <item name="android:gravity">center</item>
-    </style>
-
-    <style name="chat_text_date_style">
-        <item name="android:padding">2dp</item>
-        <item name="android:paddingLeft">12dip</item>
-        <item name="android:textColor">#b3b3b3</item>
-        <item name="android:textSize">@dimen/h6</item>
-    </style>
 
     <style name="AnimFade2" parent="@android:style/Animation.Activity">
         <item name="android:activityOpenEnterAnimation">@anim/slide_in_from_right</item>
@@ -55,20 +34,6 @@
 
     <style name="Horizontal_Slide" parent="android:Theme.NoTitleBar">
         <item name="android:windowAnimationStyle">@style/AnimFade2</item>
-    </style>
-
-
-    <!--
-    <style name="horizontal_slide2" parent="android:style/Theme.Holo.Light.NoActionBar">
-        <item name="android:windowAnimationStyle">@style/AnimFade2</item>
-    </style>
-    -->
-
-
-    <style name="devide_line_eee">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">1.5dp</item>
-        <item name="android:background">#eee</item>
     </style>
 
 </resources>
