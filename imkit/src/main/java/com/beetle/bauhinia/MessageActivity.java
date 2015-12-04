@@ -993,7 +993,7 @@ public class MessageActivity extends BaseActivity implements
         Bitmap bmp;
         if (requestCode == TAKE_PICTURE) {
             bmp = (Bitmap) data.getExtras().get("data");
-
+            sendImageMessage(bmp);
         } else if (requestCode == SELECT_PICTURE || requestCode == SELECT_PICTURE_KITKAT) {
             try {
                 Uri selectedImageUri = data.getData();
