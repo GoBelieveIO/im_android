@@ -6,6 +6,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -42,12 +44,25 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
 
         if (!incomming) {
             if (msg.isFailure()) {
-                //发送失败
                 ImageView flagView = (ImageView) findViewById(R.id.flag);
                 flagView.setVisibility(View.VISIBLE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.GONE);
+            } else if (msg.isAck()) {
+                ImageView flagView = (ImageView) findViewById(R.id.flag);
+                flagView.setVisibility(View.GONE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.GONE);
+            } else if (msg.getUploading()) {
+                ImageView flagView = (ImageView) findViewById(R.id.flag);
+                flagView.setVisibility(View.GONE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.GONE);
             } else {
                 ImageView flagView = (ImageView) findViewById(R.id.flag);
                 flagView.setVisibility(View.GONE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.VISIBLE);
             }
         }
     }
@@ -58,17 +73,30 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
 
     @Override
     public void propertyChange(PropertyChangeEvent event) {
-        if (event.getPropertyName().equals("failure")) {
-            if (message.isFailure()) {
-                //发送失败
+        if (event.getPropertyName().equals("failure") ||
+                event.getPropertyName().equals("ack") ||
+                event.getPropertyName().equals("uploading")) {
+            if (this.message.isFailure()) {
                 ImageView flagView = (ImageView) findViewById(R.id.flag);
                 flagView.setVisibility(View.VISIBLE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.GONE);
+            } else if (this.message.isAck()) {
+                ImageView flagView = (ImageView) findViewById(R.id.flag);
+                flagView.setVisibility(View.GONE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.GONE);
+            } else if (this.message.getUploading()) {
+                ImageView flagView = (ImageView) findViewById(R.id.flag);
+                flagView.setVisibility(View.GONE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.GONE);
             } else {
                 ImageView flagView = (ImageView) findViewById(R.id.flag);
                 flagView.setVisibility(View.GONE);
+                ProgressBar sendingProgressBar = (ProgressBar) findViewById(R.id.sending_progress_bar);
+                sendingProgressBar.setVisibility(View.VISIBLE);
             }
-        } else if (event.getPropertyName().equals("ack")) {
-            Log.i("gobelieve", "ack:" + message.isAck());
         }
     }
 }

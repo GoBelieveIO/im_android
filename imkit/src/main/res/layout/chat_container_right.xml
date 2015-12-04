@@ -28,4 +28,13 @@
         android:layout_marginBottom="4dp"
         android:src="@drawable/msg_status_send_error" />
 
+    <ProgressBar
+        android:id="@+id/sending_progress_bar"
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignBottom="@+id/content"
+        android:layout_marginBottom="4dp"
+        android:visibility="visible" />
+
 </RelativeLayout>
