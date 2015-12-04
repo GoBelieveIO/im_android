@@ -29,7 +29,10 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         imsg.receiver = msg.receiver;
         imsg.timestamp = msg.timestamp;
         imsg.setContent(msg.content);
-        return db.insertMessage(imsg, imsg.receiver);
+        boolean r = db.insertMessage(imsg, imsg.receiver);
+        msg.msgLocalID = imsg.msgLocalID;
+        return r;
+
     }
     public boolean handleMessageACK(int msgLocalID, long gid) {
         GroupMessageDB db = GroupMessageDB.getInstance();

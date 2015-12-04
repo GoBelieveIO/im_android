@@ -2,8 +2,6 @@ package com.beetle.bauhinia.db;
 
 import com.beetle.im.IMMessage;
 
-import java.util.Date;
-
 /**
  * Created by houxh on 14-7-22.
  */
@@ -14,12 +12,6 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
         return instance;
     }
 
-    public static int now() {
-        Date date = new Date();
-        long t = date.getTime();
-        return (int)(t/1000);
-    }
-
     public boolean handleMessage(IMMessage msg, long uid) {
         PeerMessageDB db = PeerMessageDB.getInstance();
         IMessage imsg = new IMessage();
@@ -27,7 +19,9 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
-        return db.insertMessage(imsg, uid);
+        boolean r = db.insertMessage(imsg, uid);
+        msg.msgLocalID = imsg.msgLocalID;
+        return r;
     }
 
     public boolean handleMessageACK(int msgLocalID, long uid) {
