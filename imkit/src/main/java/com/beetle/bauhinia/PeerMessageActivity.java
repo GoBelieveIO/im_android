@@ -7,11 +7,10 @@ import android.util.Log;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.bauhinia.tools.PeerOutbox;
 import com.beetle.im.*;
 
 import com.beetle.bauhinia.tools.FileCache;
-
-import com.beetle.bauhinia.tools.Outbox;
 import com.beetle.im.Timer;
 
 import java.util.*;
@@ -20,7 +19,10 @@ import java.util.*;
 import static android.os.SystemClock.uptimeMillis;
 
 
-public class PeerMessageActivity extends MessageActivity implements IMServiceObserver {
+public class PeerMessageActivity extends MessageActivity implements
+        IMServiceObserver,
+        PeerOutbox.OutboxObserver
+{
 
     public static final String SEND_MESSAGE_NAME = "send_message";
     public static final String CLEAR_MESSAGES = "clear_messages";
@@ -65,6 +67,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         this.loadConversationData();
         titleView.setText(peerName);
 
+        PeerOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);
     }
 
@@ -72,6 +75,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "peer message activity destory");
+        PeerOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
     }
 
@@ -99,6 +103,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         }
 
         downloadMessageContent(messages, count);
+        checkMessageFailureFlag(messages, count);
         resetMessageTimeBase();
     }
 
@@ -139,6 +144,7 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
         }
         if (count > 0) {
             downloadMessageContent(messages, count);
+            checkMessageFailureFlag(messages, count);
             resetMessageTimeBase();
             adapter.notifyDataSetChanged();
             listview.setSelection(count);
@@ -190,14 +196,6 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
 
         insertMessage(imsg);
     }
-    private IMessage findMessage(int msgLocalID) {
-        for (IMessage imsg : messages) {
-            if (imsg.msgLocalID == msgLocalID) {
-                return imsg;
-            }
-        }
-        return null;
-    }
 
     public void onPeerMessageACK(int msgLocalID, long uid) {
         if (peerUID != uid) {
@@ -240,16 +238,33 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
 
     }
 
+    void checkMessageFailureFlag(IMessage msg) {
+        if (!msg.isAck() &&
+                !msg.isFailure()&&
+                !msg.getUploading()&&
+                !IMService.getInstance().isPeerMessageSending(peerUID, msg.msgLocalID)) {
+            markMessageFailure(msg);
+            msg.setFailure(true);
+        }
+    }
+
+    void checkMessageFailureFlag(ArrayList<IMessage> messages, int count) {
+        for (int i = 0; i < count; i++) {
+            IMessage m = messages.get(i);
+            checkMessageFailureFlag(m);
+        }
+    }
+
     void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-            Outbox ob = Outbox.getInstance();
+            PeerOutbox ob = PeerOutbox.getInstance();
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
             ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
         } else if (imsg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
             IMessage.Image image = (IMessage.Image)imsg.content;
             //prefix:"file:"
             String path = image.image.substring(5);
-            Outbox.getInstance().uploadImage(imsg, path);
+            PeerOutbox.getInstance().uploadImage(imsg, path);
         } else {
             IMMessage msg = new IMMessage();
             msg.sender = imsg.sender;
@@ -292,5 +307,48 @@ public class PeerMessageActivity extends MessageActivity implements IMServiceObs
     void clearConversation() {
         PeerMessageDB db = PeerMessageDB.getInstance();
         db.clearCoversation(this.peerUID);
+    }
+
+    @Override
+    protected void downloadMessageContent(IMessage msg) {
+        super.downloadMessageContent(msg);
+        if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
+            msg.setUploading(PeerOutbox.getInstance().isUploading(msg));
+        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
+            msg.setUploading(PeerOutbox.getInstance().isUploading(msg));
+        }
+    }
+
+    @Override
+    public void onAudioUploadSuccess(IMessage imsg, String url) {
+        Log.i(TAG, "audio upload success:" + url);
+
+    }
+
+    @Override
+    public void onAudioUploadFail(IMessage msg) {
+        Log.i(TAG, "audio upload fail");
+        if (msg.receiver == this.peerUID) {
+            IMessage m = findMessage(msg.msgLocalID);
+            if (m != null) {
+                m.setFailure(true);
+            }
+        }
+    }
+
+    @Override
+    public void onImageUploadSuccess(IMessage imsg, String url) {
+        Log.i(TAG, "image upload success:" + url);
+    }
+
+    @Override
+    public void onImageUploadFail(IMessage msg) {
+        Log.i(TAG, "image upload fail");
+        if (msg.receiver == this.peerUID) {
+            IMessage m = findMessage(msg.msgLocalID);
+            if (m != null) {
+                m.setFailure(true);
+            }
+        }
     }
 }

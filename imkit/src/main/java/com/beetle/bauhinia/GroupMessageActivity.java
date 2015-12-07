@@ -7,24 +7,23 @@ import android.util.Log;
 
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.MessageIterator;
-import com.beetle.bauhinia.tools.AudioDownloader;
 import com.beetle.bauhinia.tools.FileCache;
-import com.beetle.bauhinia.tools.Outbox;
+import com.beetle.bauhinia.tools.GroupOutbox;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 import com.beetle.im.LoginPoint;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 
 /**
  * Created by houxh on 15/3/21.
  */
-public class GroupMessageActivity extends MessageActivity implements IMServiceObserver {
+public class GroupMessageActivity extends MessageActivity implements
+        IMServiceObserver,
+        GroupOutbox.OutboxObserver {
 
     public static final String SEND_MESSAGE_NAME = "send_group_message";
     public static final String CLEAR_MESSAGES = "clear_group_messages";
@@ -70,6 +69,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
         this.loadConversationData();
         titleView.setText(groupName);
 
+        GroupOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);
     }
 
@@ -77,6 +77,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "peer message activity destory");
+        GroupOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
     }
 
@@ -119,6 +120,8 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
             }
         }
         downloadMessageContent(messages, count);
+        checkMessageFailureFlag(messages, count);
+        resetMessageTimeBase();
     }
 
     protected void loadEarlierData() {
@@ -149,6 +152,8 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
         }
         if (count > 0) {
             downloadMessageContent(messages, count);
+            checkMessageFailureFlag(messages, count);
+            resetMessageTimeBase();
             adapter.notifyDataSetChanged();
             listview.setSelection(count);
         }
@@ -175,14 +180,7 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
     public void onPeerMessage(IMMessage msg) {
 
     }
-    private IMessage findMessage(int msgLocalID) {
-        for (IMessage imsg : messages) {
-            if (imsg.msgLocalID == msgLocalID) {
-                return imsg;
-            }
-        }
-        return null;
-    }
+
 
     public void onPeerMessageACK(int msgLocalID, long uid) {
 
@@ -278,17 +276,34 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
     }
 
 
+    void checkMessageFailureFlag(IMessage msg) {
+        if (!msg.isAck() &&
+                !msg.isFailure()&&
+                !msg.getUploading()&&
+                !IMService.getInstance().isGroupMessageSending(groupID, msg.msgLocalID)) {
+            markMessageFailure(msg);
+            msg.setFailure(true);
+        }
+    }
+
+    void checkMessageFailureFlag(ArrayList<IMessage> messages, int count) {
+        for (int i = 0; i < count; i++) {
+            IMessage m = messages.get(i);
+            checkMessageFailureFlag(m);
+        }
+    }
+
 
     void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-            Outbox ob = Outbox.getInstance();
+            GroupOutbox ob = GroupOutbox.getInstance();
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
             ob.uploadGroupAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
         } else if (imsg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
             IMessage.Image image = (IMessage.Image)imsg.content;
             //prefix:"file:"
             String path = image.image.substring(5);
-            Outbox.getInstance().uploadGroupImage(imsg, path);
+            GroupOutbox.getInstance().uploadGroupImage(imsg, path);
         } else {
             IMMessage msg = new IMMessage();
             msg.sender = imsg.sender;
@@ -327,6 +342,49 @@ public class GroupMessageActivity extends MessageActivity implements IMServiceOb
     void clearConversation() {
         GroupMessageDB db = GroupMessageDB.getInstance();
         db.clearCoversation(this.groupID);
+    }
+
+    @Override
+    protected void downloadMessageContent(IMessage msg) {
+        super.downloadMessageContent(msg);
+        if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
+            msg.setUploading(GroupOutbox.getInstance().isUploading(msg));
+        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
+            msg.setUploading(GroupOutbox.getInstance().isUploading(msg));
+        }
+    }
+
+    @Override
+    public void onAudioUploadSuccess(IMessage imsg, String url) {
+        Log.i(TAG, "audio upload success:" + url);
+
+    }
+
+    @Override
+    public void onAudioUploadFail(IMessage msg) {
+        Log.i(TAG, "audio upload fail");
+        if (msg.receiver == this.groupID) {
+            IMessage m = findMessage(msg.msgLocalID);
+            if (m != null) {
+                m.setFailure(true);
+            }
+        }
+    }
+
+    @Override
+    public void onImageUploadSuccess(IMessage imsg, String url) {
+        Log.i(TAG, "image upload success:" + url);
+    }
+
+    @Override
+    public void onImageUploadFail(IMessage msg) {
+        Log.i(TAG, "image upload fail");
+        if (msg.receiver == this.groupID) {
+            IMessage m = findMessage(msg.msgLocalID);
+            if (m != null) {
+                m.setFailure(true);
+            }
+        }
     }
 
 }

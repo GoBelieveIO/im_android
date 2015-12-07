@@ -242,6 +242,26 @@ public class IMService {
         heartbeatTimer.resume();
     }
 
+    public boolean isPeerMessageSending(long peer, int msgLocalID) {
+        for(Map.Entry<Integer, IMMessage> entry : peerMessages.entrySet()) {
+            IMMessage m = entry.getValue();
+            if (m.receiver == peer && m.msgLocalID == msgLocalID) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isGroupMessageSending(long groupID, int msgLocalID) {
+        for(Map.Entry<Integer, IMMessage> entry : groupMessages.entrySet()) {
+            IMMessage m = entry.getValue();
+            if (m.receiver == groupID && m.msgLocalID == msgLocalID) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean sendPeerMessage(IMMessage im) {
         Message msg = new Message();
         msg.cmd = Command.MSG_IM;

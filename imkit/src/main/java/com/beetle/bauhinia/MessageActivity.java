@@ -1,6 +1,5 @@
 package com.beetle.bauhinia;
 
-import android.accounts.Account;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -45,7 +44,6 @@ import com.beetle.bauhinia.tools.AudioDownloader;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
-import com.beetle.bauhinia.tools.Outbox;
 import com.easemob.easeui.widget.EaseChatExtendMenu;
 import com.easemob.easeui.widget.EaseChatInputMenu;
 
@@ -70,7 +68,6 @@ import static com.beetle.bauhinia.constant.RequestCodes.*;
 
 public class MessageActivity extends BaseActivity implements
         AudioDownloader.AudioDownloaderObserver,
-        Outbox.OutboxObserver,
         SwipeRefreshLayout.OnRefreshListener {
 
     protected final String TAG = "imservice";
@@ -262,7 +259,7 @@ public class MessageActivity extends BaseActivity implements
 
         AudioDownloader.getInstance().addObserver(this);
 
-        Outbox.getInstance().addObserver(this);
+
 
         if (IMService.getInstance().getConnectState() != IMService.ConnectState.STATE_CONNECTED) {
             disableSend();
@@ -685,7 +682,6 @@ public class MessageActivity extends BaseActivity implements
         Log.i(TAG, "imactivity destory");
 
         AudioDownloader.getInstance().removeObserver(this);
-        Outbox.getInstance().removeObserver(this);
         audioUtil.release();
     }
 
@@ -1109,9 +1105,8 @@ public class MessageActivity extends BaseActivity implements
                 }
             }
             msg.setDownloading(downloader.isDownloading(msg));
-            msg.setUploading(Outbox.getInstance().isUploading(msg));
         } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-            msg.setUploading(Outbox.getInstance().isUploading(msg));
+
         } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
             IMessage.Location loc = (IMessage.Location)msg.content;
             IMessage.Attachment attachment = attachments.get(msg.msgLocalID);
@@ -1169,6 +1164,15 @@ public class MessageActivity extends BaseActivity implements
         }
     }
 
+    protected IMessage findMessage(int msgLocalID) {
+        for (IMessage imsg : messages) {
+            if (imsg.msgLocalID == msgLocalID) {
+                return imsg;
+            }
+        }
+        return null;
+    }
+
     @Override
     public void onAudioDownloadSuccess(IMessage msg) {
         Log.i(TAG, "audio download success");
@@ -1178,28 +1182,5 @@ public class MessageActivity extends BaseActivity implements
         Log.i(TAG, "audio download fail");
     }
 
-    @Override
-    public void onAudioUploadSuccess(IMessage imsg, String url) {
-        Log.i(TAG, "audio upload success:" + url);
 
-    }
-
-    @Override
-    public void onAudioUploadFail(IMessage msg) {
-        Log.i(TAG, "audio upload fail");
-        markMessageFailure(msg);
-        msg.setFailure(true);
-    }
-
-    @Override
-    public void onImageUploadSuccess(IMessage imsg, String url) {
-        Log.i(TAG, "image upload success:" + url);
-    }
-
-    @Override
-    public void onImageUploadFail(IMessage msg) {
-        Log.i(TAG, "image upload fail");
-        this.markMessageFailure(msg);
-        msg.setFailure(true);
-    }
 }

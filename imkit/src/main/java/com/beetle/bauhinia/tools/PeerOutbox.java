@@ -1,9 +1,11 @@
 package com.beetle.bauhinia.tools;
 
+import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.types.Audio;
 import com.beetle.bauhinia.api.types.Image;
+import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 
@@ -17,7 +19,7 @@ import rx.functions.Action1;
 /**
  * Created by houxh on 14-12-3.
  */
-public class Outbox {
+public class PeerOutbox {
 
     public static interface OutboxObserver {
         public void onAudioUploadSuccess(IMessage msg, String url);
@@ -26,8 +28,8 @@ public class Outbox {
         public void onImageUploadFail(IMessage msg);
     }
 
-    private static Outbox instance = new Outbox();
-    public static Outbox getInstance() {
+    private static PeerOutbox instance = new PeerOutbox();
+    public static PeerOutbox getInstance() {
         return instance;
     }
 
@@ -75,13 +77,14 @@ public class Outbox {
                 .subscribe(new Action1<Image>() {
                     @Override
                     public void call(Image image) {
-                        Outbox.this.sendImageMessage(msg, image.srcUrl, false);
+                        PeerOutbox.this.sendImageMessage(msg, image.srcUrl);
                         onUploadImageSuccess(msg, image.srcUrl);
                         messages.remove(msg);
                     }
                 }, new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
+                        PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
                         onUploadImageFail(msg);
                         messages.remove(msg);
                     }
@@ -99,13 +102,14 @@ public class Outbox {
                 .subscribe(new Action1<Audio>() {
                     @Override
                     public void call(Audio audio) {
-                        Outbox.this.sendAudioMessage(msg, audio.srcUrl, false);
+                        PeerOutbox.this.sendAudioMessage(msg, audio.srcUrl);
                         onUploadAudioSuccess(msg, audio.srcUrl);
                         messages.remove(msg);
                     }
                 }, new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
+                        PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
                         onUploadAudioFail(msg);
                         messages.remove(msg);
                     }
@@ -113,65 +117,7 @@ public class Outbox {
         return true;
     }
 
-    public boolean uploadGroupImage(final IMessage msg, String filePath) {
-        File file;
-        try {
-            file = new File(filePath);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-        messages.add(msg);
-        String type = ImageMIME.getMimeType(file);
-        TypedFile typedFile = new TypedFile(type, file);
-        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
-        imHttp.postImages(type// + "; charset=binary"
-                , typedFile)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Image>() {
-                    @Override
-                    public void call(Image image) {
-                        Outbox.this.sendImageMessage(msg, image.srcUrl, true);
-                        onUploadImageSuccess(msg, image.srcUrl);
-                        messages.remove(msg);
-                    }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        onUploadImageFail(msg);
-                        messages.remove(msg);
-                    }
-                });
-        return true;
-    }
-
-    public boolean uploadGroupAudio(final IMessage msg, String file) {
-        messages.add(msg);
-        String type = "audio/amr";
-        TypedFile typedFile = new TypedFile(type, new File(file));
-        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
-        imHttp.postAudios(type, typedFile)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Audio>() {
-                    @Override
-                    public void call(Audio audio) {
-                        Outbox.this.sendAudioMessage(msg, audio.srcUrl, true);
-                        onUploadAudioSuccess(msg, audio.srcUrl);
-                        messages.remove(msg);
-                    }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        onUploadAudioFail(msg);
-                        messages.remove(msg);
-                    }
-                });
-        return true;
-    }
-
-
-
-    private void sendImageMessage(IMessage imsg, String url, boolean isGroup) {
+    private void sendImageMessage(IMessage imsg, String url) {
         IMMessage msg = new IMMessage();
         msg.sender = imsg.sender;
         msg.receiver = imsg.receiver;
@@ -179,14 +125,10 @@ public class Outbox {
         msg.msgLocalID = imsg.msgLocalID;
 
         IMService im = IMService.getInstance();
-        if (isGroup) {
-            im.sendGroupMessage(msg);
-        } else {
-            im.sendPeerMessage(msg);
-        }
+        im.sendPeerMessage(msg);
     }
 
-    private void sendAudioMessage(IMessage imsg, String url, boolean isGroup) {
+    private void sendAudioMessage(IMessage imsg, String url) {
         IMessage.Audio audio = (IMessage.Audio)imsg.content;
 
         IMMessage msg = new IMMessage();
@@ -196,11 +138,7 @@ public class Outbox {
         msg.content = IMessage.newAudio(url, audio.duration).getRaw();
 
         IMService im = IMService.getInstance();
-        if (isGroup) {
-            im.sendGroupMessage(msg);
-        } else {
-            im.sendPeerMessage(msg);
-        }
+        im.sendPeerMessage(msg);
     }
 
     private void onUploadAudioSuccess(IMessage msg, String url) {
