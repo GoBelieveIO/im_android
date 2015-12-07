@@ -277,12 +277,19 @@ public class GroupMessageActivity extends MessageActivity implements
 
 
     void checkMessageFailureFlag(IMessage msg) {
-        if (!msg.isAck() &&
-                !msg.isFailure()&&
-                !msg.getUploading()&&
-                !IMService.getInstance().isGroupMessageSending(groupID, msg.msgLocalID)) {
-            markMessageFailure(msg);
-            msg.setFailure(true);
+        if (msg.sender == this.currentUID) {
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
+                msg.setUploading(GroupOutbox.getInstance().isUploading(msg));
+            } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
+                msg.setUploading(GroupOutbox.getInstance().isUploading(msg));
+            }
+            if (!msg.isAck() &&
+                    !msg.isFailure() &&
+                    !msg.getUploading() &&
+                    !IMService.getInstance().isGroupMessageSending(groupID, msg.msgLocalID)) {
+                markMessageFailure(msg);
+                msg.setFailure(true);
+            }
         }
     }
 
@@ -342,16 +349,6 @@ public class GroupMessageActivity extends MessageActivity implements
     void clearConversation() {
         GroupMessageDB db = GroupMessageDB.getInstance();
         db.clearCoversation(this.groupID);
-    }
-
-    @Override
-    protected void downloadMessageContent(IMessage msg) {
-        super.downloadMessageContent(msg);
-        if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-            msg.setUploading(GroupOutbox.getInstance().isUploading(msg));
-        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-            msg.setUploading(GroupOutbox.getInstance().isUploading(msg));
-        }
     }
 
     @Override

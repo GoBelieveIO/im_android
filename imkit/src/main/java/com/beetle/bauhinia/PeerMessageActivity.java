@@ -239,12 +239,19 @@ public class PeerMessageActivity extends MessageActivity implements
     }
 
     void checkMessageFailureFlag(IMessage msg) {
-        if (!msg.isAck() &&
-                !msg.isFailure()&&
-                !msg.getUploading()&&
-                !IMService.getInstance().isPeerMessageSending(peerUID, msg.msgLocalID)) {
-            markMessageFailure(msg);
-            msg.setFailure(true);
+        if (msg.sender == this.currentUID) {
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
+                msg.setUploading(PeerOutbox.getInstance().isUploading(msg));
+            } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
+                msg.setUploading(PeerOutbox.getInstance().isUploading(msg));
+            }
+            if (!msg.isAck() &&
+                    !msg.isFailure() &&
+                    !msg.getUploading() &&
+                    !IMService.getInstance().isPeerMessageSending(peerUID, msg.msgLocalID)) {
+                markMessageFailure(msg);
+                msg.setFailure(true);
+            }
         }
     }
 
@@ -307,16 +314,6 @@ public class PeerMessageActivity extends MessageActivity implements
     void clearConversation() {
         PeerMessageDB db = PeerMessageDB.getInstance();
         db.clearCoversation(this.peerUID);
-    }
-
-    @Override
-    protected void downloadMessageContent(IMessage msg) {
-        super.downloadMessageContent(msg);
-        if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-            msg.setUploading(PeerOutbox.getInstance().isUploading(msg));
-        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-            msg.setUploading(PeerOutbox.getInstance().isUploading(msg));
-        }
     }
 
     @Override
