@@ -266,11 +266,13 @@ public class PeerMessageActivity extends MessageActivity implements
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
             PeerOutbox ob = PeerOutbox.getInstance();
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
+            imsg.setUploading(true);
             ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
         } else if (imsg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
             IMessage.Image image = (IMessage.Image)imsg.content;
             //prefix:"file:"
             String path = image.image.substring(5);
+            imsg.setUploading(true);
             PeerOutbox.getInstance().uploadImage(imsg, path);
         } else {
             IMMessage msg = new IMMessage();
@@ -319,7 +321,12 @@ public class PeerMessageActivity extends MessageActivity implements
     @Override
     public void onAudioUploadSuccess(IMessage imsg, String url) {
         Log.i(TAG, "audio upload success:" + url);
-
+        if (imsg.receiver == this.peerUID) {
+            IMessage m = findMessage(imsg.msgLocalID);
+            if (m != null) {
+                m.setUploading(false);
+            }
+        }
     }
 
     @Override
@@ -329,13 +336,20 @@ public class PeerMessageActivity extends MessageActivity implements
             IMessage m = findMessage(msg.msgLocalID);
             if (m != null) {
                 m.setFailure(true);
+                m.setUploading(false);
             }
         }
     }
 
     @Override
-    public void onImageUploadSuccess(IMessage imsg, String url) {
+    public void onImageUploadSuccess(IMessage msg, String url) {
         Log.i(TAG, "image upload success:" + url);
+        if (msg.receiver == this.peerUID) {
+            IMessage m = findMessage(msg.msgLocalID);
+            if (m != null) {
+                m.setUploading(false);
+            }
+        }
     }
 
     @Override
@@ -345,6 +359,7 @@ public class PeerMessageActivity extends MessageActivity implements
             IMessage m = findMessage(msg.msgLocalID);
             if (m != null) {
                 m.setFailure(true);
+                m.setUploading(false);
             }
         }
     }
