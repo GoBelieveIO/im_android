@@ -449,7 +449,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         IMessage imsg = new IMessage();
         imsg.sender = 0;
         imsg.receiver = groupNotification.groupID;
-        imsg.timestamp = now();
+        imsg.timestamp = groupNotification.timestamp;
         imsg.setContent(groupNotification);
         int pos = findConversationPosition(groupNotification.groupID, Conversation.CONVERSATION_GROUP);
         Conversation conv = null;
@@ -481,15 +481,15 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         }
         long currentUID = this.currentUID;
         GroupNotification notification = (GroupNotification)imsg.content;
-        if (notification.type == GroupNotification.NOTIFICATION_GROUP_CREATED) {
+        if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_CREATED) {
             if (notification.master == currentUID) {
                 notification.description = String.format("您创建了\"%s\"群组", notification.groupName);
             } else {
                 notification.description = String.format("您加入了\"%s\"群组", notification.groupName);
             }
-        } else if (notification.type == GroupNotification.NOTIFICATION_GROUP_DISBAND) {
+        } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_DISBAND) {
             notification.description = "群组已解散";
-        } else if (notification.type == GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED) {
+        } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED) {
             User u = getUser(notification.member);
             if (TextUtils.isEmpty(u.name)) {
                 notification.description = String.format("\"%s\"加入群", u.identifier);
@@ -507,7 +507,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             } else {
                 notification.description = String.format("\"%s\"加入群", u.name);
             }
-        } else if (notification.type == GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED) {
+        } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED) {
             User u = getUser(notification.member);
             if (TextUtils.isEmpty(u.name)) {
                 notification.description = String.format("\"%s\"离开群", u.identifier);

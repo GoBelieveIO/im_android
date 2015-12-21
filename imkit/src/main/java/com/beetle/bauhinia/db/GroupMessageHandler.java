@@ -50,7 +50,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         IMessage imsg = new IMessage();
         imsg.sender = 0;
         imsg.receiver = groupNotification.groupID;
-        imsg.timestamp = now();
+        imsg.timestamp = groupNotification.timestamp;
         imsg.setContent(groupNotification);
         return db.insertMessage(imsg, groupNotification.groupID);
     }

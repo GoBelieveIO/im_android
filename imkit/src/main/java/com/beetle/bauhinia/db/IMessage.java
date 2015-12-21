@@ -120,6 +120,7 @@ public class IMessage {
         if (element.has("create")) {
             JsonObject obj = element.getAsJsonObject("create");
             notification.groupID = obj.get("group_id").getAsLong();
+            notification.timestamp = obj.get("timestamp").getAsInt();
             notification.master = obj.get("master").getAsLong();
             notification.groupName = obj.get("name").getAsString();
 
@@ -129,21 +130,24 @@ public class IMessage {
             while (iter.hasNext()) {
                 notification.members.add(iter.next().getAsLong());
             }
-            notification.type = GroupNotification.NOTIFICATION_GROUP_CREATED;
+            notification.notificationType = GroupNotification.NOTIFICATION_GROUP_CREATED;
         } else if (element.has("disband")) {
             JsonObject obj = element.getAsJsonObject("disband");
             notification.groupID = obj.get("group_id").getAsLong();
-            notification.type = GroupNotification.NOTIFICATION_GROUP_DISBAND;
+            notification.timestamp = obj.get("timestamp").getAsInt();
+            notification.notificationType = GroupNotification.NOTIFICATION_GROUP_DISBAND;
         } else if (element.has("quit_group")) {
             JsonObject obj = element.getAsJsonObject("quit_group");
             notification.groupID = obj.get("group_id").getAsLong();
+            notification.timestamp = obj.get("timestamp").getAsInt();
             notification.member = obj.get("member_id").getAsLong();
-            notification.type = GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED;
+            notification.notificationType = GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED;
         } else if (element.has("add_member")) {
             JsonObject obj = element.getAsJsonObject("add_member");
             notification.groupID = obj.get("group_id").getAsLong();
+            notification.timestamp = obj.get("timestamp").getAsInt();
             notification.member = obj.get("member_id").getAsLong();
-            notification.type = GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED;
+            notification.notificationType = GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED;
         }
 
         return notification;
@@ -208,10 +212,12 @@ public class IMessage {
             return MessageType.MESSAGE_GROUP_NOTIFICATION;
         }
 
-        public int type;
+        public int notificationType;
 
         public String description;
         public long groupID;
+
+        public int timestamp;//单位:秒
 
         //NOTIFICATION_GROUP_CREATED
         public String groupName;
