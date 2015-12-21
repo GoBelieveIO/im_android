@@ -269,6 +269,8 @@ public class IMessage {
     public MessageContent content;
     public int timestamp;//单位秒
 
+    private String senderName;
+    private String senderAvatar;
     private boolean uploading;
     private boolean playing;
     private boolean downloading;
@@ -357,4 +359,25 @@ public class IMessage {
         this.geocoding = geocoding;
         changeSupport.firePropertyChange("geocoding", old, geocoding);
     }
+
+    public void setSenderName(String senderName) {
+        String old = this.senderName;
+        this.senderName = senderName;
+        changeSupport.firePropertyChange("senderName", old, this.senderName);
+    }
+
+    public String getSenderName() {
+        return this.senderName;
+    }
+
+    public void setSenderAvatar(String senderAvatar) {
+        String old = this.senderAvatar;
+        this.senderAvatar = senderAvatar;
+        changeSupport.firePropertyChange("senderAvatar", old, this.senderAvatar);
+    }
+
+    public String getSenderAvatar() {
+        return this.senderAvatar;
+    }
+
 }

@@ -83,7 +83,6 @@ public class MessageActivity extends BaseActivity implements
     protected long receiver;
     protected boolean isShowUserName = false;
 
-    protected HashMap<Long, String> names = new HashMap<Long, String>();
     protected ArrayList<IMessage> messages = new ArrayList<IMessage>();
     protected HashMap<Integer, IMessage.Attachment> attachments = new HashMap<Integer, IMessage.Attachment>();
 

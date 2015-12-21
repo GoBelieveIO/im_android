@@ -18,34 +18,14 @@ public class MessageLocationView extends MessageRowView {
     protected ProgressBar progressBar;
 
     public MessageLocationView(Context context, boolean incomming, boolean isShowUserName) {
-        super(context);
+        super(context, incomming, isShowUserName);
 
         int contentLayout = R.layout.chat_content_location;
 
-        View convertView;
-
-        if (!incomming) {
-            convertView = inflater.inflate(
-                    R.layout.chat_container_right, this);
-        } else {
-            convertView = inflater.inflate(
-                    R.layout.chat_container_left, this);
-
-            if (isShowUserName) {
-                TextView textView = (TextView)convertView.findViewById(R.id.name);
-                textView.setVisibility(View.GONE);
-            } else {
-                TextView textView = (TextView)convertView.findViewById(R.id.name);
-                textView.setVisibility(View.GONE);
-            }
-        }
-
-        ViewGroup group = (ViewGroup)convertView.findViewById(R.id.content);
+        ViewGroup group = (ViewGroup)this.findViewById(R.id.content);
         group.addView(inflater.inflate(contentLayout, group, false));
 
         progressBar = (ProgressBar)findViewById(R.id.progress_bar);
-        this.contentView = group;
-
     }
 
     public void setMessage(IMessage msg, boolean incomming) {

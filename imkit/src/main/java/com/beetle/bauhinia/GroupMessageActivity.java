@@ -81,18 +81,49 @@ public class GroupMessageActivity extends MessageActivity implements
         IMService.getInstance().removeObserver(this);
     }
 
-    protected String getUserName(long uid) {
-        return "...";
+
+    public static class User {
+        public long uid;
+        public String name;
+        public String avatarURL;
+
+        //name为nil时，界面显示identifier字段
+        public String identifier;
     }
 
-    private void loadUserName(long uid) {
-        if (names.containsKey(uid)) {
-            return;
-        }
+    protected User getUser(long uid) {
+        User u = new User();
+        u.uid = uid;
+        u.name = null;
+        u.avatarURL = "";
+        u.identifier = String.format("%d", uid);
+        return u;
+    }
 
-        String name = getUserName(uid);
-        if (!TextUtils.isEmpty(name)) {
-            names.put(uid, name);
+    public interface GetUserCallback {
+        void onUser(User u);
+    }
+
+    protected void asyncGetUser(long uid, GetUserCallback cb) {
+
+    }
+
+    private void loadUserName(IMessage msg) {
+        User u = getUser(msg.sender);
+
+        msg.setSenderAvatar(u.avatarURL);
+        if (TextUtils.isEmpty(u.name)) {
+            msg.setSenderName(u.identifier);
+            final IMessage fmsg = msg;
+            asyncGetUser(msg.sender, new GetUserCallback() {
+                @Override
+                public void onUser(User u) {
+                    fmsg.setSenderName(u.name);
+                    fmsg.setSenderAvatar(u.avatarURL);
+                }
+            });
+        } else {
+            msg.setSenderName(u.name);
         }
     }
 
@@ -111,7 +142,7 @@ public class GroupMessageActivity extends MessageActivity implements
                 IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
                 attachments.put(attachment.msg_id, attachment);
             } else {
-                loadUserName(msg.sender);
+                loadUserName(msg);
                 updateNotificationDesc(msg);
                 messages.add(0, msg);
                 if (++count >= PAGE_SIZE) {
@@ -142,7 +173,7 @@ public class GroupMessageActivity extends MessageActivity implements
                 IMessage.Attachment attachment = (IMessage.Attachment) msg.content;
                 attachments.put(attachment.msg_id, attachment);
             } else {
-                loadUserName(msg.sender);
+                loadUserName(msg);
                 updateNotificationDesc(msg);
                 messages.add(0, msg);
                 if (++count >= PAGE_SIZE) {
@@ -202,7 +233,7 @@ public class GroupMessageActivity extends MessageActivity implements
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
 
-        loadUserName(imsg.sender);
+        loadUserName(imsg);
 
         downloadMessageContent(imsg);
         insertMessage(imsg);
@@ -269,9 +300,19 @@ public class GroupMessageActivity extends MessageActivity implements
         } else if (notification.type == IMessage.GroupNotification.NOTIFICATION_GROUP_DISBAND) {
             notification.description = "群组已解散";
         } else if (notification.type == IMessage.GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED) {
-            notification.description = String.format("\"%s\"加入群", getUserName(notification.member));
+            User u = getUser(notification.member);
+            if (TextUtils.isEmpty(u.name)) {
+                notification.description = String.format("\"%s\"加入群", u.identifier);
+            } else {
+                notification.description = String.format("\"%s\"加入群", u.name);
+            }
         } else if (notification.type == IMessage.GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED) {
-            notification.description = String.format("\"%s\"离开群", getUserName(notification.member));
+            User u = getUser(notification.member);
+            if (TextUtils.isEmpty(u.name)) {
+                notification.description = String.format("\"%s\"离开群", u.identifier);
+            } else {
+                notification.description = String.format("\"%s\"离开群", u.name);
+            }
         }
     }
 

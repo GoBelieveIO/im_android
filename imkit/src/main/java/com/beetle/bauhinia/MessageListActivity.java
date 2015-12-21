@@ -84,7 +84,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     public boolean onCreateOptionsMenu(Menu menu) {
         return true;
     }
-    
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         return super.onOptionsItemSelected(item);

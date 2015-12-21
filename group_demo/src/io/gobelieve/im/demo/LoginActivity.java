@@ -142,7 +142,6 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务,此URL为新游提供的Demo授权接口
         //sandbox地址: "http://sandbox.demo.gobelieve.io"
         String URL = "http://demo.gobelieve.io";
-        URL = "http://10.0.0.15";
         String uri = String.format("%s/auth/token", URL);
         try {
             HttpClient getClient = new DefaultHttpClient();

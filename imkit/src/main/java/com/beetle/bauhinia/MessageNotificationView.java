@@ -14,15 +14,8 @@ public class MessageNotificationView extends MessageRowView {
         final int contentLayout;
         contentLayout = R.layout.chat_content_text;
 
-        View convertView;
-
-        convertView = inflater.inflate(
-                R.layout.chat_container_center, this);
-
-        ViewGroup group = (ViewGroup)convertView.findViewById(R.id.content);
+        ViewGroup group = (ViewGroup)this.findViewById(R.id.content);
         group.addView(inflater.inflate(contentLayout, group, false));
-
-        this.contentView = group;
     }
 
     @Override

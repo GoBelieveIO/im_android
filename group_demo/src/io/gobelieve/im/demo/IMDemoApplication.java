@@ -45,9 +45,6 @@ public class IMDemoApplication extends Application {
         mIMService.setHost("imnode.gobelieve.io");
         IMHttpAPI.setAPIURL("http://api.gobelieve.io");
 
-        mIMService.setHost("10.0.0.15");
-        IMHttpAPI.setAPIURL("http://10.0.0.15");
-
         XGIOperateCallback callback = new XGIOperateCallback() {
             @Override
             public void onSuccess(Object data, int i) {
