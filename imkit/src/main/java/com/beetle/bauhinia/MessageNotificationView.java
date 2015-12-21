@@ -8,6 +8,8 @@ import android.widget.TextView;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.imkit.R;
 
+import java.beans.PropertyChangeEvent;
+
 public class MessageNotificationView extends MessageRowView {
     public MessageNotificationView(Context context) {
         super(context);
@@ -29,6 +31,14 @@ public class MessageNotificationView extends MessageRowView {
         requestLayout();
     }
 
-
+    @Override
+    public void propertyChange(PropertyChangeEvent event) {
+        super.propertyChange(event);
+        if (event.getPropertyName().equals("downloading")) {
+            TextView content = (TextView) findViewById(R.id.text);
+            String text = ((IMessage.GroupNotification) this.message.content).description;
+            content.setText(text);
+        }
+    }
 
 }

@@ -303,6 +303,16 @@ public class GroupMessageActivity extends MessageActivity implements
             User u = getUser(notification.member);
             if (TextUtils.isEmpty(u.name)) {
                 notification.description = String.format("\"%s\"加入群", u.identifier);
+                imsg.setDownloading(true);
+                final IMessage fmsg = imsg;
+                asyncGetUser(notification.member, new GetUserCallback() {
+                    @Override
+                    public void onUser(User u) {
+                        IMessage.GroupNotification notification = (IMessage.GroupNotification)fmsg.content;
+                        notification.description = String.format("\"%s\"加入群", u.name);
+                        fmsg.setDownloading(false);
+                    }
+                });
             } else {
                 notification.description = String.format("\"%s\"加入群", u.name);
             }
@@ -310,6 +320,16 @@ public class GroupMessageActivity extends MessageActivity implements
             User u = getUser(notification.member);
             if (TextUtils.isEmpty(u.name)) {
                 notification.description = String.format("\"%s\"离开群", u.identifier);
+                imsg.setDownloading(true);
+                final IMessage fmsg = imsg;
+                asyncGetUser(notification.member, new GetUserCallback() {
+                    @Override
+                    public void onUser(User u) {
+                        IMessage.GroupNotification notification = (IMessage.GroupNotification)fmsg.content;
+                        notification.description = String.format("\"%s\"离开群", u.name);
+                        fmsg.setDownloading(false);
+                    }
+                });
             } else {
                 notification.description = String.format("\"%s\"离开群", u.name);
             }
