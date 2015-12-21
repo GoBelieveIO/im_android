@@ -80,12 +80,19 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                     });
         }
 
-        Intent intent = new Intent(this, PeerMessageActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("peer_uid", receiver);
-        intent.putExtra("peer_name", "测试");
-        intent.putExtra("current_uid", sender);
-        startActivity(intent);
+        if (receiver == 0) {
+            Intent intent = new Intent(this, MessageListActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra("current_uid", sender);
+            startActivity(intent);
+        } else {
+            Intent intent = new Intent(this, PeerMessageActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra("peer_uid", receiver);
+            intent.putExtra("peer_name", "测试");
+            intent.putExtra("current_uid", sender);
+            startActivity(intent);
+        }
         finish();
     }
 
@@ -104,16 +111,16 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                 return;
             }
 
-            if (mEtTargetAccount.getText().toString().length() <= 0) {
-                Toast.makeText(this, "请设置接收者的用户id", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            final long receiverId = Long.parseLong(mEtTargetAccount.getText().toString());
-            if (receiverId <= 0) {
-                Toast.makeText(this, "接收方id不能为0或者-1", Toast.LENGTH_SHORT).show();
-                return;
+
+            long receiver = 0;
+            if (mEtTargetAccount.getText().toString().length() > 0) {
+                receiver = Long.parseLong(mEtTargetAccount.getText().toString());
+                if (receiver <= 0) {
+                    receiver = 0;
+                }
             }
 
+            final long receiverId = receiver;
 
             if (mLoginTask != null) {
                 return;

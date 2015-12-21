@@ -55,6 +55,16 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".MessageListActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/imkit.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
+
         <!--高德地图配置-->
         <meta-data
             android:name="com.amap.api.v2.apikey"
