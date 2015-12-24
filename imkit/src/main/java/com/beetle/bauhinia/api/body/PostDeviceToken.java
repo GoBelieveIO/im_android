@@ -11,4 +11,14 @@ public class PostDeviceToken {
 
     @SerializedName("xg_device_token")
     public String xgDeviceToken;
+
+    @SerializedName("xm_device_token")
+    public String xmDeviceToken;
+
+    @SerializedName("hw_device_token")
+    public String hwDeviceToken;
+
+    @SerializedName("gcm_device_token")
+    public String gcmDeviceToken;
+
 }
