@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+
+    <string name="hwpush_goback">Back</string>
+    <string name="hwpush_forward">Forward</string>
+    <string name="hwpush_refresh">Refresh</string>
+    <string name="hwpush_collect">Favorite</string>
+    <string name="hwpush_deltitle">Delete notifications</string>
+    <string name="hwpush_msg_collect">Favorites</string>
+    <string name="hwpush_msg_favorites">Favorite notifications</string>
+    
+    <string name="hwpush_delete">Delete</string>
+    <string name="hwpush_selectall">Select all</string>
+    
+    <string name="hwpush_collect_tip">A Favorites icon will be created on the home screen. You can touch the icon to view all your favorite notifications.</string>
+    <string name="hwpush_collect_tip_known">OK</string>
+    
+    <string name="hwpush_cancel">Cancel</string>
+    <plurals name="hwpush_delete_tip">
+        <!--  The example of %d is 1-->
+        <item quantity="one">Delete selected notification?</item>
+        <!--  The example of %d is 11-->
+        <item quantity="other">Delete selected notifications?</item>
+    </plurals>
+    <string name="hwpush_unselectall">Deselect all</string>
+    <string name="hwpush_no_collection">No favorite notifications</string>
+    <string name="cloudpush_app_name">Push Service</string>
+    <string name="hwpush_richmedia">Rich media</string>
+    <string name="hwpush_loading_title">Loading... Please wait.</string>
+</resources>

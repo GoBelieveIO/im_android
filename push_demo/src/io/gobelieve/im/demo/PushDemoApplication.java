@@ -69,7 +69,7 @@ public class PushDemoApplication extends Application {
 
     private void initPush() {
         // 华为设备启动华为push，其他设备启动小米push
-        if (!isHuaweiDevice()) {
+        if (isHuaweiDevice()) {
             initHuaweiPush();
         } else {
             initXiaomiPush();
@@ -80,9 +80,9 @@ public class PushDemoApplication extends Application {
         return sApplication;
     }
 
-    private boolean isHuaweiDevice() {
+    private boolean isXiaomiDevice() {
         String os = Build.HOST;
-        return !TextUtils.isEmpty(os) && os.toLowerCase().contains("huawei");
+        return !TextUtils.isEmpty(os) && os.toLowerCase().contains("miui");
     }
 
     private void initXiaomiPush() {
@@ -99,6 +99,11 @@ public class PushDemoApplication extends Application {
             // 已登录尚未绑定时
             bindWithXiaomi();
         }
+    }
+
+    private boolean isHuaweiDevice() {
+        String os = Build.HOST;
+        return !TextUtils.isEmpty(os) && os.toLowerCase().contains("huawei");
     }
 
     private void initHuaweiPush() {
