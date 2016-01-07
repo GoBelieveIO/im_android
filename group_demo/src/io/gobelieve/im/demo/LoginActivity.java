@@ -59,25 +59,6 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         IMService.getInstance().setUID(sender);
         IMService.getInstance().start();
 
-        IMDemoApplication app = (IMDemoApplication)getApplication();
-        String deviceToken = app.getDeviceToken();
-        if (token != null && deviceToken != null && deviceToken.length() > 0) {
-            PostDeviceToken tokenBody = new PostDeviceToken();
-            tokenBody.xgDeviceToken = deviceToken;
-            IMHttpAPI.Singleton().bindDeviceToken(tokenBody)
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Action1<Object>() {
-                        @Override
-                        public void call(Object obj) {
-                            Log.i("im", "bind success");
-                        }
-                    }, new Action1<Throwable>() {
-                        @Override
-                        public void call(Throwable throwable) {
-                            Log.i("im", "bind fail");
-                        }
-                    });
-        }
 
         Intent intent = new Intent(this, AppGroupMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
