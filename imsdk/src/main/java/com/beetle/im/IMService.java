@@ -468,12 +468,12 @@ public class IMService {
         Log.d(TAG, "im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
 
         if (im.sender == this.uid) {
-            if (!peerMessageHandler.handleMessage(im, im.receiver)) {
+            if (peerMessageHandler != null && !peerMessageHandler.handleMessage(im, im.receiver)) {
                 Log.i(TAG, "handle im message fail");
                 return;
             }
         } else {
-            if (!peerMessageHandler.handleMessage(im, im.sender)) {
+            if (peerMessageHandler != null && !peerMessageHandler.handleMessage(im, im.sender)) {
                 Log.i(TAG, "handle im message fail");
                 return;
             }
