@@ -66,6 +66,8 @@ public class IMService {
     PeerMessageHandler peerMessageHandler;
     GroupMessageHandler groupMessageHandler;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
+    ArrayList<VOIPObserver> voipObservers = new ArrayList<VOIPObserver>();
+
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
     HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
 
@@ -167,6 +169,17 @@ public class IMService {
 
     public void removeObserver(IMServiceObserver ob) {
         observers.remove(ob);
+    }
+
+    public void pushVOIPObserver(VOIPObserver ob) {
+        if (voipObservers.contains(ob)) {
+            return;
+        }
+        voipObservers.add(ob);
+    }
+
+    public void popVOIPObserver(VOIPObserver ob) {
+        voipObservers.remove(ob);
     }
 
     public void enterBackground() {
@@ -284,6 +297,13 @@ public class IMService {
 
         groupMessages.put(new Integer(msg.seq), im);
         return true;
+    }
+
+    public boolean sendVOIPControl(VOIPControl ctl) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_VOIP_CONTROL;
+        msg.body = ctl;
+        return sendMessage(msg);
     }
 
     private void close() {
@@ -577,6 +597,18 @@ public class IMService {
         }
     }
 
+
+    private void handleVOIPControl(Message msg) {
+        VOIPControl ctl = (VOIPControl)msg.body;
+
+        int count = voipObservers.size();
+        if (count == 0) {
+            return;
+        }
+        VOIPObserver ob = voipObservers.get(count-1);
+        ob.onVOIPControl(ctl);
+    }
+
     private void handlePong(Message msg) {
         this.pingTimestamp = 0;
     }
@@ -604,6 +636,8 @@ public class IMService {
             handleGroupNotification(msg);
         } else if (msg.cmd == Command.MSG_LOGIN_POINT) {
             handleLoginPoint(msg);
+        } else if (msg.cmd == Command.MSG_VOIP_CONTROL) {
+            handleVOIPControl(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
