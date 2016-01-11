@@ -66,6 +66,9 @@ public class IMService {
     PeerMessageHandler peerMessageHandler;
     GroupMessageHandler groupMessageHandler;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
+    ArrayList<LoginPointObserver> loginPointObservers = new ArrayList<LoginPointObserver>();
+    ArrayList<GroupMessageObserver> groupObservers = new ArrayList<GroupMessageObserver>();
+    ArrayList<PeerMessageObserver> peerObservers = new ArrayList<PeerMessageObserver>();
     ArrayList<VOIPObserver> voipObservers = new ArrayList<VOIPObserver>();
 
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
@@ -169,6 +172,39 @@ public class IMService {
 
     public void removeObserver(IMServiceObserver ob) {
         observers.remove(ob);
+    }
+
+    public void addLoginPointObserver(LoginPointObserver ob) {
+        if (loginPointObservers.contains(ob)) {
+            return;
+        }
+        loginPointObservers.add(ob);
+    }
+
+    public void removeLoginPointObserver(LoginPointObserver ob) {
+        loginPointObservers.remove(ob);
+    }
+
+    public void addPeerObserver(PeerMessageObserver ob) {
+        if (peerObservers.contains(ob)) {
+            return;
+        }
+        peerObservers.add(ob);
+    }
+
+    public void removePeerObserver(PeerMessageObserver ob) {
+        peerObservers.remove(ob);
+    }
+
+    public void addGroupObserver(GroupMessageObserver ob) {
+        if (groupObservers.contains(ob)) {
+            return;
+        }
+        groupObservers.add(ob);
+    }
+
+    public void removeGroupObserver(GroupMessageObserver ob) {
+        groupObservers.remove(ob);
     }
 
     public void pushVOIPObserver(VOIPObserver ob) {
@@ -591,8 +627,8 @@ public class IMService {
 
     private void handleInputting(Message msg) {
         MessageInputing inputting = (MessageInputing)msg.body;
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < peerObservers.size(); i++ ) {
+            PeerMessageObserver ob = peerObservers.get(i);
             ob.onPeerInputting(inputting.sender);
         }
     }
@@ -727,51 +763,51 @@ public class IMService {
     }
 
     private void publishGroupNotification(String notification) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < groupObservers.size(); i++ ) {
+            GroupMessageObserver ob = groupObservers.get(i);
             ob.onGroupNotification(notification);
         }
     }
 
     private void publishGroupMessage(IMMessage msg) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < groupObservers.size(); i++ ) {
+            GroupMessageObserver ob = groupObservers.get(i);
             ob.onGroupMessage(msg);
         }
     }
 
     private void publishGroupMessageACK(int msgLocalID, long gid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < groupObservers.size(); i++ ) {
+            GroupMessageObserver ob = groupObservers.get(i);
             ob.onGroupMessageACK(msgLocalID, gid);
         }
     }
 
 
     private void publishGroupMessageFailure(int msgLocalID, long gid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < groupObservers.size(); i++ ) {
+            GroupMessageObserver ob = groupObservers.get(i);
             ob.onGroupMessageFailure(msgLocalID, gid);
         }
     }
 
     private void publishPeerMessage(IMMessage msg) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < peerObservers.size(); i++ ) {
+            PeerMessageObserver ob = peerObservers.get(i);
             ob.onPeerMessage(msg);
         }
     }
 
     private void publishPeerMessageACK(int msgLocalID, long uid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < peerObservers.size(); i++ ) {
+            PeerMessageObserver ob = peerObservers.get(i);
             ob.onPeerMessageACK(msgLocalID, uid);
         }
     }
 
     private void publishPeerMessageFailure(int msgLocalID, long uid) {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < peerObservers.size(); i++ ) {
+            PeerMessageObserver ob = peerObservers.get(i);
             ob.onPeerMessageFailure(msgLocalID, uid);
         }
     }
@@ -784,8 +820,8 @@ public class IMService {
     }
 
     private void publishLoginPoint(final LoginPoint lp) {
-        for (int i = 0; i < observers.size(); i++) {
-            IMServiceObserver ob = observers.get(i);
+        for (int i = 0; i < loginPointObservers.size(); i++) {
+            LoginPointObserver ob = loginPointObservers.get(i);
             ob.onLoginPoint(lp);
         }
     }

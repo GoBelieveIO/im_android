@@ -17,6 +17,7 @@ import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessage.GroupNotification;
 import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.im.GroupMessageObserver;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
@@ -31,9 +32,12 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
+import com.beetle.im.LoginPointObserver;
+import com.beetle.im.PeerMessageObserver;
 import com.beetle.imkit.R;
 
-public class MessageListActivity extends BaseActivity implements IMServiceObserver, AdapterView.OnItemClickListener,
+public class MessageListActivity extends BaseActivity implements IMServiceObserver, LoginPointObserver,
+        PeerMessageObserver, GroupMessageObserver, AdapterView.OnItemClickListener,
          NotificationCenter.NotificationCenterObserver {
     private static final String TAG = "beetle";
 
@@ -107,6 +111,9 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
         IMService im =  IMService.getInstance();
         im.addObserver(this);
+        im.addLoginPointObserver(this);
+        im.addPeerObserver(this);
+        im.addGroupObserver(this);
 
         loadConversations();
         initWidget();
@@ -123,6 +130,9 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         super.onDestroy();
         IMService im =  IMService.getInstance();
         im.removeObserver(this);
+        im.removeLoginPointObserver(this);
+        im.removePeerObserver(this);
+        im.removeGroupObserver(this);
         NotificationCenter nc = NotificationCenter.defaultCenter();
         nc.removeObserver(this);
         Log.i(TAG, "message list activity destroyed");
@@ -304,18 +314,19 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         }
     }
 
+    @Override
     public void onConnectState(IMService.ConnectState state) {
 
     }
-
+    @Override
     public void onLoginPoint(LoginPoint lp) {
 
     }
-
+    @Override
     public void onPeerInputting(long uid) {
 
     }
-
+    @Override
     public void onPeerMessage(IMMessage msg) {
         Log.i(TAG, "on peer message");
         IMessage imsg = new IMessage();
@@ -397,14 +408,16 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         long t = date.getTime();
         return (int)(t/1000);
     }
-
+    @Override
     public void onPeerMessageACK(int msgLocalID, long uid) {
         Log.i(TAG, "message ack on main");
     }
 
+    @Override
     public void onPeerMessageFailure(int msgLocalID, long uid) {
     }
 
+    @Override
     public void onGroupMessage(IMMessage msg) {
         Log.i(TAG, "on group message");
         IMessage imsg = new IMessage();
@@ -436,14 +449,17 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             //pos == 0
         }
     }
-
+    @Override
     public void onGroupMessageACK(int msgLocalID, long uid) {
 
     }
+
+    @Override
     public void onGroupMessageFailure(int msgLocalID, long uid) {
 
     }
 
+    @Override
     public void onGroupNotification(String text) {
         GroupNotification groupNotification = IMessage.newGroupNotification(text);
         IMessage imsg = new IMessage();

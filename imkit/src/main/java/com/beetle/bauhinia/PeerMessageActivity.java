@@ -20,7 +20,7 @@ import static android.os.SystemClock.uptimeMillis;
 
 
 public class PeerMessageActivity extends MessageActivity implements
-        IMServiceObserver,
+        IMServiceObserver, PeerMessageObserver,
         PeerOutbox.OutboxObserver
 {
 
@@ -69,6 +69,7 @@ public class PeerMessageActivity extends MessageActivity implements
 
         PeerOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);
+        IMService.getInstance().addPeerObserver(this);
     }
 
     @Override
@@ -77,8 +78,8 @@ public class PeerMessageActivity extends MessageActivity implements
         Log.i(TAG, "peer message activity destory");
         PeerOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
+        IMService.getInstance().removePeerObserver(this);
     }
-
 
     protected void loadConversationData() {
         messages = new ArrayList<IMessage>();
@@ -161,10 +162,8 @@ public class PeerMessageActivity extends MessageActivity implements
         setSubtitle();
     }
 
-    public void onLoginPoint(LoginPoint lp) {
-        Log.i(TAG, "login point:" + lp.deviceID + " platform id:" + lp.platformID);
-    }
 
+    @Override
     public void onPeerInputting(long uid) {
         if (uid == peerUID) {
             setSubtitle("对方正在输入");
@@ -180,6 +179,7 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
+    @Override
     public void onPeerMessage(IMMessage msg) {
         if (msg.sender != peerUID && msg.receiver != peerUID) {
             return;
@@ -197,6 +197,7 @@ public class PeerMessageActivity extends MessageActivity implements
         insertMessage(imsg);
     }
 
+    @Override
     public void onPeerMessageACK(int msgLocalID, long uid) {
         if (peerUID != uid) {
             return;
@@ -211,6 +212,7 @@ public class PeerMessageActivity extends MessageActivity implements
         imsg.setAck(true);
     }
 
+    @Override
     public void onPeerMessageFailure(int msgLocalID, long uid) {
         if (peerUID != uid) {
             return;
@@ -225,18 +227,7 @@ public class PeerMessageActivity extends MessageActivity implements
         imsg.setFailure(true);
     }
 
-    public void onGroupMessage(IMMessage msg) {
 
-    }
-    public void onGroupMessageACK(int msgLocalID, long uid) {
-
-    }
-    public void onGroupMessageFailure(int msgLocalID, long uid) {
-
-    }
-    public void onGroupNotification(String notification) {
-
-    }
 
     void checkMessageFailureFlag(IMessage msg) {
         if (msg.sender == this.currentUID) {

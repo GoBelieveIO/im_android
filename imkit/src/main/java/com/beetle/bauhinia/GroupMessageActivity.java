@@ -10,6 +10,7 @@ import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.GroupOutbox;
+import com.beetle.im.GroupMessageObserver;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
@@ -22,7 +23,7 @@ import java.util.ArrayList;
  * Created by houxh on 15/3/21.
  */
 public class GroupMessageActivity extends MessageActivity implements
-        IMServiceObserver,
+        IMServiceObserver, GroupMessageObserver,
         GroupOutbox.OutboxObserver {
 
     public static final String SEND_MESSAGE_NAME = "send_group_message";
@@ -71,6 +72,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
         GroupOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);
+        IMService.getInstance().addGroupObserver(this);
     }
 
     @Override
@@ -79,6 +81,7 @@ public class GroupMessageActivity extends MessageActivity implements
         Log.i(TAG, "peer message activity destory");
         GroupOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
+        IMService.getInstance().removeGroupObserver(this);
     }
 
 
@@ -190,7 +193,7 @@ public class GroupMessageActivity extends MessageActivity implements
         }
     }
 
-
+    @Override
     public void onConnectState(IMService.ConnectState state) {
         if (state == IMService.ConnectState.STATE_CONNECTED) {
             enableSend();
@@ -200,27 +203,7 @@ public class GroupMessageActivity extends MessageActivity implements
         setSubtitle();
     }
 
-    public void onLoginPoint(LoginPoint lp) {
-
-    }
-
-    public void onPeerInputting(long uid) {
-
-    }
-
-    public void onPeerMessage(IMMessage msg) {
-
-    }
-
-
-    public void onPeerMessageACK(int msgLocalID, long uid) {
-
-    }
-
-    public void onPeerMessageFailure(int msgLocalID, long uid) {
-
-    }
-
+    @Override
     public void onGroupMessage(IMMessage msg) {
         if (msg.receiver != groupID) {
             return;
@@ -239,6 +222,7 @@ public class GroupMessageActivity extends MessageActivity implements
         insertMessage(imsg);
     }
 
+    @Override
     public void onGroupMessageACK(int msgLocalID, long gid) {
         if (gid != groupID) {
             return;
@@ -252,7 +236,7 @@ public class GroupMessageActivity extends MessageActivity implements
         }
         imsg.setAck(true);
     }
-
+    @Override
     public void onGroupMessageFailure(int msgLocalID, long gid) {
         if (gid != groupID) {
             return;
@@ -267,6 +251,7 @@ public class GroupMessageActivity extends MessageActivity implements
         imsg.setFailure(true);
     }
 
+    @Override
     public void onGroupNotification(String text) {
         IMessage.GroupNotification notification = IMessage.newGroupNotification(text);
 
