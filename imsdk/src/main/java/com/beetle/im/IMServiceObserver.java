@@ -5,7 +5,4 @@ package com.beetle.im;
  */
 public interface IMServiceObserver {
     public void onConnectState(IMService.ConnectState state);
-
-
-
 }

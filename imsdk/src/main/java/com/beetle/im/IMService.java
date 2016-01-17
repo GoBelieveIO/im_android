@@ -69,6 +69,7 @@ public class IMService {
     ArrayList<LoginPointObserver> loginPointObservers = new ArrayList<LoginPointObserver>();
     ArrayList<GroupMessageObserver> groupObservers = new ArrayList<GroupMessageObserver>();
     ArrayList<PeerMessageObserver> peerObservers = new ArrayList<PeerMessageObserver>();
+    ArrayList<SystemMessageObserver> systemMessageObservers = new ArrayList<SystemMessageObserver>();
     ArrayList<VOIPObserver> voipObservers = new ArrayList<VOIPObserver>();
 
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
@@ -205,6 +206,17 @@ public class IMService {
 
     public void removeGroupObserver(GroupMessageObserver ob) {
         groupObservers.remove(ob);
+    }
+
+    public void addSystemObserver(SystemMessageObserver ob) {
+        if (systemMessageObservers.contains(ob)) {
+            return;
+        }
+        systemMessageObservers.add(ob);
+    }
+
+    public void removeSystemObserver(SystemMessageObserver ob) {
+        systemMessageObservers.remove(ob);
     }
 
     public void pushVOIPObserver(VOIPObserver ob) {
@@ -621,10 +633,6 @@ public class IMService {
         }
     }
 
-    private void handlePeerACK(Message msg) {
-        return;
-    }
-
     private void handleInputting(Message msg) {
         MessageInputing inputting = (MessageInputing)msg.body;
         for (int i = 0; i < peerObservers.size(); i++ ) {
@@ -633,6 +641,18 @@ public class IMService {
         }
     }
 
+    private void handleSystemMessage(Message msg) {
+        String sys = (String)msg.body;
+        for (int i = 0; i < systemMessageObservers.size(); i++ ) {
+            SystemMessageObserver ob = systemMessageObservers.get(i);
+            ob.onSystemMessage(sys);
+        }
+
+        Message ack = new Message();
+        ack.cmd = Command.MSG_ACK;
+        ack.body = new Integer(msg.seq);
+        sendMessage(ack);
+    }
 
     private void handleVOIPControl(Message msg) {
         VOIPControl ctl = (VOIPControl)msg.body;
@@ -660,8 +680,6 @@ public class IMService {
             handleIMMessage(msg);
         } else if (msg.cmd == Command.MSG_ACK) {
             handleACK(msg);
-        } else if (msg.cmd == Command.MSG_PEER_ACK) {
-            handlePeerACK(msg);
         } else if (msg.cmd == Command.MSG_INPUTTING) {
             handleInputting(msg);
         } else if (msg.cmd == Command.MSG_PONG) {
@@ -672,6 +690,8 @@ public class IMService {
             handleGroupNotification(msg);
         } else if (msg.cmd == Command.MSG_LOGIN_POINT) {
             handleLoginPoint(msg);
+        } else if (msg.cmd == Command.MSG_SYSTEM) {
+            handleSystemMessage(msg);
         } else if (msg.cmd == Command.MSG_VOIP_CONTROL) {
             handleVOIPControl(msg);
         } else {

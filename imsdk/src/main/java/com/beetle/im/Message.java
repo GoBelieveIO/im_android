@@ -1,8 +1,6 @@
 package com.beetle.im;
 
 import android.util.Log;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -26,6 +24,11 @@ class Command{
     public static final int MSG_PONG = 14;
     public static final int MSG_AUTH_TOKEN = 15;
     public static final int MSG_LOGIN_POINT = 16;
+    public static final int MSG_RT = 17;
+    public static final int MSG_ENTER_ROOM = 18;
+    public static final int MSG_LEAVE_ROOM = 19;
+    public static final int MSG_ROOM_IM = 20;
+    public static final int MSG_SYSTEM = 21;
 
     public static final int MSG_VOIP_CONTROL = 64;
 }
@@ -218,6 +221,13 @@ public class Message {
             try {
                 lp.deviceID = new String(data, pos, data.length - 13, "UTF-8");
                 this.body = lp;
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        } else if (cmd == Command.MSG_SYSTEM) {
+            try {
+                this.body = new String(data, pos, data.length - HEAD_SIZE, "UTF-8");
                 return true;
             } catch (Exception e) {
                 return false;

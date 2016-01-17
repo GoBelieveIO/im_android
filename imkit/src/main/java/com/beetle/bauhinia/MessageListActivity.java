@@ -34,10 +34,11 @@ import java.util.List;
 
 import com.beetle.im.LoginPointObserver;
 import com.beetle.im.PeerMessageObserver;
+import com.beetle.im.SystemMessageObserver;
 import com.beetle.imkit.R;
 
 public class MessageListActivity extends BaseActivity implements IMServiceObserver, LoginPointObserver,
-        PeerMessageObserver, GroupMessageObserver, AdapterView.OnItemClickListener,
+        PeerMessageObserver, GroupMessageObserver, SystemMessageObserver, AdapterView.OnItemClickListener,
          NotificationCenter.NotificationCenterObserver {
     private static final String TAG = "beetle";
 
@@ -114,6 +115,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         im.addLoginPointObserver(this);
         im.addPeerObserver(this);
         im.addGroupObserver(this);
+        im.addSystemObserver(this);
 
         loadConversations();
         initWidget();
@@ -133,6 +135,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         im.removeLoginPointObserver(this);
         im.removePeerObserver(this);
         im.removeGroupObserver(this);
+        im.addSystemObserver(this);
         NotificationCenter nc = NotificationCenter.defaultCenter();
         nc.removeObserver(this);
         Log.i(TAG, "message list activity destroyed");
@@ -610,6 +613,11 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
                 adapter.notifyDataSetChanged();
             }
         }
+    }
+
+    @Override
+    public void onSystemMessage(String sm) {
+        Log.i(TAG, "system message:" + sm);
     }
 
     public boolean canBack() {
