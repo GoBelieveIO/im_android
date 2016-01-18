@@ -20,7 +20,7 @@ public class CustomerServiceMessageHandler implements com.beetle.im.CustomerServ
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
-        boolean r = db.insertMessage(imsg, 0);
+        boolean r = db.insertMessage(imsg, uid);
         msg.msgLocalID = imsg.msgLocalID;
         return r;
     }

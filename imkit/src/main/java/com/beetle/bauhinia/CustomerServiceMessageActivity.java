@@ -37,6 +37,12 @@ public class CustomerServiceMessageActivity extends MessageActivity
         return peerUID != 0;
     }
 
+    public CustomerServiceMessageActivity() {
+        super();
+        sendNotificationName = SEND_MESSAGE_NAME;
+        clearNotificationName = CLEAR_MESSAGES;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

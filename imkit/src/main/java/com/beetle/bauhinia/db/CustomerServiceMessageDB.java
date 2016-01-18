@@ -126,6 +126,6 @@ public class CustomerServiceMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new ConversationIterator(this.dir.listFiles(), Conversation.CONVERSATION_PEER);
+        return new ConversationIterator(this.dir.listFiles(), Conversation.CONVERSATION_CUSTOMER_SERVICE);
     }
 }
