@@ -352,13 +352,13 @@ public class GroupMessageActivity extends MessageActivity implements
             GroupOutbox ob = GroupOutbox.getInstance();
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
             imsg.setUploading(true);
-            ob.uploadGroupAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
+            ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
         } else if (imsg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
             IMessage.Image image = (IMessage.Image)imsg.content;
             //prefix:"file:"
             String path = image.image.substring(5);
             imsg.setUploading(true);
-            GroupOutbox.getInstance().uploadGroupImage(imsg, path);
+            GroupOutbox.getInstance().uploadImage(imsg, path);
         } else {
             IMMessage msg = new IMMessage();
             msg.sender = imsg.sender;

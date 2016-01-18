@@ -65,15 +65,18 @@ public class IMService {
 
     PeerMessageHandler peerMessageHandler;
     GroupMessageHandler groupMessageHandler;
+    CustomerServiceHandler customerServiceMessageHandler;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
     ArrayList<LoginPointObserver> loginPointObservers = new ArrayList<LoginPointObserver>();
     ArrayList<GroupMessageObserver> groupObservers = new ArrayList<GroupMessageObserver>();
     ArrayList<PeerMessageObserver> peerObservers = new ArrayList<PeerMessageObserver>();
     ArrayList<SystemMessageObserver> systemMessageObservers = new ArrayList<SystemMessageObserver>();
+    ArrayList<CustomerServiceMessageObserver> customerServiceMessageObservers = new ArrayList<CustomerServiceMessageObserver>();
     ArrayList<VOIPObserver> voipObservers = new ArrayList<VOIPObserver>();
 
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
     HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
+    HashMap<Integer, IMMessage> customerServiceMessages = new HashMap<Integer, IMMessage>();
 
     private byte[] data;
 
@@ -163,6 +166,9 @@ public class IMService {
     public void setGroupMessageHandler(GroupMessageHandler handler) {
         this.groupMessageHandler = handler;
     }
+    public void setCustomerServiceMessageHandler(CustomerServiceHandler handler) {
+        this.customerServiceMessageHandler = handler;
+    }
 
     public void addObserver(IMServiceObserver ob) {
         if (observers.contains(ob)) {
@@ -217,6 +223,17 @@ public class IMService {
 
     public void removeSystemObserver(SystemMessageObserver ob) {
         systemMessageObservers.remove(ob);
+    }
+
+    public void addCustomerServiceObserver(CustomerServiceMessageObserver ob) {
+        if (customerServiceMessageObservers.contains(ob)) {
+            return;
+        }
+        customerServiceMessageObservers.add(ob);
+    }
+
+    public void removeCustomerServiceObserver(CustomerServiceMessageObserver ob) {
+        customerServiceMessageObservers.remove(ob);
     }
 
     public void pushVOIPObserver(VOIPObserver ob) {
@@ -322,6 +339,15 @@ public class IMService {
         }
         return false;
     }
+    public boolean isCustomerServiceMessageSending(long peer, int msgLocalID) {
+        for(Map.Entry<Integer, IMMessage> entry : customerServiceMessages.entrySet()) {
+            IMMessage m = entry.getValue();
+            if (m.receiver == peer && m.msgLocalID == msgLocalID) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public boolean sendPeerMessage(IMMessage im) {
         Message msg = new Message();
@@ -344,6 +370,18 @@ public class IMService {
         }
 
         groupMessages.put(new Integer(msg.seq), im);
+        return true;
+    }
+
+    public boolean sendCustomerServiceMessage(IMMessage im) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_CUSTOMER_SERVICE;
+        msg.body = im;
+        if (!sendMessage(msg)) {
+            return false;
+        }
+
+        customerServiceMessages.put(new Integer(msg.seq), im);
         return true;
     }
 
@@ -606,6 +644,17 @@ public class IMService {
         }
         groupMessages.clear();
 
+        iter = customerServiceMessages.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
+            IMMessage im = entry.getValue();
+            if (customerServiceMessageHandler != null) {
+                customerServiceMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+            }
+            publishCustomerServiceMessageFailure(im.msgLocalID, im.receiver);
+        }
+        customerServiceMessages.clear();
+
         close();
     }
 
@@ -631,6 +680,16 @@ public class IMService {
             groupMessages.remove(seq);
             publishGroupMessageACK(im.msgLocalID, im.receiver);
         }
+
+        im = customerServiceMessages.get(seq);
+        if (im != null) {
+            if (customerServiceMessageHandler != null && !customerServiceMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+                Log.i(TAG, "handle customer service message ack fail");
+                return;
+            }
+            customerServiceMessages.remove(seq);
+            publishCustomerServiceMessageACK(im.msgLocalID, im.receiver);
+        }
     }
 
     private void handleInputting(Message msg) {
@@ -652,6 +711,35 @@ public class IMService {
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
+    }
+
+    private void handleCustomerServiceMessage(Message msg) {
+        IMMessage cs = (IMMessage)msg.body;
+        long peer;
+        if (cs.sender == this.uid) {
+            peer = cs.receiver;
+        } else {
+            peer = cs.sender;
+        }
+        if (customerServiceMessageHandler != null && !customerServiceMessageHandler.handleMessage(cs, peer)) {
+            Log.i(TAG, "handle customer service message fail");
+            return;
+        }
+
+        publishCustomerServiceMessage(cs);
+
+        Message ack = new Message();
+        ack.cmd = Command.MSG_ACK;
+        ack.body = new Integer(msg.seq);
+        sendMessage(ack);
+
+        if (cs.sender == this.uid) {
+            if (customerServiceMessageHandler != null && !customerServiceMessageHandler.handleMessageACK(cs.msgLocalID, cs.receiver)) {
+                Log.w(TAG, "handle customer service message ack fail");
+                return;
+            }
+            publishCustomerServiceMessageACK(cs.msgLocalID, cs.receiver);
+        }
     }
 
     private void handleVOIPControl(Message msg) {
@@ -694,6 +782,8 @@ public class IMService {
             handleSystemMessage(msg);
         } else if (msg.cmd == Command.MSG_VOIP_CONTROL) {
             handleVOIPControl(msg);
+        } else if (msg.cmd == Command.MSG_CUSTOMER_SERVICE) {
+            handleCustomerServiceMessage(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
@@ -843,6 +933,28 @@ public class IMService {
         for (int i = 0; i < loginPointObservers.size(); i++) {
             LoginPointObserver ob = loginPointObservers.get(i);
             ob.onLoginPoint(lp);
+        }
+    }
+
+    private void publishCustomerServiceMessage(IMMessage cs) {
+        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+            CustomerServiceMessageObserver ob = customerServiceMessageObservers.get(i);
+            ob.onCustomerServiceMessage(cs);
+        }
+    }
+
+    private void publishCustomerServiceMessageACK(int msgLocalID, long uid) {
+        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+            CustomerServiceMessageObserver ob = customerServiceMessageObservers.get(i);
+            ob.onCustomerServiceMessageACK(msgLocalID, uid);
+        }
+    }
+
+
+    private void publishCustomerServiceMessageFailure(int msgLocalID, long uid) {
+        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+            CustomerServiceMessageObserver ob = customerServiceMessageObservers.get(i);
+            ob.onCustomerServiceMessageFailure(msgLocalID, uid);
         }
     }
 }

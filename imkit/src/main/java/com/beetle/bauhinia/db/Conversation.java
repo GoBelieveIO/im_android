@@ -9,6 +9,7 @@ import java.beans.PropertyChangeSupport;
 public class Conversation {
     public static final int CONVERSATION_PEER = 1;
     public static final int CONVERSATION_GROUP = 2;
+    public static final int CONVERSATION_CUSTOMER_SERVICE = 3;
 
     public int type;
     public long cid;

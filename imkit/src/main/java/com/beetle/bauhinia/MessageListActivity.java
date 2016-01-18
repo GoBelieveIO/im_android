@@ -13,9 +13,11 @@ import android.support.v7.widget.Toolbar;
 
 import com.beetle.bauhinia.db.Conversation;
 import com.beetle.bauhinia.db.ConversationIterator;
+import com.beetle.bauhinia.db.CustomerServiceMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessage.GroupNotification;
+import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.im.GroupMessageObserver;
 import com.beetle.im.IMMessage;
@@ -135,7 +137,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         im.removeLoginPointObserver(this);
         im.removePeerObserver(this);
         im.removeGroupObserver(this);
-        im.addSystemObserver(this);
+        im.removeSystemObserver(this);
         NotificationCenter nc = NotificationCenter.defaultCenter();
         nc.removeObserver(this);
         Log.i(TAG, "message list activity destroyed");
@@ -229,6 +231,34 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             updateConversationDetail(conv);
             conversations.add(conv);
         }
+
+        MessageIterator messageIterator  = CustomerServiceMessageDB.getInstance().newMessageIterator(0);
+        IMessage msg = null;
+        while (messageIterator != null) {
+            msg = messageIterator.next();
+            if (msg == null) {
+                break;
+            }
+
+            if (msg.content.getType() != IMessage.MessageType.MESSAGE_ATTACHMENT) {
+                break;
+            }
+        }
+        if (msg == null) {
+            msg = new IMessage();
+            msg.content = IMessage.newText("如果你在使用过程中有任何问题和建议，记得给我们发信反馈哦");
+            msg.sender = 0;
+            msg.receiver = this.currentUID;
+            msg.timestamp = now();
+        }
+        Conversation conv = new Conversation();
+        conv.message = msg;
+        conv.cid = 0;
+        conv.type = Conversation.CONVERSATION_CUSTOMER_SERVICE;
+        conv.setName("客服");
+        updateConversationDetail(conv);
+        conversations.add(conv);
+
         Comparator<Conversation> cmp = new Comparator<Conversation>() {
             public int compare(Conversation c1, Conversation c2) {
                 if (c1.message.timestamp > c2.message.timestamp) {
@@ -304,6 +334,10 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
     }
 
+    protected void onCustomerServiceClick(long id) {
+
+    }
+
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position,
                             long id) {
@@ -312,8 +346,10 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
         if (conv.type == Conversation.CONVERSATION_PEER) {
             onPeerClick(conv.cid);
-        } else {
+        } else if (conv.type == Conversation.CONVERSATION_GROUP){
             onGroupClick(conv.cid);
+        } else if (conv.type == Conversation.CONVERSATION_CUSTOMER_SERVICE) {
+            onCustomerServiceClick(conv.cid);
         }
     }
 

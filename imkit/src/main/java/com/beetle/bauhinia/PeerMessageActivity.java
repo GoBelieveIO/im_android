@@ -253,6 +253,7 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
+    @Override
     void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
             PeerOutbox ob = PeerOutbox.getInstance();
@@ -276,6 +277,7 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
+    @Override
     void saveMessage(IMessage imsg) {
         if (imsg.sender == this.currentUID) {
             PeerMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
@@ -284,6 +286,7 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
+    @Override
     void markMessageFailure(IMessage imsg) {
         long cid = 0;
         if (imsg.sender == this.currentUID) {
@@ -294,6 +297,7 @@ public class PeerMessageActivity extends MessageActivity implements
         PeerMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, cid);
     }
 
+    @Override
     void eraseMessageFailure(IMessage imsg) {
         long cid = 0;
         if (imsg.sender == this.currentUID) {
@@ -304,6 +308,7 @@ public class PeerMessageActivity extends MessageActivity implements
         PeerMessageDB.getInstance().eraseMessageFailure(imsg.msgLocalID, cid);
     }
 
+    @Override
     void clearConversation() {
         PeerMessageDB db = PeerMessageDB.getInstance();
         db.clearCoversation(this.peerUID);

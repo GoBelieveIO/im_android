@@ -1,33 +1,24 @@
 package com.beetle.bauhinia.tools;
-
-import com.beetle.bauhinia.db.GroupMessageDB;
+import com.beetle.bauhinia.db.CustomerServiceMessageDB;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.api.IMHttpAPI;
-import com.beetle.bauhinia.api.types.Audio;
-import com.beetle.bauhinia.api.types.Image;
-import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 
-import java.io.File;
-import java.util.ArrayList;
 
-import retrofit.mime.TypedFile;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
 
 /**
- * Created by houxh on 14-12-3.
+ * Created by houxh on 16/1/18.
  */
-public class PeerOutbox extends Outbox {
-    private static PeerOutbox instance = new PeerOutbox();
-    public static PeerOutbox getInstance() {
+public class CustomerServiceOutbox extends Outbox {
+
+    private static CustomerServiceOutbox instance = new CustomerServiceOutbox();
+    public static CustomerServiceOutbox getInstance() {
         return instance;
     }
 
     @Override
     protected void markMessageFailure(IMessage msg) {
-        PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+        CustomerServiceMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
     }
 
     @Override
@@ -39,7 +30,7 @@ public class PeerOutbox extends Outbox {
         msg.msgLocalID = imsg.msgLocalID;
 
         IMService im = IMService.getInstance();
-        im.sendPeerMessage(msg);
+        im.sendCustomerServiceMessage(msg);
     }
 
     @Override
@@ -53,7 +44,7 @@ public class PeerOutbox extends Outbox {
         msg.content = IMessage.newAudio(url, audio.duration).getRaw();
 
         IMService im = IMService.getInstance();
-        im.sendPeerMessage(msg);
+        im.sendCustomerServiceMessage(msg);
     }
 
 }

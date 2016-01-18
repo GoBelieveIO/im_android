@@ -1,13 +1,14 @@
 package io.gobelieve.im.demo;
 
 import android.app.Application;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.beetle.bauhinia.api.IMHttpAPI;
+import com.beetle.bauhinia.db.CustomerServiceMessageDB;
+import com.beetle.bauhinia.db.CustomerServiceMessageHandler;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.GroupMessageHandler;
 import com.beetle.bauhinia.db.PeerMessageDB;
@@ -15,9 +16,7 @@ import com.beetle.bauhinia.db.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 import com.tencent.android.tpush.XGIOperateCallback;
-import com.tencent.android.tpush.XGPushConfig;
 import com.tencent.android.tpush.XGPushManager;
-import com.tencent.android.tpush.service.XGPushService;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -42,8 +41,6 @@ public class IMDemoApplication extends Application {
 
         IMService mIMService = IMService.getInstance();
         //app可以单独部署服务器，给予第三方应用更多的灵活性
-        //sandbox地址:"sandbox.imnode.gobelieve.io", "sandbox.pushnode.gobelieve.io"
-        //"http://sandbox.api.gobelieve.io",
         mIMService.setHost("imnode.gobelieve.io");
         IMHttpAPI.setAPIURL("http://api.gobelieve.io");
 
@@ -80,9 +77,12 @@ public class IMDemoApplication extends Application {
         db.setDir(this.getDir("peer", MODE_PRIVATE));
         GroupMessageDB groupDB = GroupMessageDB.getInstance();
         groupDB.setDir(this.getDir("group", MODE_PRIVATE));
+        CustomerServiceMessageDB csDB = CustomerServiceMessageDB.getInstance();
+        csDB.setDir(this.getDir("customer_service", MODE_PRIVATE));
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
+        mIMService.setCustomerServiceMessageHandler(CustomerServiceMessageHandler.getInstance());
 
         //预先做dns查询
         refreshHost();

@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.beetle.bauhinia.CustomerServiceMessageActivity;
 import com.beetle.bauhinia.PeerMessageActivity;
 
 
@@ -92,5 +93,15 @@ public class MessageListActivity extends com.beetle.bauhinia.MessageListActivity
     @Override
     protected void onGroupClick(long gid) {
         Log.i(TAG, "group conversation");
+    }
+
+    @Override
+    protected void onCustomerServiceClick(long id) {
+        Intent intent = new Intent(this, CustomerServiceMessageActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra("peer_uid", 0);
+        intent.putExtra("peer_name", "客服");
+        intent.putExtra("current_uid", this.currentUID);
+        startActivity(intent);
     }
 }
