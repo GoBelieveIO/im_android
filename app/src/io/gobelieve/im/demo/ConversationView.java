@@ -1,4 +1,4 @@
-package com.beetle.bauhinia;
+package io.gobelieve.im.demo;
 
 import android.content.Context;
 import android.text.TextUtils;
