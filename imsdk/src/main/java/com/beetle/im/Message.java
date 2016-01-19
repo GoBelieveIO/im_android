@@ -163,7 +163,9 @@ public class Message {
                 return Arrays.copyOf(buf, HEAD_SIZE + 20);
             }
         } else if (cmd == Command.MSG_CUSTOMER_SERVICE) {
-            IMMessage cs = (IMMessage) body;
+            CustomerMessage cs = (CustomerMessage) body;
+            BytePacket.writeInt64(cs.customer, buf, pos);
+            pos += 8;
             BytePacket.writeInt64(cs.sender, buf, pos);
             pos += 8;
             BytePacket.writeInt64(cs.receiver, buf, pos);
@@ -172,12 +174,12 @@ public class Message {
             pos += 4;
             try {
                 byte[] c = cs.content.getBytes("UTF-8");
-                if (c.length + 32 > 64 * 1024) {
+                if (c.length + 28 >= 32 * 1024) {
                     Log.e("imservice", "packet buffer overflow");
                     return null;
                 }
                 System.arraycopy(c, 0, buf, pos, c.length);
-                return Arrays.copyOf(buf, HEAD_SIZE + 20 + c.length);
+                return Arrays.copyOf(buf, HEAD_SIZE + 28 + c.length);
             } catch (Exception e) {
                 Log.e("imservice", "encode utf8 error");
                 return null;
@@ -288,7 +290,9 @@ public class Message {
             this.body = ctl;
             return true;
         } else if (cmd == Command.MSG_CUSTOMER_SERVICE) {
-            IMMessage cs = new IMMessage();
+            CustomerMessage cs = new CustomerMessage();
+            cs.customer = BytePacket.readInt64(data, pos);
+            pos += 8;
             cs.sender = BytePacket.readInt64(data, pos);
             pos += 8;
             cs.receiver = BytePacket.readInt64(data, pos);
@@ -296,7 +300,7 @@ public class Message {
             cs.timestamp = BytePacket.readInt32(data, pos);
             pos += 4;
             try {
-                cs.content = new String(data, pos, data.length - 28, "UTF-8");
+                cs.content = new String(data, pos, data.length - 28 - HEAD_SIZE, "UTF-8");
                 this.body = cs;
                 return true;
             } catch (Exception e) {

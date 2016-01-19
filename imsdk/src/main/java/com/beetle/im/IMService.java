@@ -373,7 +373,7 @@ public class IMService {
         return true;
     }
 
-    public boolean sendCustomerServiceMessage(IMMessage im) {
+    public boolean sendCustomerServiceMessage(CustomerMessage im) {
         Message msg = new Message();
         msg.cmd = Command.MSG_CUSTOMER_SERVICE;
         msg.body = im;
@@ -714,14 +714,8 @@ public class IMService {
     }
 
     private void handleCustomerServiceMessage(Message msg) {
-        IMMessage cs = (IMMessage)msg.body;
-        long peer;
-        if (cs.sender == this.uid) {
-            peer = cs.receiver;
-        } else {
-            peer = cs.sender;
-        }
-        if (customerServiceMessageHandler != null && !customerServiceMessageHandler.handleMessage(cs, peer)) {
+        CustomerMessage cs = (CustomerMessage)msg.body;
+        if (customerServiceMessageHandler != null && !customerServiceMessageHandler.handleMessage(cs)) {
             Log.i(TAG, "handle customer service message fail");
             return;
         }
@@ -936,7 +930,7 @@ public class IMService {
         }
     }
 
-    private void publishCustomerServiceMessage(IMMessage cs) {
+    private void publishCustomerServiceMessage(CustomerMessage cs) {
         for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
             CustomerServiceMessageObserver ob = customerServiceMessageObservers.get(i);
             ob.onCustomerServiceMessage(cs);

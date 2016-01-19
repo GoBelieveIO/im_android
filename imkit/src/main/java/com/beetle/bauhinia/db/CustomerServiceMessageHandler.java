@@ -1,4 +1,5 @@
 package com.beetle.bauhinia.db;
+import com.beetle.im.CustomerMessage;
 import com.beetle.im.IMMessage;
 
 /**
@@ -13,14 +14,14 @@ public class CustomerServiceMessageHandler implements com.beetle.im.CustomerServ
     }
 
     @Override
-    public boolean handleMessage(IMMessage msg, long uid) {
+    public boolean handleMessage(CustomerMessage msg) {
         CustomerServiceMessageDB db = CustomerServiceMessageDB.getInstance();
         IMessage imsg = new IMessage();
         imsg.timestamp = msg.timestamp;
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
-        boolean r = db.insertMessage(imsg, uid);
+        boolean r = db.insertMessage(imsg, msg.customer);
         msg.msgLocalID = imsg.msgLocalID;
         return r;
     }

@@ -6,6 +6,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.beetle.bauhinia.db.CustomerServiceMessageDB;
+import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.im.CustomerMessage;
 import com.beetle.im.CustomerServiceMessageObserver;
 import com.beetle.bauhinia.tools.CustomerServiceOutbox;
 import com.beetle.bauhinia.db.IMessage;
@@ -37,6 +39,52 @@ public class CustomerServiceMessageActivity extends MessageActivity
         return peerUID != 0;
     }
 
+    public static class User {
+        public long uid;
+        public String name;
+        public String avatarURL;
+
+        //name为nil时，界面显示identifier字段
+        public String identifier;
+    }
+
+    protected User getUser(long uid) {
+        User u = new User();
+        u.uid = uid;
+        u.name = null;
+        u.avatarURL = "";
+        u.identifier = String.format("%d", uid);
+        return u;
+    }
+
+    public interface GetUserCallback {
+        void onUser(User u);
+    }
+
+    protected void asyncGetUser(long uid, GetUserCallback cb) {
+
+    }
+
+    private void loadUserName(IMessage msg) {
+        User u = getUser(msg.sender);
+
+        msg.setSenderAvatar(u.avatarURL);
+        if (TextUtils.isEmpty(u.name)) {
+            msg.setSenderName(u.identifier);
+            final IMessage fmsg = msg;
+            asyncGetUser(msg.sender, new GetUserCallback() {
+                @Override
+                public void onUser(User u) {
+                    fmsg.setSenderName(u.name);
+                    fmsg.setSenderAvatar(u.avatarURL);
+                }
+            });
+        } else {
+            msg.setSenderName(u.name);
+        }
+    }
+
+
     public CustomerServiceMessageActivity() {
         super();
         sendNotificationName = SEND_MESSAGE_NAME;
@@ -63,6 +111,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
             Log.w(TAG, "peer name is null");
         }
 
+        this.isShowUserName = intent.getBooleanExtra("show_name", false);
         this.sender = currentUID;
         this.receiver = peerUID;
 
@@ -104,6 +153,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
                 IMessage.Attachment attachment = (IMessage.Attachment) msg.content;
                 attachments.put(attachment.msg_id, attachment);
             } else {
+                loadUserName(msg);
                 messages.add(0, msg);
                 if (++count >= PAGE_SIZE) {
                     break;
@@ -150,6 +200,53 @@ public class CustomerServiceMessageActivity extends MessageActivity
         }
     }
 
+
+    protected void loadEarlierData() {
+        if (messages.size() == 0) {
+            return;
+        }
+
+        IMessage firstMsg = null;
+        for (int i  = 0; i < messages.size(); i++) {
+            IMessage msg = messages.get(i);
+            if (msg.msgLocalID > 0) {
+                firstMsg = msg;
+                break;
+            }
+        }
+        if (firstMsg == null) {
+            return;
+        }
+
+        int count = 0;
+        MessageIterator iter = CustomerServiceMessageDB.getInstance().newMessageIterator(peerUID, firstMsg.msgLocalID);
+        while (iter != null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
+                break;
+            }
+
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
+                IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else{
+                loadUserName(msg);
+                messages.add(0, msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
+            }
+        }
+        if (count > 0) {
+            downloadMessageContent(messages, count);
+            checkMessageFailureFlag(messages, count);
+            resetMessageTimeBase();
+            adapter.notifyDataSetChanged();
+            listview.setSelection(count);
+        }
+    }
+
+
     @Override
     public void onConnectState(IMService.ConnectState state) {
         if (state == IMService.ConnectState.STATE_CONNECTED) {
@@ -161,20 +258,13 @@ public class CustomerServiceMessageActivity extends MessageActivity
     }
 
     @Override
-    public void onCustomerServiceMessage(IMMessage msg) {
-        if (isStaff()) {
-            if (msg.sender != peerUID && msg.receiver != peerUID) {
-                return;
-            }
-        } else {
-            if (msg.sender != currentUID && msg.receiver != currentUID) {
-                return;
-            }
-
-            if (msg.sender != currentUID) {
-                //可能是新的客服人员
-                this.receiver = msg.sender;
-            }
+    public void onCustomerServiceMessage(CustomerMessage msg) {
+        if (isStaff() && msg.customer != peerUID) {
+            return;
+        }
+        if (!isStaff() && msg.sender != currentUID) {
+            //普通用户收到客服的回复消息,记录下客服的id
+            this.receiver = msg.sender;
         }
 
         Log.i(TAG, "recv msg:" + msg.content);
@@ -185,6 +275,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
 
+        loadUserName(imsg);
         downloadMessageContent(imsg);
 
         insertMessage(imsg);
@@ -238,11 +329,17 @@ public class CustomerServiceMessageActivity extends MessageActivity
             imsg.setUploading(true);
             CustomerServiceOutbox.getInstance().uploadImage(imsg, path);
         } else {
-            IMMessage msg = new IMMessage();
+            CustomerMessage msg = new CustomerMessage();
             msg.sender = imsg.sender;
             msg.receiver = imsg.receiver;
             msg.content = imsg.content.getRaw();
             msg.msgLocalID = imsg.msgLocalID;
+            if (isStaff()) {
+                msg.customer = imsg.receiver;
+            } else {
+                msg.customer = imsg.sender;
+            }
+
             IMService im = IMService.getInstance();
             im.sendCustomerServiceMessage(msg);
         }

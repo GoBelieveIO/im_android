@@ -13,6 +13,7 @@ import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.GroupMessageHandler;
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageHandler;
+import com.beetle.bauhinia.tools.CustomerServiceOutbox;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 
@@ -43,8 +44,6 @@ public class IMDemoApplication extends Application {
         mIMService.setHost("imnode.gobelieve.io");
         IMHttpAPI.setAPIURL("http://api.gobelieve.io");
 
-
-
         String androidID = Settings.Secure.getString(this.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
 
@@ -65,6 +64,7 @@ public class IMDemoApplication extends Application {
         csDB.setDir(this.getDir("customer_service", MODE_PRIVATE));
         //以客服人员的身份登录，必须使用非聚合模式
         csDB.setAggregationMode(false);
+        CustomerServiceOutbox.setIsStaff(true);
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());

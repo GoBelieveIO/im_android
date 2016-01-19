@@ -19,6 +19,7 @@ import com.beetle.bauhinia.db.CustomerServiceMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessage.GroupNotification;
 import com.beetle.bauhinia.tools.NotificationCenter;
+import com.beetle.im.CustomerMessage;
 import com.beetle.im.CustomerServiceMessageObserver;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
@@ -270,7 +271,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     }
 
 
-    public void onCustomerServiceMessage(IMMessage msg) {
+    public void onCustomerServiceMessage(CustomerMessage msg) {
         Log.i(TAG, "on customer service message");
         IMessage imsg = new IMessage();
         imsg.timestamp = now();
@@ -279,17 +280,10 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
 
-        long cid = 0;
-        if (msg.sender == this.currentUID) {
-            cid = msg.receiver;
-        } else {
-            cid = msg.sender;
-        }
-
-        int pos = findConversationPosition(cid, Conversation.CONVERSATION_CUSTOMER_SERVICE);
+        int pos = findConversationPosition(msg.customer, Conversation.CONVERSATION_CUSTOMER_SERVICE);
         Conversation conversation = null;
         if (pos == -1) {
-            conversation = newPeerConversation(cid);
+            conversation = newPeerConversation(msg.customer);
         } else {
             conversation = conversations.get(pos);
         }
@@ -392,7 +386,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     protected void onCustomerServiceClick(long uid) {
         User u = getUser(uid);
 
-        Intent intent = new Intent(this, CustomerServiceMessageActivity.class);
+        Intent intent = new Intent(this, CustomerMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra("peer_uid", uid);
         if (TextUtils.isEmpty(u.name)) {
@@ -401,6 +395,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             intent.putExtra("peer_name", u.name);
         }
         intent.putExtra("current_uid", this.currentUID);
+        intent.putExtra("show_name", true);
         startActivity(intent);
     }
 
