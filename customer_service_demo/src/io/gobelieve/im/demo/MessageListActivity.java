@@ -12,16 +12,15 @@ import android.view.ViewGroup;
 import android.widget.*;
 import android.support.v7.widget.Toolbar;
 
-import com.beetle.bauhinia.CustomerServiceMessageActivity;
+import com.beetle.bauhinia.CustomerMessageActivity;
 import com.beetle.bauhinia.db.Conversation;
 import com.beetle.bauhinia.db.ConversationIterator;
-import com.beetle.bauhinia.db.CustomerServiceMessageDB;
+import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessage.GroupNotification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.im.CustomerMessage;
-import com.beetle.im.CustomerServiceMessageObserver;
-import com.beetle.im.IMMessage;
+import com.beetle.im.CustomerMessageObserver;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 import com.beetle.bauhinia.activity.BaseActivity;
@@ -35,7 +34,7 @@ import java.util.List;
 
 
 public class MessageListActivity extends BaseActivity implements IMServiceObserver,
-            CustomerServiceMessageObserver,
+        CustomerMessageObserver,
             AdapterView.OnItemClickListener,
          NotificationCenter.NotificationCenterObserver {
     private static final String TAG = "beetle";
@@ -116,8 +115,8 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         initWidget();
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        nc.addObserver(this, CustomerServiceMessageActivity.SEND_MESSAGE_NAME);
-        nc.addObserver(this, CustomerServiceMessageActivity.CLEAR_MESSAGES);
+        nc.addObserver(this, CustomerMessageActivity.SEND_MESSAGE_NAME);
+        nc.addObserver(this, CustomerMessageActivity.CLEAR_MESSAGES);
     }
 
     @Override
@@ -175,7 +174,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
     void loadConversations() {
         conversations = new ArrayList<Conversation>();
-        ConversationIterator iter = CustomerServiceMessageDB.getInstance().newConversationIterator();
+        ConversationIterator iter = CustomerMessageDB.getInstance().newConversationIterator();
         while (true) {
             Conversation conv = iter.next();
             if (conv == null) {
@@ -271,7 +270,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     }
 
 
-    public void onCustomerServiceMessage(CustomerMessage msg) {
+    public void onCustomerMessage(CustomerMessage msg) {
         Log.i(TAG, "on customer service message");
         IMessage imsg = new IMessage();
         imsg.timestamp = now();
@@ -302,16 +301,16 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             //pos == 0
         }
     }
-    public void onCustomerServiceMessageACK(int msgLocalID, long uid) {
+    public void onCustomerMessageACK(int msgLocalID, long uid) {
 
     }
-    public void onCustomerServiceMessageFailure(int msgLocalID, long uid) {
+    public void onCustomerMessageFailure(int msgLocalID, long uid) {
 
     }
 
     @Override
     public void onNotification(Notification notification) {
-        if (notification.name.equals(CustomerServiceMessageActivity.SEND_MESSAGE_NAME)) {
+        if (notification.name.equals(CustomerMessageActivity.SEND_MESSAGE_NAME)) {
             IMessage imsg = (IMessage) notification.obj;
 
             int pos = findConversationPosition(imsg.receiver, Conversation.CONVERSATION_CUSTOMER_SERVICE);
@@ -336,7 +335,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
                 //pos == 0
             }
 
-        } else if (notification.name.equals(CustomerServiceMessageActivity.CLEAR_MESSAGES)) {
+        } else if (notification.name.equals(CustomerMessageActivity.CLEAR_MESSAGES)) {
             Long peerUID = (Long)notification.obj;
             Conversation conversation = findConversation(peerUID, Conversation.CONVERSATION_CUSTOMER_SERVICE);
             if (conversation != null) {
@@ -386,7 +385,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     protected void onCustomerServiceClick(long uid) {
         User u = getUser(uid);
 
-        Intent intent = new Intent(this, CustomerMessageActivity.class);
+        Intent intent = new Intent(this, io.gobelieve.im.demo.CustomerMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra("peer_uid", uid);
         if (TextUtils.isEmpty(u.name)) {

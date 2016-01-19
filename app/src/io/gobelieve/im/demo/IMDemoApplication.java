@@ -7,8 +7,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.beetle.bauhinia.api.IMHttpAPI;
-import com.beetle.bauhinia.db.CustomerServiceMessageDB;
-import com.beetle.bauhinia.db.CustomerServiceMessageHandler;
+import com.beetle.bauhinia.db.CustomerMessageDB;
+import com.beetle.bauhinia.db.CustomerMessageHandler;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.GroupMessageHandler;
 import com.beetle.bauhinia.db.PeerMessageDB;
@@ -77,12 +77,12 @@ public class IMDemoApplication extends Application {
         db.setDir(this.getDir("peer", MODE_PRIVATE));
         GroupMessageDB groupDB = GroupMessageDB.getInstance();
         groupDB.setDir(this.getDir("group", MODE_PRIVATE));
-        CustomerServiceMessageDB csDB = CustomerServiceMessageDB.getInstance();
+        CustomerMessageDB csDB = CustomerMessageDB.getInstance();
         csDB.setDir(this.getDir("customer_service", MODE_PRIVATE));
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
-        mIMService.setCustomerServiceMessageHandler(CustomerServiceMessageHandler.getInstance());
+        mIMService.setCustomerMessageHandler(CustomerMessageHandler.getInstance());
 
         //预先做dns查询
         refreshHost();

@@ -12,12 +12,12 @@ import android.view.ViewGroup;
 import android.widget.*;
 import android.support.v7.widget.Toolbar;
 
-import com.beetle.bauhinia.CustomerServiceMessageActivity;
+import com.beetle.bauhinia.CustomerMessageActivity;
 import com.beetle.bauhinia.GroupMessageActivity;
 import com.beetle.bauhinia.PeerMessageActivity;
 import com.beetle.bauhinia.db.Conversation;
 import com.beetle.bauhinia.db.ConversationIterator;
-import com.beetle.bauhinia.db.CustomerServiceMessageDB;
+import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessage.GroupNotification;
@@ -236,7 +236,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             conversations.add(conv);
         }
 
-        MessageIterator messageIterator  = CustomerServiceMessageDB.getInstance().newMessageIterator(0);
+        MessageIterator messageIterator  = CustomerMessageDB.getInstance().newMessageIterator(0);
         IMessage msg = null;
         while (messageIterator != null) {
             msg = messageIterator.next();
@@ -716,7 +716,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
 
     protected void onCustomerServiceClick(long id) {
-        Intent intent = new Intent(this, CustomerServiceMessageActivity.class);
+        Intent intent = new Intent(this, CustomerMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra("peer_uid", 0);
         intent.putExtra("peer_name", "客服");

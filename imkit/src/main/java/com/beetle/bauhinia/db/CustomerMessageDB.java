@@ -8,10 +8,10 @@ import java.io.RandomAccessFile;
 /**
  * Created by houxh on 16/1/18.
  */
-public class CustomerServiceMessageDB extends MessageDB {
-    private static CustomerServiceMessageDB instance = new CustomerServiceMessageDB();
+public class CustomerMessageDB extends MessageDB {
+    private static CustomerMessageDB instance = new CustomerMessageDB();
 
-    public static CustomerServiceMessageDB getInstance() {
+    public static CustomerMessageDB getInstance() {
         return instance;
     }
 

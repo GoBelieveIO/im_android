@@ -1,21 +1,20 @@
 package com.beetle.bauhinia.db;
 import com.beetle.im.CustomerMessage;
-import com.beetle.im.IMMessage;
 
 /**
  * Created by houxh on 16/1/18.
  */
-public class CustomerServiceMessageHandler implements com.beetle.im.CustomerServiceHandler {
+public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHandler {
 
-    private static CustomerServiceMessageHandler instance = new CustomerServiceMessageHandler();
+    private static CustomerMessageHandler instance = new CustomerMessageHandler();
 
-    public static CustomerServiceMessageHandler getInstance() {
+    public static CustomerMessageHandler getInstance() {
         return instance;
     }
 
     @Override
     public boolean handleMessage(CustomerMessage msg) {
-        CustomerServiceMessageDB db = CustomerServiceMessageDB.getInstance();
+        CustomerMessageDB db = CustomerMessageDB.getInstance();
         IMessage imsg = new IMessage();
         imsg.timestamp = msg.timestamp;
         imsg.sender = msg.sender;
@@ -28,13 +27,13 @@ public class CustomerServiceMessageHandler implements com.beetle.im.CustomerServ
 
     @Override
     public boolean handleMessageACK(int msgLocalID, long uid) {
-        CustomerServiceMessageDB db = CustomerServiceMessageDB.getInstance();
+        CustomerMessageDB db = CustomerMessageDB.getInstance();
         return db.acknowledgeMessage(msgLocalID, uid);
     }
 
     @Override
     public boolean handleMessageFailure(int msgLocalID, long uid) {
-        CustomerServiceMessageDB db = CustomerServiceMessageDB.getInstance();
+        CustomerMessageDB db = CustomerMessageDB.getInstance();
         return db.markMessageFailure(msgLocalID, uid);
     }
 }

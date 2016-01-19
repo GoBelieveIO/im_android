@@ -1,8 +1,7 @@
 package com.beetle.bauhinia.tools;
-import com.beetle.bauhinia.db.CustomerServiceMessageDB;
+import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.im.CustomerMessage;
-import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 
 
@@ -10,7 +9,7 @@ import com.beetle.im.IMService;
 /**
  * Created by houxh on 16/1/18.
  */
-public class CustomerServiceOutbox extends Outbox {
+public class CustomerOutbox extends Outbox {
 
     //当前登录用户是否为客服人员,默认为false
     private static boolean isStaff = false;
@@ -20,14 +19,14 @@ public class CustomerServiceOutbox extends Outbox {
     }
 
 
-    private static CustomerServiceOutbox instance = new CustomerServiceOutbox();
-    public static CustomerServiceOutbox getInstance() {
+    private static CustomerOutbox instance = new CustomerOutbox();
+    public static CustomerOutbox getInstance() {
         return instance;
     }
 
     @Override
     protected void markMessageFailure(IMessage msg) {
-        CustomerServiceMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+        CustomerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
     }
 
     @Override
@@ -45,7 +44,7 @@ public class CustomerServiceOutbox extends Outbox {
         }
 
         IMService im = IMService.getInstance();
-        im.sendCustomerServiceMessage(msg);
+        im.sendCustomerMessage(msg);
     }
 
     @Override
@@ -65,7 +64,7 @@ public class CustomerServiceOutbox extends Outbox {
         }
 
         IMService im = IMService.getInstance();
-        im.sendCustomerServiceMessage(msg);
+        im.sendCustomerMessage(msg);
     }
 
 }

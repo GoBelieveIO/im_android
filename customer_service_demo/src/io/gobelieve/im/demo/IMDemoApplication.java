@@ -7,13 +7,13 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.beetle.bauhinia.api.IMHttpAPI;
-import com.beetle.bauhinia.db.CustomerServiceMessageDB;
-import com.beetle.bauhinia.db.CustomerServiceMessageHandler;
+import com.beetle.bauhinia.db.CustomerMessageDB;
+import com.beetle.bauhinia.db.CustomerMessageHandler;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.GroupMessageHandler;
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageHandler;
-import com.beetle.bauhinia.tools.CustomerServiceOutbox;
+import com.beetle.bauhinia.tools.CustomerOutbox;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 
@@ -60,15 +60,15 @@ public class IMDemoApplication extends Application {
         db.setDir(this.getDir("peer", MODE_PRIVATE));
         GroupMessageDB groupDB = GroupMessageDB.getInstance();
         groupDB.setDir(this.getDir("group", MODE_PRIVATE));
-        CustomerServiceMessageDB csDB = CustomerServiceMessageDB.getInstance();
+        CustomerMessageDB csDB = CustomerMessageDB.getInstance();
         csDB.setDir(this.getDir("customer_service", MODE_PRIVATE));
         //以客服人员的身份登录，必须使用非聚合模式
         csDB.setAggregationMode(false);
-        CustomerServiceOutbox.setIsStaff(true);
+        CustomerOutbox.setIsStaff(true);
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
-        mIMService.setCustomerServiceMessageHandler(CustomerServiceMessageHandler.getInstance());
+        mIMService.setCustomerMessageHandler(CustomerMessageHandler.getInstance());
 
         //预先做dns查询
         refreshHost();

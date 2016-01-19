@@ -5,15 +5,13 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.beetle.bauhinia.db.CustomerServiceMessageDB;
-import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.im.CustomerMessage;
-import com.beetle.im.CustomerServiceMessageObserver;
-import com.beetle.bauhinia.tools.CustomerServiceOutbox;
+import com.beetle.im.CustomerMessageObserver;
+import com.beetle.bauhinia.tools.CustomerOutbox;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.tools.FileCache;
-import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 
@@ -22,9 +20,9 @@ import java.util.ArrayList;
 /**
  * Created by houxh on 16/1/18.
  */
-public class CustomerServiceMessageActivity extends MessageActivity
-        implements CustomerServiceMessageObserver, IMServiceObserver,
-        CustomerServiceOutbox.OutboxObserver {
+public class CustomerMessageActivity extends MessageActivity
+        implements CustomerMessageObserver, IMServiceObserver,
+        CustomerOutbox.OutboxObserver {
     public static final String SEND_MESSAGE_NAME = "send_cs_message";
     public static final String CLEAR_MESSAGES = "clear_cs_messages";
 
@@ -85,7 +83,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
     }
 
 
-    public CustomerServiceMessageActivity() {
+    public CustomerMessageActivity() {
         super();
         sendNotificationName = SEND_MESSAGE_NAME;
         clearNotificationName = CLEAR_MESSAGES;
@@ -123,7 +121,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
             titleView.setText(peerName);
         }
 
-        CustomerServiceOutbox.getInstance().addObserver(this);
+        CustomerOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);
         IMService.getInstance().addCustomerServiceObserver(this);
     }
@@ -132,7 +130,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "peer message activity destory");
-        CustomerServiceOutbox.getInstance().removeObserver(this);
+        CustomerOutbox.getInstance().removeObserver(this);
 
         IMService.getInstance().removeObserver(this);
         IMService.getInstance().removeCustomerServiceObserver(this);
@@ -142,7 +140,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
         messages = new ArrayList<IMessage>();
 
         int count = 0;
-        MessageIterator iter = CustomerServiceMessageDB.getInstance().newMessageIterator(peerUID);
+        MessageIterator iter = CustomerMessageDB.getInstance().newMessageIterator(peerUID);
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
@@ -179,9 +177,9 @@ public class CustomerServiceMessageActivity extends MessageActivity
     void checkMessageFailureFlag(IMessage msg) {
         if (msg.sender == this.currentUID) {
             if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-                msg.setUploading(CustomerServiceOutbox.getInstance().isUploading(msg));
+                msg.setUploading(CustomerOutbox.getInstance().isUploading(msg));
             } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-                msg.setUploading(CustomerServiceOutbox.getInstance().isUploading(msg));
+                msg.setUploading(CustomerOutbox.getInstance().isUploading(msg));
             }
             if (!msg.isAck() &&
                     !msg.isFailure() &&
@@ -219,7 +217,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
         }
 
         int count = 0;
-        MessageIterator iter = CustomerServiceMessageDB.getInstance().newMessageIterator(peerUID, firstMsg.msgLocalID);
+        MessageIterator iter = CustomerMessageDB.getInstance().newMessageIterator(peerUID, firstMsg.msgLocalID);
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
@@ -258,7 +256,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
     }
 
     @Override
-    public void onCustomerServiceMessage(CustomerMessage msg) {
+    public void onCustomerMessage(CustomerMessage msg) {
         if (isStaff() && msg.customer != peerUID) {
             return;
         }
@@ -282,7 +280,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
     }
 
     @Override
-    public void onCustomerServiceMessageACK(int msgLocalID, long uid) {
+    public void onCustomerMessageACK(int msgLocalID, long uid) {
         if (isStaff()) {
             if (this.peerUID != uid) {
                 return;
@@ -299,7 +297,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
     }
 
     @Override
-    public void onCustomerServiceMessageFailure(int msgLocalID, long uid) {
+    public void onCustomerMessageFailure(int msgLocalID, long uid) {
         if (isStaff()) {
             if (this.peerUID != uid) {
                 return;
@@ -318,7 +316,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
     @Override
     void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-            CustomerServiceOutbox ob = CustomerServiceOutbox.getInstance();
+            CustomerOutbox ob = CustomerOutbox.getInstance();
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
             imsg.setUploading(true);
             ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
@@ -327,7 +325,7 @@ public class CustomerServiceMessageActivity extends MessageActivity
             //prefix:"file:"
             String path = image.image.substring(5);
             imsg.setUploading(true);
-            CustomerServiceOutbox.getInstance().uploadImage(imsg, path);
+            CustomerOutbox.getInstance().uploadImage(imsg, path);
         } else {
             CustomerMessage msg = new CustomerMessage();
             msg.sender = imsg.sender;
@@ -341,28 +339,28 @@ public class CustomerServiceMessageActivity extends MessageActivity
             }
 
             IMService im = IMService.getInstance();
-            im.sendCustomerServiceMessage(msg);
+            im.sendCustomerMessage(msg);
         }
     }
 
     @Override
     void saveMessage(IMessage imsg) {
-        CustomerServiceMessageDB.getInstance().insertMessage(imsg, peerUID);
+        CustomerMessageDB.getInstance().insertMessage(imsg, peerUID);
     }
 
     @Override
     void markMessageFailure(IMessage imsg) {
-        CustomerServiceMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, peerUID);
+        CustomerMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, peerUID);
     }
 
     @Override
     void eraseMessageFailure(IMessage imsg) {
-        CustomerServiceMessageDB.getInstance().eraseMessageFailure(imsg.msgLocalID, peerUID);
+        CustomerMessageDB.getInstance().eraseMessageFailure(imsg.msgLocalID, peerUID);
     }
 
     @Override
     void clearConversation() {
-        CustomerServiceMessageDB db = CustomerServiceMessageDB.getInstance();
+        CustomerMessageDB db = CustomerMessageDB.getInstance();
         db.clearCoversation(this.peerUID);
     }
 

@@ -92,7 +92,7 @@
         </activity>
 
         <activity
-            android:name="com.beetle.bauhinia.CustomerServiceMessageActivity"
+            android:name="com.beetle.bauhinia.CustomerMessageActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/imkit.NoActionBar">

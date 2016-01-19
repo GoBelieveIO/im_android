@@ -2,16 +2,13 @@ package io.gobelieve.im.demo;
 
 import android.os.AsyncTask;
 
-import com.beetle.bauhinia.CustomerServiceMessageActivity;
-import com.beetle.bauhinia.GroupMessageActivity;
-
 /**
  * Created by houxh on 16/1/19.
  */
-public class CustomerMessageActivity extends CustomerServiceMessageActivity {
+public class CustomerMessageActivity extends com.beetle.bauhinia.CustomerMessageActivity {
     @Override
-    protected CustomerServiceMessageActivity.User getUser(long uid) {
-        CustomerServiceMessageActivity.User u = new CustomerServiceMessageActivity.User();
+    protected com.beetle.bauhinia.CustomerMessageActivity.User getUser(long uid) {
+        com.beetle.bauhinia.CustomerMessageActivity.User u = new com.beetle.bauhinia.CustomerMessageActivity.User();
         u.uid = uid;
         u.name = null;
         u.avatarURL = "";
@@ -20,13 +17,13 @@ public class CustomerMessageActivity extends CustomerServiceMessageActivity {
     }
 
     @Override
-    protected void asyncGetUser(long uid, CustomerServiceMessageActivity.GetUserCallback cb) {
+    protected void asyncGetUser(long uid, com.beetle.bauhinia.CustomerMessageActivity.GetUserCallback cb) {
         final long fuid = uid;
-        final CustomerServiceMessageActivity.GetUserCallback fcb = cb;
-        new AsyncTask<Void, Integer, CustomerServiceMessageActivity.User>() {
+        final com.beetle.bauhinia.CustomerMessageActivity.GetUserCallback fcb = cb;
+        new AsyncTask<Void, Integer, com.beetle.bauhinia.CustomerMessageActivity.User>() {
             @Override
-            protected CustomerServiceMessageActivity.User doInBackground(Void... urls) {
-                CustomerServiceMessageActivity.User u = new CustomerServiceMessageActivity.User();
+            protected com.beetle.bauhinia.CustomerMessageActivity.User doInBackground(Void... urls) {
+                com.beetle.bauhinia.CustomerMessageActivity.User u = new com.beetle.bauhinia.CustomerMessageActivity.User();
                 u.uid = fuid;
                 u.name = String.format("name:%d", fuid);
                 u.avatarURL = "";
@@ -34,7 +31,7 @@ public class CustomerMessageActivity extends CustomerServiceMessageActivity {
                 return u;
             }
             @Override
-            protected void onPostExecute(CustomerServiceMessageActivity.User result) {
+            protected void onPostExecute(com.beetle.bauhinia.CustomerMessageActivity.User result) {
                 fcb.onUser(result);
             }
         }.execute();
