@@ -98,7 +98,7 @@ public class Message {
             pos += 4;
             try {
                 byte[] c = im.content.getBytes("UTF-8");
-                if (c.length + 32 > 64 * 1024) {
+                if (c.length + 24 >= 32 * 1024) {
                     Log.e("imservice", "packet buffer overflow");
                     return null;
                 }
@@ -180,6 +180,24 @@ public class Message {
                 }
                 System.arraycopy(c, 0, buf, pos, c.length);
                 return Arrays.copyOf(buf, HEAD_SIZE + 28 + c.length);
+            } catch (Exception e) {
+                Log.e("imservice", "encode utf8 error");
+                return null;
+            }
+        } else if (cmd == Command.MSG_RT) {
+            RTMessage rt = (RTMessage) body;
+            BytePacket.writeInt64(rt.sender, buf, pos);
+            pos += 8;
+            BytePacket.writeInt64(rt.receiver, buf, pos);
+            pos += 8;
+            try {
+                byte[] c = rt.content.getBytes("UTF-8");
+                if (c.length + 24 >= 32 * 1024) {
+                    Log.e("imservice", "packet buffer overflow");
+                    return null;
+                }
+                System.arraycopy(c, 0, buf, pos, c.length);
+                return Arrays.copyOf(buf, HEAD_SIZE + 16 + c.length);
             } catch (Exception e) {
                 Log.e("imservice", "encode utf8 error");
                 return null;
@@ -302,6 +320,19 @@ public class Message {
             try {
                 cs.content = new String(data, pos, data.length - 28 - HEAD_SIZE, "UTF-8");
                 this.body = cs;
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        } else if (cmd == Command.MSG_RT) {
+            RTMessage rt = new RTMessage();
+            rt.sender = BytePacket.readInt64(data, pos);
+            pos += 8;
+            rt.receiver = BytePacket.readInt64(data, pos);
+            pos += 8;
+            try {
+                rt.content = new String(data, pos, data.length - pos, "UTF-8");
+                this.body = rt;
                 return true;
             } catch (Exception e) {
                 return false;

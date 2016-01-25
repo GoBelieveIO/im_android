@@ -73,6 +73,7 @@ public class IMService {
     ArrayList<SystemMessageObserver> systemMessageObservers = new ArrayList<SystemMessageObserver>();
     ArrayList<CustomerMessageObserver> customerServiceMessageObservers = new ArrayList<CustomerMessageObserver>();
     ArrayList<VOIPObserver> voipObservers = new ArrayList<VOIPObserver>();
+    ArrayList<RTMessageObserver> rtMessageObservers = new ArrayList<RTMessageObserver>();
 
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
     HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
@@ -236,6 +237,17 @@ public class IMService {
         customerServiceMessageObservers.remove(ob);
     }
 
+    public void addRTObserver(RTMessageObserver ob) {
+        if (rtMessageObservers.contains(ob)) {
+            return;
+        }
+        rtMessageObservers.add(ob);
+    }
+
+    public void removeRTObserver(RTMessageObserver ob){
+        rtMessageObservers.remove(ob);
+    }
+
     public void pushVOIPObserver(VOIPObserver ob) {
         if (voipObservers.contains(ob)) {
             return;
@@ -382,6 +394,16 @@ public class IMService {
         }
 
         customerMessages.put(new Integer(msg.seq), im);
+        return true;
+    }
+
+    public boolean sendRTMessage(RTMessage rt) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_RT;
+        msg.body = rt;
+        if (!sendMessage(msg)) {
+            return false;
+        }
         return true;
     }
 
@@ -736,6 +758,13 @@ public class IMService {
         }
     }
 
+    private void handleRTMessage(Message msg) {
+        RTMessage rt = (RTMessage)msg.body;
+        for (int i = 0; i < rtMessageObservers.size(); i++ ) {
+            RTMessageObserver ob = rtMessageObservers.get(i);
+            ob.onRTMessage(rt);
+        }
+    }
     private void handleVOIPControl(Message msg) {
         VOIPControl ctl = (VOIPControl)msg.body;
 
@@ -774,6 +803,8 @@ public class IMService {
             handleLoginPoint(msg);
         } else if (msg.cmd == Command.MSG_SYSTEM) {
             handleSystemMessage(msg);
+        } else if (msg.cmd == Command.MSG_RT) {
+            handleRTMessage(msg);
         } else if (msg.cmd == Command.MSG_VOIP_CONTROL) {
             handleVOIPControl(msg);
         } else if (msg.cmd == Command.MSG_CUSTOMER_SERVICE) {
@@ -858,6 +889,10 @@ public class IMService {
         this.seq++;
         msg.seq = this.seq;
         byte[] p = msg.pack();
+        if (p.length >= 32*1024) {
+            Log.e(TAG, "message length overflow");
+            return false;
+        }
         int l = p.length - Message.HEAD_SIZE;
         byte[] buf = new byte[p.length + 4];
         BytePacket.writeInt32(l, buf, 0);
