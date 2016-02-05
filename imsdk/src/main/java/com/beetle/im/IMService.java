@@ -127,6 +127,7 @@ public class IMService {
         public void onReceive (Context context, Intent intent) {
             if (isOnNet(context)) {
                 Log.i(TAG, "connectivity status:on");
+                IMService.this.reachable = true;
                 if (!IMService.this.stopped && !IMService.this.isBackground) {
                     //todo 优化 可以判断当前连接的socket的localip和当前网络的ip是一样的情况下
                     //就没有必要重连socket
@@ -136,6 +137,7 @@ public class IMService {
                 }
             } else {
                 Log.i(TAG, "connectivity status:off");
+                IMService.this.reachable = false;
                 if (!IMService.this.stopped) {
                     IMService.this.suspend();
                 }
@@ -494,6 +496,9 @@ public class IMService {
     }
 
     private void startConnectTimer() {
+        if (this.stopped || this.suspended || this.isBackground) {
+            return;
+        }
         long t;
         if (this.connectFailCount > 60) {
             t = uptimeMillis() + 60*1000;
@@ -570,6 +575,7 @@ public class IMService {
                     IMService.this.publishConnectState();
                     IMService.this.handleClose();
                 } else {
+                    IMService.this.pingTimestamp = 0;
                     boolean b = IMService.this.handleData(data);
                     if (!b) {
                         IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
