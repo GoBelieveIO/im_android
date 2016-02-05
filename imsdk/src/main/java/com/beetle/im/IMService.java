@@ -106,44 +106,49 @@ public class IMService {
         this.port = PORT;
     }
 
+    private boolean isOnNet(Context context) {
+        if (null == context) {
+            Log.e("", "context is null");
+            return false;
+        }
+        boolean isOnNet = false;
+        ConnectivityManager connectivityManager = (ConnectivityManager) context
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
+        if (null != activeNetInfo) {
+            isOnNet = activeNetInfo.isConnected();
+            Log.i(TAG, "active net info:" + activeNetInfo);
+        }
+        return isOnNet;
+    }
+
+    class NetworkReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive (Context context, Intent intent) {
+            if (isOnNet(context)) {
+                Log.i(TAG, "connectivity status:on");
+                if (!IMService.this.stopped && !IMService.this.isBackground) {
+                    //todo 优化 可以判断当前连接的socket的localip和当前网络的ip是一样的情况下
+                    //就没有必要重连socket
+                    Log.i(TAG, "reconnect im service");
+                    IMService.this.suspend();
+                    IMService.this.resume();
+                }
+            } else {
+                Log.i(TAG, "connectivity status:off");
+                if (!IMService.this.stopped) {
+                    IMService.this.suspend();
+                }
+            }
+        }
+    };
+
     public void registerConnectivityChangeReceiver(Context context) {
-        class NetworkReceiver extends BroadcastReceiver {
-            @Override
-            public void onReceive (Context context, Intent intent) {
-                if (isOnNet(context)) {
-                    Log.i(TAG, "connectivity status:on");
-                    if (!IMService.this.stopped && !IMService.this.isBackground) {
-                        Log.i(TAG, "reconnect");
-                        IMService.this.resume();
-                    }
-                } else {
-                    Log.i(TAG, "connectivity status:on");
-                    if (!IMService.this.stopped) {
-                        IMService.this.suspend();
-                    }
-                }
-            }
-            boolean isOnNet(Context context) {
-                if (null == context) {
-                    Log.e("", "context is null");
-                    return false;
-                }
-                boolean isOnNet = false;
-                ConnectivityManager connectivityManager = (ConnectivityManager) context
-                        .getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
-                if (null != activeNetInfo) {
-                    isOnNet = activeNetInfo.isConnected();
-                }
-                return isOnNet;
-            }
-
-        };
-
         NetworkReceiver  receiver = new NetworkReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         context.registerReceiver(receiver, filter);
+        this.reachable = isOnNet(context);
     }
 
     public ConnectState getConnectState() {
@@ -270,7 +275,7 @@ public class IMService {
     public void enterForeground() {
         Log.i(TAG, "im service enter foreground");
         this.isBackground = false;
-        if (!this.stopped && this.reachable) {
+        if (!this.stopped) {
             resume();
         }
     }
@@ -286,9 +291,8 @@ public class IMService {
         }
         Log.i(TAG, "start im service");
         this.stopped = false;
-        if (this.reachable) {
-            this.resume();
-        }
+        this.resume();
+
         //应用在后台的情况下基本不太可能调用start
         if (this.isBackground) {
             Log.w(TAG, "start im service when app is background");
@@ -310,12 +314,12 @@ public class IMService {
             Log.i(TAG, "suspended");
             return;
         }
-        Log.i(TAG, "suspend im service");
-        this.suspended = true;
-
+        this.close();
         heartbeatTimer.suspend();
         connectTimer.suspend();
-        this.close();
+        this.suspended = true;
+
+        Log.i(TAG, "suspend im service");
     }
 
     private void resume() {
@@ -415,24 +419,44 @@ public class IMService {
     }
 
     private void close() {
+        Iterator iter = peerMessages.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
+            IMMessage im = entry.getValue();
+            if (peerMessageHandler != null) {
+                peerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+            }
+            publishPeerMessageFailure(im.msgLocalID, im.receiver);
+        }
+        peerMessages.clear();
+
+        iter = groupMessages.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
+            IMMessage im = entry.getValue();
+            if (groupMessageHandler != null) {
+                groupMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+            }
+            publishGroupMessageFailure(im.msgLocalID, im.receiver);
+        }
+        groupMessages.clear();
+
+        iter = customerMessages.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
+            IMMessage im = entry.getValue();
+            if (customerMessageHandler != null) {
+                customerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+            }
+            publishCustomerServiceMessageFailure(im.msgLocalID, im.receiver);
+        }
+        customerMessages.clear();
+
         if (this.tcp != null) {
             Log.i(TAG, "close tcp");
             this.tcp.close();
             this.tcp = null;
         }
-        if (this.stopped) {
-            return;
-        }
-
-        Log.d(TAG, "start connect timer");
-
-        long t;
-        if (this.connectFailCount > 60) {
-            t = uptimeMillis() + 60*1000;
-        } else {
-            t = uptimeMillis() + this.connectFailCount*1000;
-        }
-        connectTimer.setTimer(t);
     }
 
     public static int now() {
@@ -469,6 +493,17 @@ public class IMService {
         }.execute();
     }
 
+    private void startConnectTimer() {
+        long t;
+        if (this.connectFailCount > 60) {
+            t = uptimeMillis() + 60*1000;
+        } else {
+            t = uptimeMillis() + this.connectFailCount*1000;
+        }
+        connectTimer.setTimer(t);
+        Log.d(TAG, "start connect timer:" + this.connectFailCount);
+    }
+
     private void connect() {
         if (this.tcp != null) {
             return;
@@ -485,6 +520,8 @@ public class IMService {
 
             long t;
             if (this.connectFailCount > 60) {
+
+
                 t = uptimeMillis() + 60*1000;
             } else {
                 t = uptimeMillis() + this.connectFailCount*1000;
@@ -497,6 +534,7 @@ public class IMService {
             refreshHost();
         }
 
+        this.pingTimestamp = 0;
         this.connectState = ConnectState.STATE_CONNECTING;
         IMService.this.publishConnectState();
         this.tcp = new AsyncTCP();
@@ -511,6 +549,7 @@ public class IMService {
                     IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;
                     IMService.this.publishConnectState();
                     IMService.this.close();
+                    IMService.this.startConnectTimer();
                 } else {
                     Log.i(TAG, "tcp connected");
                     IMService.this.connectFailCount = 0;
@@ -526,6 +565,7 @@ public class IMService {
             @Override
             public void onRead(Object tcp, byte[] data) {
                 if (data.length == 0) {
+                    Log.i(TAG, "tcp read eof");
                     IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
                     IMService.this.publishConnectState();
                     IMService.this.handleClose();
@@ -547,15 +587,7 @@ public class IMService {
             IMService.this.connectFailCount++;
             IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;
             publishConnectState();
-            Log.d(TAG, "start connect timer");
-
-            long t;
-            if (this.connectFailCount > 60) {
-                t = uptimeMillis() + 60*1000;
-            } else {
-                t = uptimeMillis() + this.connectFailCount*1000;
-            }
-            connectTimer.setTimer(t);
+            startConnectTimer();
         }
     }
 
@@ -568,6 +600,7 @@ public class IMService {
             this.connectState = ConnectState.STATE_UNCONNECTED;
             this.publishConnectState();
             this.close();
+            this.startConnectTimer();
         }
     }
 
@@ -641,43 +674,10 @@ public class IMService {
         sendMessage(ack);
 
     }
+
     private void handleClose() {
-        Iterator iter = peerMessages.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
-            IMMessage im = entry.getValue();
-            if (peerMessageHandler != null) {
-                peerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
-            }
-            publishPeerMessageFailure(im.msgLocalID, im.receiver);
-        }
-
-
-        peerMessages.clear();
-
-        iter = groupMessages.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
-            IMMessage im = entry.getValue();
-            if (groupMessageHandler != null) {
-                groupMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
-            }
-            publishGroupMessageFailure(im.msgLocalID, im.receiver);
-        }
-        groupMessages.clear();
-
-        iter = customerMessages.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
-            IMMessage im = entry.getValue();
-            if (customerMessageHandler != null) {
-                customerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
-            }
-            publishCustomerServiceMessageFailure(im.msgLocalID, im.receiver);
-        }
-        customerMessages.clear();
-
         close();
+        startConnectTimer();
     }
 
     private void handleACK(Message msg) {
@@ -785,6 +785,7 @@ public class IMService {
     }
 
     private void handleMessage(Message msg) {
+        Log.i(TAG, "message cmd:" + msg.cmd);
         if (msg.cmd == Command.MSG_AUTH_STATUS) {
             handleAuthStatus(msg);
         } else if (msg.cmd == Command.MSG_IM) {
@@ -870,17 +871,28 @@ public class IMService {
     }
 
     private void sendHeartbeat() {
-        if (this.pingTimestamp > 0 && now() - this.pingTimestamp > 60) {
-            Log.i(TAG, "ping timeout");
-            handleClose();
-            return;
-        }
         Log.i(TAG, "send ping");
         Message msg = new Message();
         msg.cmd = Command.MSG_PING;
         boolean r = sendMessage(msg);
         if (r && this.pingTimestamp == 0) {
             this.pingTimestamp = now();
+
+            Timer t = new Timer() {
+                @Override
+                protected void fire() {
+                    int now = now();
+                    //3s未收到pong
+                    if (pingTimestamp > 0 && now - pingTimestamp >= 3) {
+                        Log.i(TAG, "ping timeout");
+                        handleClose();
+                        return;
+                    }
+                }
+            };
+
+            t.setTimer(uptimeMillis()+1000*3+100);
+            t.resume();
         }
     }
 
