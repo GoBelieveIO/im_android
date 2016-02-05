@@ -123,45 +123,9 @@ public class Message {
             pos += 8;
             BytePacket.writeInt64(ctl.receiver, buf, pos);
             pos += 8;
-            BytePacket.writeInt32(ctl.cmd, buf, pos);
-            pos += 4;
-
-            if (ctl.cmd == VOIPControl.VOIP_COMMAND_DIAL ||
-                    ctl.cmd == VOIPControl.VOIP_COMMAND_DIAL_VIDEO) {
-                BytePacket.writeInt32(ctl.dialCount, buf, pos);
-                pos += 4;
-                return Arrays.copyOf(buf, HEAD_SIZE + 24);
-            } else if (ctl.cmd == VOIPControl.VOIP_COMMAND_ACCEPT) {
-                if (ctl.natMap != null) {
-                    BytePacket.writeInt32(ctl.natMap.ip, buf, pos);
-                    pos += 4;
-                    BytePacket.writeInt16(ctl.natMap.port, buf, pos);
-                    pos += 2;
-                } else {
-                    BytePacket.writeInt32(0, buf, pos);
-                    pos += 4;
-                    BytePacket.writeInt16((short)(0), buf, pos);
-                    pos += 2;
-                }
-                return Arrays.copyOf(buf, HEAD_SIZE + 26);
-            } else if (ctl.cmd == VOIPControl.VOIP_COMMAND_CONNECTED) {
-                if (ctl.natMap != null) {
-                    BytePacket.writeInt32(ctl.natMap.ip, buf, pos);
-                    pos += 4;
-                    BytePacket.writeInt16(ctl.natMap.port, buf, pos);
-                    pos += 2;
-                } else {
-                    BytePacket.writeInt32(0, buf, pos);
-                    pos += 4;
-                    BytePacket.writeInt16((short)(0), buf, pos);
-                    pos += 2;
-                }
-                BytePacket.writeInt32(ctl.relayIP, buf, pos);
-                pos += 4;
-                return Arrays.copyOf(buf, HEAD_SIZE + 30);
-            } else {
-                return Arrays.copyOf(buf, HEAD_SIZE + 20);
-            }
+            System.arraycopy(ctl.content, 0, buf, pos, ctl.content.length);
+            pos += ctl.content.length;
+            return Arrays.copyOf(buf, HEAD_SIZE + 16 + ctl.content.length);
         } else if (cmd == Command.MSG_CUSTOMER_SERVICE) {
             CustomerMessage cs = (CustomerMessage) body;
             BytePacket.writeInt64(cs.customer, buf, pos);
@@ -279,32 +243,7 @@ public class Message {
             pos += 8;
             ctl.receiver = BytePacket.readInt64(data, pos);
             pos += 8;
-            ctl.cmd = BytePacket.readInt32(data, pos);
-            pos += 4;
-            if (ctl.cmd == VOIPControl.VOIP_COMMAND_DIAL ||
-                    ctl.cmd == VOIPControl.VOIP_COMMAND_DIAL_VIDEO) {
-                ctl.dialCount = BytePacket.readInt32(data, pos);
-            } else if (ctl.cmd == VOIPControl.VOIP_COMMAND_ACCEPT) {
-                if (data.length >= HEAD_SIZE + 26) {
-                    ctl.natMap = new VOIPControl.NatPortMap();
-                    ctl.natMap.ip = BytePacket.readInt32(data, pos);
-                    pos += 4;
-                    ctl.natMap.port = BytePacket.readInt16(data, pos);
-                    pos += 2;
-                }
-            } else if (ctl.cmd == VOIPControl.VOIP_COMMAND_CONNECTED) {
-                if (data.length >= HEAD_SIZE + 26) {
-                    ctl.natMap = new VOIPControl.NatPortMap();
-                    ctl.natMap.ip = BytePacket.readInt32(data, pos);
-                    pos += 4;
-                    ctl.natMap.port = BytePacket.readInt16(data, pos);
-                    pos += 2;
-                }
-                if (data.length >= HEAD_SIZE + 28) {
-                    ctl.relayIP = BytePacket.readInt32(data, pos);
-                    pos += 4;
-                }
-            }
+            ctl.content = Arrays.copyOfRange(data, pos, data.length);
             this.body = ctl;
             return true;
         } else if (cmd == Command.MSG_CUSTOMER_SERVICE) {
