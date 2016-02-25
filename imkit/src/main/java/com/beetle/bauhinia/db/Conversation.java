@@ -17,6 +17,7 @@ public class Conversation {
     private String name;
     private String avatar;
     private String detail;
+    private int unreadCount;
 
     private PropertyChangeSupport changeSupport = new PropertyChangeSupport(
             this);
@@ -63,5 +64,15 @@ public class Conversation {
 
     public String getDetail() {
         return this.detail;
+    }
+
+    public void setUnreadCount(int unreadCount) {
+        int old = this.unreadCount;
+        this.unreadCount = unreadCount;
+        changeSupport.firePropertyChange("unreadCount", old, this.unreadCount);
+    }
+
+    public int getUnreadCount() {
+        return this.unreadCount;
     }
 }

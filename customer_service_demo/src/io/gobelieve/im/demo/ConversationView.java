@@ -9,8 +9,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.beetle.bauhinia.db.Conversation;
-import com.beetle.bauhinia.db.IMessage;
-import com.beetle.imkit.R;
 import com.squareup.picasso.Picasso;
 
 import java.beans.PropertyChangeEvent;
@@ -60,6 +58,18 @@ public class ConversationView extends FrameLayout implements PropertyChangeListe
                 .placeholder(placeholder)
                 .into(imageView);
 
+
+        setUnreadCount();
+    }
+
+    private void setUnreadCount() {
+        TextView tv = (TextView) this.findViewById(R.id.unReadCount);
+        if (conversation.getUnreadCount() > 0) {
+            tv.setVisibility(VISIBLE);
+            tv.setText(String.valueOf(conversation.getUnreadCount()));
+        } else {
+            tv.setVisibility(GONE);
+        }
     }
 
     @Override
@@ -88,6 +98,8 @@ public class ConversationView extends FrameLayout implements PropertyChangeListe
                     .load(avatar)
                     .placeholder(placeholder)
                     .into(imageView);
+        } else if (event.getPropertyName().equals("unreadCount")) {
+            setUnreadCount();
         }
     }
 }

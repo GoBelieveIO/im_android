@@ -18,8 +18,7 @@
     <color name="gray_33">#333333</color>
     <color name="bg_chat">#f2f0eb</color>
     <color name="gray_normal">#666667</color>
-
     <color name="white_trans_40">#66FFFFFF</color>
-
+    <color name="main_regist">#fffff0</color>
 
 </resources>

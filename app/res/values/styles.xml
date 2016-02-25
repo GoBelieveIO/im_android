@@ -36,4 +36,14 @@
         <item name="android:windowAnimationStyle">@style/AnimFade2</item>
     </style>
 
+    <style name="DemoMainNewMassage">
+        <item name="android:background">@drawable/rc_unread_count_bg</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/main_regist</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:layout_width">18dp</item>
+        <item name="android:layout_height">18dp</item>
+        <!-- <item name="android:visibility">gone</item>-->
+    </style>
+
 </resources>
