@@ -66,6 +66,18 @@
         </activity>
 
         <activity
+            android:name="com.beetle.bauhinia.MapActivity"
+            android:label="位置"
+            android:theme="@style/imkit.ActionBar">
+        </activity>
+        <activity
+            android:name="com.beetle.bauhinia.LocationPickerActivity"
+            android:label="位置"
+            android:theme="@style/imkit.ActionBar">
+        </activity>
+
+
+        <activity
             android:name="io.gobelieve.im.demo.AppGroupMessageActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
@@ -74,9 +86,6 @@
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity>
-
-
-
 
     </application>
 
