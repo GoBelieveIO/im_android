@@ -7,9 +7,10 @@
 
     <ImageView
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="140dip"
         android:id="@+id/image"
-        android:scaleType="centerInside"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
         />
     <View
         android:layout_width="wrap_content"

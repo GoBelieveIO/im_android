@@ -31,6 +31,7 @@ public class MessageLinkView extends MessageRowView {
         ImageView imageView = (ImageView)findViewById(R.id.image);
         Picasso.with(context)
                 .load(linkMsg.image)
+                .placeholder(R.drawable.image_download_fail)
                 .into(imageView);
 
         TextView titleView = (TextView)findViewById(R.id.title);
