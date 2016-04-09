@@ -284,7 +284,8 @@ public class MessageActivity extends BaseActivity implements
         public static int LOCATION = 6;
         public static int TEXT = 8;
         public static int NOTIFICATION = 10;
-        public static int TIMEBASE = 12;
+        public static int LINK = 12;
+        public static int TIMEBASE = 14;
     }
 
     class ChatAdapter extends BaseAdapter implements ContentTypes {
@@ -327,6 +328,8 @@ public class MessageActivity extends BaseActivity implements
                 media = NOTIFICATION;
             } else if (msg.content instanceof IMessage.TimeBase) {
                 media = TIMEBASE;
+            } else if (msg.content instanceof IMessage.Link) {
+                media = LINK;
             } else {
                 media = UNKNOWN;
             }
@@ -341,7 +344,7 @@ public class MessageActivity extends BaseActivity implements
 
         @Override
         public int getViewTypeCount() {
-            return 14;
+            return 16;
         }
 
         @Override
