@@ -23,6 +23,7 @@ public class IMessage {
     public static final String LOCATION = "location";
     public static final String AUDIO = "audio";
     public static final String NOTIFICATION = "notification";
+    public static final String LINK = "link";
     public static final String ATTACHMENT = "attachment";
     public static final String TIMEBASE = "timebase";
 
@@ -33,6 +34,7 @@ public class IMessage {
         MESSAGE_IMAGE,
         MESSAGE_LOCATION,
         MESSAGE_GROUP_NOTIFICATION,
+        MESSAGE_LINK,
         MESSAGE_ATTACHMENT,
         MESSAGE_TIME_BASE //虚拟的消息，不会存入磁盘
     }
@@ -228,6 +230,14 @@ public class IMessage {
         public long member;
     }
 
+    public static class Link extends MessageContent {
+        public String title;
+        public String content;
+        public String url;
+        public String image;
+        public MessageType getType() { return MessageType.MESSAGE_LINK; }
+    }
+
     public static class Attachment extends MessageContent {
         public int msg_id;
         public String address;
@@ -254,6 +264,8 @@ public class IMessage {
                 content = gson.fromJson(element.get(LOCATION), Location.class);
             } else if (element.has(ATTACHMENT)) {
                 content = gson.fromJson(element.get(ATTACHMENT), Attachment.class);
+            } else if (element.has(LINK)) {
+                content = gson.fromJson(element.get(LINK), Link.class);
             } else {
                 content = new Unknown();
             }

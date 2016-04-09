@@ -369,6 +369,9 @@ public class MessageActivity extends BaseActivity implements
                     case MESSAGE_TIME_BASE:
                         rowView = new MessageTimeBaseView(MessageActivity.this);
                         break;
+                    case MESSAGE_LINK:
+                        rowView = new MessageLinkView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        break;
                     default:
                         rowView = new MessageTextView(MessageActivity.this, !isOutMsg(position), isShowUserName);
                         break;
@@ -1089,6 +1092,12 @@ public class MessageActivity extends BaseActivity implements
             Log.i(TAG, "location message clicked");
             IMessage.Location loc = (IMessage.Location)message.content;
             startActivity(MapActivity.newIntent(this, loc.longitude, loc.latitude));
+        } else if (message.content.getType() == IMessage.MessageType.MESSAGE_LINK) {
+            IMessage.Link link = (IMessage.Link)message.content;
+            Intent intent = new Intent();
+            intent.putExtra("url", link.url);
+            intent.setClass(this, WebActivity.class);
+            startActivity(intent);
         }
     }
 

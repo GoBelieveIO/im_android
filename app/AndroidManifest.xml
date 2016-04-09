@@ -118,6 +118,11 @@
             android:theme="@style/imkit.ActionBar">
         </activity>
 
+        <activity
+            android:name="com.beetle.bauhinia.WebActivity"
+            android:label=""
+            android:theme="@style/imkit.ActionBar">
+        </activity>
 
         <!-- 【必须】 信鸽receiver广播接收 -->
         <receiver
