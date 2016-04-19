@@ -152,6 +152,10 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
+    @Override
+    protected MessageIterator getMessageIterator() {
+        return PeerMessageDB.getInstance().newMessageIterator(peerUID);
+    }
 
     public void onConnectState(IMService.ConnectState state) {
         if (state == IMService.ConnectState.STATE_CONNECTED) {

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#ff171b19">
+
+    <com.beetle.bauhinia.gallery.view.ScrollViewPager
+        android:id="@+id/imagebrowser_svp_pager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <ImageButton
+        android:id="@+id/ib_view_more_picture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginBottom="30dp"
+        android:layout_marginRight="20dp"
+        android:background="@drawable/gallery_watch_more_picture_background"
+        android:contentDescription="@null"
+        android:src="@drawable/gallery_watch_picture_preview_button_icon"/>
+</RelativeLayout>

@@ -154,6 +154,21 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.beetle.bauhinia.gallery.ui.GalleryGridUI"
+            android:label="@string/gallery_chat_files"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:theme="@style/imkit.ActionBar">
+        </activity>
+
+        <activity
+            android:name="com.beetle.bauhinia.gallery.ui.GalleryUI"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:theme="@style/imkit.NoActionBar">
+        </activity>
+
         <!-- 【必须】 信鸽service -->
         <service
             android:name="com.tencent.android.tpush.service.XGPushService"
