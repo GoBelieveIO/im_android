@@ -244,6 +244,10 @@ public class CustomerMessageActivity extends MessageActivity
         }
     }
 
+    @Override
+    protected MessageIterator getMessageIterator() {
+        return CustomerMessageDB.getInstance().newMessageIterator(peerUID);
+    }
 
     @Override
     public void onConnectState(IMService.ConnectState state) {

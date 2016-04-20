@@ -294,4 +294,9 @@
     <string name="toast_updatenick_fail">update nickname fail!</string>
     <string name="toast_updatephoto_success">update photo success!</string>
     <string name="toast_updatephoto_fail">update photo fail!</string>
+
+    <string name="gallery_save_to_phone">Save to phone</string>
+    <string name="gallery_image_saved_to">Image saved to </string>
+    <string name="gallery_image_save_failed">Image save failed!</string>
+    <string name="gallery_chat_files">Chat Files</string>
 </resources>

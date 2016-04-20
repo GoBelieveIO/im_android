@@ -194,6 +194,11 @@ public class GroupMessageActivity extends MessageActivity implements
     }
 
     @Override
+    protected MessageIterator getMessageIterator() {
+        return GroupMessageDB.getInstance().newMessageIterator(groupID);
+    }
+
+    @Override
     public void onConnectState(IMService.ConnectState state) {
         if (state == IMService.ConnectState.STATE_CONNECTED) {
             enableSend();

@@ -304,4 +304,8 @@
     <string name="toast_updatenick_fail">更新昵称失败!</string>
     <string name="toast_updatephoto_success">更新头像成功!</string>
     <string name="toast_updatephoto_fail">更新头像失败!</string>
+
+    <string name="gallery_image_saved_to">图片已保存至</string>
+    <string name="gallery_save_to_phone">保存至手机</string>
+    <string name="gallery_chat_files">聊天文件</string>
 </resources>

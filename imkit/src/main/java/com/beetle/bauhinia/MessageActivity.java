@@ -33,6 +33,9 @@ import com.amap.api.services.geocoder.GeocodeSearch;
 import com.amap.api.services.geocoder.RegeocodeQuery;
 import com.amap.api.services.geocoder.RegeocodeResult;
 import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.db.MessageIterator;
+import com.beetle.bauhinia.gallery.GalleryImage;
+import com.beetle.bauhinia.gallery.ui.GalleryUI;
 import com.beetle.bauhinia.tools.AudioRecorder;
 import com.beetle.bauhinia.tools.AudioUtil;
 import com.beetle.bauhinia.tools.DeviceUtil;
@@ -1089,8 +1092,7 @@ public class MessageActivity extends BaseActivity implements
                 }
             }
         } else if (message.content instanceof IMessage.Image) {
-            IMessage.Image image = (IMessage.Image) message.content;
-            startActivity(PhotoActivity.newIntent(this, image.image));
+            navigateToViewImage(message);
         } else if (message.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
             Log.i(TAG, "location message clicked");
             IMessage.Location loc = (IMessage.Location)message.content;
@@ -1102,6 +1104,49 @@ public class MessageActivity extends BaseActivity implements
             intent.setClass(this, WebActivity.class);
             startActivity(intent);
         }
+    }
+
+    private void navigateToViewImage(IMessage imageMessage) {
+        ArrayList<IMessage> imageMessages = getImageMessages();
+        if (imageMessages == null) {
+            return;
+        }
+
+        int position = 0;
+        ArrayList<GalleryImage> galleryImages = new ArrayList<GalleryImage>();
+        for (IMessage msg : imageMessages) {
+            IMessage.Image image = (IMessage.Image) msg.content;
+            if (msg.msgLocalID == imageMessage.msgLocalID) {
+                position = galleryImages.size();
+            }
+            galleryImages.add(new GalleryImage(image.image));
+        }
+        Intent intent = GalleryUI.getCallingIntent(this, galleryImages, position);
+        startActivity(intent);
+    }
+
+    protected MessageIterator getMessageIterator() {
+        return null;
+    }
+
+    private ArrayList<IMessage> getImageMessages() {
+        ArrayList<IMessage> images = new ArrayList<IMessage>();
+
+        MessageIterator iter = getMessageIterator();
+        while (iter != null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
+                break;
+            }
+
+            if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
+                if (msg.content instanceof IMessage.Image) {
+                    images.add(msg);
+                }
+            }
+        }
+        Collections.reverse(images);
+        return images;
     }
 
     protected void downloadMessageContent(IMessage msg) {
