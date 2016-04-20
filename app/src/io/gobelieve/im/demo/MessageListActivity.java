@@ -19,6 +19,7 @@ import com.beetle.bauhinia.db.Conversation;
 import com.beetle.bauhinia.db.ConversationIterator;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
+import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessage.GroupNotification;
 import com.beetle.bauhinia.db.MessageIterator;
@@ -51,6 +52,11 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     private List<Conversation> conversations;
     private ListView lv;
     protected long currentUID = 0;
+
+
+    private static final long APPID = 7;
+    private static final long KEFU_ID = 55;
+
 
     private BaseAdapter adapter;
     class ConversationAdapter extends BaseAdapter {
@@ -236,10 +242,10 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             conversations.add(conv);
         }
 
-        MessageIterator messageIterator  = CustomerMessageDB.getInstance().newMessageIterator(0);
-        IMessage msg = null;
+        MessageIterator messageIterator  = CustomerMessageDB.getInstance().newMessageIterator(KEFU_ID);
+        ICustomerMessage msg = null;
         while (messageIterator != null) {
-            msg = messageIterator.next();
+            msg = (ICustomerMessage) messageIterator.next();
             if (msg == null) {
                 break;
             }
@@ -249,7 +255,14 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             }
         }
         if (msg == null) {
-            msg = new IMessage();
+            msg = new ICustomerMessage();
+            msg.isSupport = true;
+            msg.isOutgoing = false;
+            msg.customerAppID = APPID;
+            msg.customerID = currentUID;
+            msg.storeID = KEFU_ID;
+            msg.sellerID = 0;
+
             msg.content = IMessage.newText("如果你在使用过程中有任何问题和建议，记得给我们发信反馈哦");
             msg.sender = 0;
             msg.receiver = this.currentUID;
@@ -317,7 +330,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         } else if (conv.type == Conversation.CONVERSATION_GROUP){
             onGroupClick(conv.cid);
         } else if (conv.type == Conversation.CONVERSATION_CUSTOMER_SERVICE) {
-            onCustomerServiceClick(conv.cid);
+            onCustomerServiceClick(conv);
         }
     }
 
@@ -715,12 +728,16 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     }
 
 
-    protected void onCustomerServiceClick(long id) {
+    protected void onCustomerServiceClick(Conversation conv) {
+        ICustomerMessage msg = (ICustomerMessage)conv.message;
+
         Intent intent = new Intent(this, CustomerMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("peer_uid", 0);
-        intent.putExtra("peer_name", "客服");
+        intent.putExtra("store_id", msg.storeID);
+        intent.putExtra("seller_id", msg.sellerID);
+        intent.putExtra("app_id", APPID);
         intent.putExtra("current_uid", this.currentUID);
+        intent.putExtra("peer_name", "客服");
         startActivity(intent);
     }
 

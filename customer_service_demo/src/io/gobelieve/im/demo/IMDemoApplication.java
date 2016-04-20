@@ -62,9 +62,6 @@ public class IMDemoApplication extends Application {
         groupDB.setDir(this.getDir("group", MODE_PRIVATE));
         CustomerMessageDB csDB = CustomerMessageDB.getInstance();
         csDB.setDir(this.getDir("customer_service", MODE_PRIVATE));
-        //以客服人员的身份登录，必须使用非聚合模式
-        csDB.setAggregationMode(false);
-        CustomerOutbox.setIsStaff(true);
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
