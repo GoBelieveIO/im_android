@@ -1,5 +1,6 @@
 package com.beetle.bauhinia.db;
 
+import com.beetle.im.BytePacket;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -8,6 +9,7 @@ import com.google.gson.JsonObject;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -287,6 +289,8 @@ public class IMessage {
     public MessageContent content;
     public int timestamp;//单位秒
 
+    //以下字段未保存在文件中
+    public boolean isOutgoing; //当前用户发出的消息
     private String senderName;
     private String senderAvatar;
     private boolean uploading;

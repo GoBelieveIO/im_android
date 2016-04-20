@@ -62,6 +62,7 @@ public class IMService {
     private String token;
     private String deviceID;
     private long uid;
+    private long appID;
 
     PeerMessageHandler peerMessageHandler;
     GroupMessageHandler groupMessageHandler;
@@ -77,7 +78,7 @@ public class IMService {
 
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
     HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
-    HashMap<Integer, IMMessage> customerMessages = new HashMap<Integer, IMMessage>();
+    HashMap<Integer, CustomerMessage> customerMessages = new HashMap<Integer, CustomerMessage>();
 
     private byte[] data;
 
@@ -164,6 +165,8 @@ public class IMService {
         this.token = token;
     }
     public void setUID(long uid) { this.uid = uid; }
+    //普通app不需要设置
+    public void setAppID(long appID) { this.appID = appID; }
     public void setDeviceID(String deviceID) {
         this.deviceID = deviceID;
     }
@@ -357,10 +360,21 @@ public class IMService {
         }
         return false;
     }
-    public boolean isCustomerServiceMessageSending(long peer, int msgLocalID) {
-        for(Map.Entry<Integer, IMMessage> entry : customerMessages.entrySet()) {
-            IMMessage m = entry.getValue();
-            if (m.receiver == peer && m.msgLocalID == msgLocalID) {
+    public boolean isCustomerMessageSending(long storeID, int msgLocalID) {
+        for(Map.Entry<Integer, CustomerMessage> entry : customerMessages.entrySet()) {
+            CustomerMessage m = entry.getValue();
+            if (m.storeID == storeID && m.msgLocalID == msgLocalID) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public boolean isCustomerSupportMessageSending(long customerID, long customerAppID, int msgLocalID) {
+        for(Map.Entry<Integer, CustomerMessage> entry : customerMessages.entrySet()) {
+            CustomerMessage m = entry.getValue();
+            if (m.customerID == customerID &&
+                    m.customerAppID == customerAppID &&
+                    m.msgLocalID == msgLocalID) {
                 return true;
             }
         }
@@ -393,7 +407,19 @@ public class IMService {
 
     public boolean sendCustomerMessage(CustomerMessage im) {
         Message msg = new Message();
-        msg.cmd = Command.MSG_CUSTOMER_SERVICE;
+        msg.cmd = Command.MSG_CUSTOMER;
+        msg.body = im;
+        if (!sendMessage(msg)) {
+            return false;
+        }
+
+        customerMessages.put(new Integer(msg.seq), im);
+        return true;
+    }
+
+    public boolean sendCustomerSupportMessage(CustomerMessage im) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_CUSTOMER_SUPPORT;
         msg.body = im;
         if (!sendMessage(msg)) {
             return false;
@@ -445,12 +471,12 @@ public class IMService {
 
         iter = customerMessages.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
-            IMMessage im = entry.getValue();
+            Map.Entry<Integer, CustomerMessage> entry = (Map.Entry<Integer, CustomerMessage>)iter.next();
+            CustomerMessage im = entry.getValue();
             if (customerMessageHandler != null) {
-                customerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+                customerMessageHandler.handleMessageFailure(im);
             }
-            publishCustomerServiceMessageFailure(im.msgLocalID, im.receiver);
+            publishCustomerServiceMessageFailure(im);
         }
         customerMessages.clear();
 
@@ -709,14 +735,14 @@ public class IMService {
             publishGroupMessageACK(im.msgLocalID, im.receiver);
         }
 
-        im = customerMessages.get(seq);
-        if (im != null) {
-            if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+        CustomerMessage cm = customerMessages.get(seq);
+        if (cm != null) {
+            if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(cm)) {
                 Log.i(TAG, "handle customer service message ack fail");
                 return;
             }
             customerMessages.remove(seq);
-            publishCustomerServiceMessageACK(im.msgLocalID, im.receiver);
+            publishCustomerServiceMessageACK(cm);
         }
     }
 
@@ -741,26 +767,49 @@ public class IMService {
         sendMessage(ack);
     }
 
-    private void handleCustomerServiceMessage(Message msg) {
+    private void handleCustomerMessage(Message msg) {
         CustomerMessage cs = (CustomerMessage)msg.body;
         if (customerMessageHandler != null && !customerMessageHandler.handleMessage(cs)) {
             Log.i(TAG, "handle customer service message fail");
             return;
         }
 
-        publishCustomerServiceMessage(cs);
+        publishCustomerMessage(cs);
 
         Message ack = new Message();
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
 
-        if (cs.sender == this.uid) {
-            if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(cs.msgLocalID, cs.receiver)) {
+        if ((this.appID == 0 || this.appID == cs.customerAppID) && this.uid == cs.customerID) {
+            if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(cs)) {
                 Log.w(TAG, "handle customer service message ack fail");
                 return;
             }
-            publishCustomerServiceMessageACK(cs.msgLocalID, cs.receiver);
+            publishCustomerServiceMessageACK(cs);
+        }
+    }
+
+    private void handleCustomerSupportMessage(Message msg) {
+        CustomerMessage cs = (CustomerMessage)msg.body;
+        if (customerMessageHandler != null && !customerMessageHandler.handleCustomerSupportMessage(cs)) {
+            Log.i(TAG, "handle customer service message fail");
+            return;
+        }
+
+        publishCustomerSupportMessage(cs);
+
+        Message ack = new Message();
+        ack.cmd = Command.MSG_ACK;
+        ack.body = new Integer(msg.seq);
+        sendMessage(ack);
+
+        if (this.appID > 0 && this.appID != cs.customerAppID && this.uid == cs.sellerID) {
+            if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(cs)) {
+                Log.w(TAG, "handle customer service message ack fail");
+                return;
+            }
+            publishCustomerServiceMessageACK(cs);
         }
     }
 
@@ -814,8 +863,10 @@ public class IMService {
             handleRTMessage(msg);
         } else if (msg.cmd == Command.MSG_VOIP_CONTROL) {
             handleVOIPControl(msg);
-        } else if (msg.cmd == Command.MSG_CUSTOMER_SERVICE) {
-            handleCustomerServiceMessage(msg);
+        } else if (msg.cmd == Command.MSG_CUSTOMER) {
+            handleCustomerMessage(msg);
+        } else if (msg.cmd == Command.MSG_CUSTOMER_SUPPORT) {
+            handleCustomerSupportMessage(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
@@ -983,25 +1034,32 @@ public class IMService {
         }
     }
 
-    private void publishCustomerServiceMessage(CustomerMessage cs) {
+    private void publishCustomerMessage(CustomerMessage cs) {
         for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
             CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
             ob.onCustomerMessage(cs);
         }
     }
 
-    private void publishCustomerServiceMessageACK(int msgLocalID, long uid) {
+    private void publishCustomerSupportMessage(CustomerMessage cs) {
         for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
             CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
-            ob.onCustomerMessageACK(msgLocalID, uid);
+            ob.onCustomerSupportMessage(cs);
+        }
+    }
+
+    private void publishCustomerServiceMessageACK(CustomerMessage msg) {
+        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+            CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
+            ob.onCustomerMessageACK(msg);
         }
     }
 
 
-    private void publishCustomerServiceMessageFailure(int msgLocalID, long uid) {
+    private void publishCustomerServiceMessageFailure(CustomerMessage msg) {
         for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
             CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
-            ob.onCustomerMessageFailure(msgLocalID, uid);
+            ob.onCustomerMessageFailure(msg);
         }
     }
 }

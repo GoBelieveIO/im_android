@@ -30,6 +30,8 @@ class Command{
     public static final int MSG_ROOM_IM = 20;
     public static final int MSG_SYSTEM = 21;
     public static final int MSG_CUSTOMER_SERVICE = 23;
+    public static final int MSG_CUSTOMER = 24;
+    public static final int MSG_CUSTOMER_SUPPORT = 25;
 
     public static final int MSG_VOIP_CONTROL = 64;
 }
@@ -126,24 +128,26 @@ public class Message {
             System.arraycopy(ctl.content, 0, buf, pos, ctl.content.length);
             pos += ctl.content.length;
             return Arrays.copyOf(buf, HEAD_SIZE + 16 + ctl.content.length);
-        } else if (cmd == Command.MSG_CUSTOMER_SERVICE) {
+        } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
             CustomerMessage cs = (CustomerMessage) body;
-            BytePacket.writeInt64(cs.customer, buf, pos);
+            BytePacket.writeInt64(cs.customerAppID, buf, pos);
             pos += 8;
-            BytePacket.writeInt64(cs.sender, buf, pos);
+            BytePacket.writeInt64(cs.customerID, buf, pos);
             pos += 8;
-            BytePacket.writeInt64(cs.receiver, buf, pos);
+            BytePacket.writeInt64(cs.storeID, buf, pos);
+            pos += 8;
+            BytePacket.writeInt64(cs.sellerID, buf, pos);
             pos += 8;
             BytePacket.writeInt32(cs.timestamp, buf, pos);
             pos += 4;
             try {
                 byte[] c = cs.content.getBytes("UTF-8");
-                if (c.length + 28 >= 32 * 1024) {
+                if (c.length + 36 >= 32 * 1024) {
                     Log.e("imservice", "packet buffer overflow");
                     return null;
                 }
                 System.arraycopy(c, 0, buf, pos, c.length);
-                return Arrays.copyOf(buf, HEAD_SIZE + 28 + c.length);
+                return Arrays.copyOf(buf, HEAD_SIZE + 36 + c.length);
             } catch (Exception e) {
                 Log.e("imservice", "encode utf8 error");
                 return null;
@@ -246,18 +250,20 @@ public class Message {
             ctl.content = Arrays.copyOfRange(data, pos, data.length);
             this.body = ctl;
             return true;
-        } else if (cmd == Command.MSG_CUSTOMER_SERVICE) {
+        } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
             CustomerMessage cs = new CustomerMessage();
-            cs.customer = BytePacket.readInt64(data, pos);
+            cs.customerAppID = BytePacket.readInt64(data, pos);
             pos += 8;
-            cs.sender = BytePacket.readInt64(data, pos);
+            cs.customerID = BytePacket.readInt64(data, pos);
             pos += 8;
-            cs.receiver = BytePacket.readInt64(data, pos);
+            cs.storeID = BytePacket.readInt64(data, pos);
+            pos += 8;
+            cs.sellerID = BytePacket.readInt64(data, pos);
             pos += 8;
             cs.timestamp = BytePacket.readInt32(data, pos);
             pos += 4;
             try {
-                cs.content = new String(data, pos, data.length - 28 - HEAD_SIZE, "UTF-8");
+                cs.content = new String(data, pos, data.length - 36 - HEAD_SIZE, "UTF-8");
                 this.body = cs;
                 return true;
             } catch (Exception e) {

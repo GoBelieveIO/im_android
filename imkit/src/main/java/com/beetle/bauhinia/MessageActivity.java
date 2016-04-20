@@ -32,13 +32,6 @@ import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
 import com.amap.api.services.geocoder.RegeocodeQuery;
 import com.amap.api.services.geocoder.RegeocodeResult;
-import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.tools.AudioRecorder;
-import com.beetle.bauhinia.tools.AudioUtil;
-import com.beetle.bauhinia.tools.DeviceUtil;
-import com.beetle.im.*;
-import com.beetle.bauhinia.activity.BaseActivity;
-import com.beetle.bauhinia.activity.PhotoActivity;
 
 import com.beetle.bauhinia.tools.AudioDownloader;
 import com.beetle.bauhinia.tools.FileCache;
@@ -47,27 +40,25 @@ import com.beetle.bauhinia.tools.NotificationCenter;
 import com.easemob.easeui.widget.EaseChatExtendMenu;
 import com.easemob.easeui.widget.EaseChatInputMenu;
 
-
-import java.io.ByteArrayOutputStream;
-
-
-import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
-
 import java.io.File;
-import java.io.FileInputStream;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
-
-import com.beetle.imkit.R;
-
+import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.tools.AudioRecorder;
+import com.beetle.bauhinia.tools.AudioUtil;
+import com.beetle.bauhinia.tools.DeviceUtil;
+import com.beetle.im.*;
+import com.beetle.bauhinia.activity.BaseActivity;
+import com.beetle.bauhinia.activity.PhotoActivity;
+import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
 import static com.beetle.bauhinia.constant.RequestCodes.*;
+import com.beetle.imkit.R;
 
 
 public class MessageActivity extends BaseActivity implements
-        AudioDownloader.AudioDownloaderObserver,
+
         SwipeRefreshLayout.OnRefreshListener {
 
     protected final String TAG = "imservice";
@@ -79,8 +70,7 @@ public class MessageActivity extends BaseActivity implements
     protected String clearNotificationName;
 
 
-    protected long sender;
-    protected long receiver;
+
     protected boolean isShowUserName = false;
 
     protected ArrayList<IMessage> messages = new ArrayList<IMessage>();
@@ -256,10 +246,6 @@ public class MessageActivity extends BaseActivity implements
 
         audioRecorder = new AudioRecorder(this, this.recordFileName);
 
-        AudioDownloader.getInstance().addObserver(this);
-
-
-
         if (IMService.getInstance().getConnectState() != IMService.ConnectState.STATE_CONNECTED) {
             disableSend();
         }
@@ -305,7 +291,7 @@ public class MessageActivity extends BaseActivity implements
         @Override
         public int getItemViewType(int position) {
             final int basic;
-            if (isOutMsg(position)) {
+            if (messages.get(position).isOutgoing) {
                 basic = OUT_MSG;
             } else {
                 basic = IN_MSG;
@@ -337,10 +323,7 @@ public class MessageActivity extends BaseActivity implements
             return media;
         }
 
-        boolean isOutMsg(int position) {
-            IMessage msg = messages.get(position);
-            return msg.sender == MessageActivity.this.sender;
-        }
+
 
         @Override
         public int getViewTypeCount() {
@@ -355,28 +338,28 @@ public class MessageActivity extends BaseActivity implements
                 IMessage.MessageType msgType = msg.content.getType();
                 switch (msgType) {
                     case MESSAGE_IMAGE:
-                        rowView = new MessageImageView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        rowView = new MessageImageView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
                         break;
                     case MESSAGE_AUDIO:
-                        rowView = new MessageAudioView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        rowView = new MessageAudioView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
                         break;
                     case MESSAGE_TEXT:
-                        rowView = new MessageTextView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        rowView = new MessageTextView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
                         break;
                     case MESSAGE_GROUP_NOTIFICATION:
                         rowView = new MessageNotificationView(MessageActivity.this);
                         break;
                     case MESSAGE_LOCATION:
-                        rowView = new MessageLocationView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        rowView = new MessageLocationView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
                         break;
                     case MESSAGE_TIME_BASE:
                         rowView = new MessageTimeBaseView(MessageActivity.this);
                         break;
                     case MESSAGE_LINK:
-                        rowView = new MessageLinkView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        rowView = new MessageLinkView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
                         break;
                     default:
-                        rowView = new MessageTextView(MessageActivity.this, !isOutMsg(position), isShowUserName);
+                        rowView = new MessageTextView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
                         break;
                 }
 
@@ -442,7 +425,7 @@ public class MessageActivity extends BaseActivity implements
                 String s = formatTimeBase(((IMessage.TimeBase)msg.content).timestamp);
                 timeBaseView.setTimeBaseMessage(msg, s);
             } else {
-                rowView.setMessage(msg, !isOutMsg(position));
+                rowView.setMessage(msg, !msg.isOutgoing);
             }
             return rowView;
         }
@@ -642,12 +625,6 @@ public class MessageActivity extends BaseActivity implements
         int id = item.getItemId();
         if (id == R.id.action_clear) {
             clearConversation();
-            messages = new ArrayList<IMessage>();
-            adapter.notifyDataSetChanged();
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.receiver, clearNotificationName);
-            nc.postNotification(notification);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -685,11 +662,8 @@ public class MessageActivity extends BaseActivity implements
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "imactivity destory");
-
-        AudioDownloader.getInstance().removeObserver(this);
         audioUtil.release();
     }
-
 
     public static int now() {
         Date date = new Date();
@@ -698,6 +672,10 @@ public class MessageActivity extends BaseActivity implements
     }
 
     void sendMessage(IMessage imsg) {
+        Log.i(TAG, "not implemented");
+    }
+
+    void saveMessageAttachment(IMessage msg, String address) {
         Log.i(TAG, "not implemented");
     }
 
@@ -714,7 +692,9 @@ public class MessageActivity extends BaseActivity implements
     }
 
     void clearConversation() {
-        Log.i(TAG, "not implemented");
+        Log.i(TAG, "clearConversation");
+        messages = new ArrayList<IMessage>();
+        adapter.notifyDataSetChanged();
     }
 
     private String formatTimeBase(long ts) {
@@ -834,134 +814,23 @@ public class MessageActivity extends BaseActivity implements
         adapter.notifyDataSetChanged();
         listview.smoothScrollToPosition(messages.size()-1);
     }
-    void sendTextMessage(String text) {
-        if (text.length() == 0) {
-            return;
-        }
 
-        IMessage imsg = new IMessage();
-        imsg.sender = this.sender;
-        imsg.receiver = this.receiver;
-        imsg.setContent(IMessage.newText(text));
-        imsg.timestamp = now();
-
-        saveMessage(imsg);
-        sendMessage(imsg);
-
-        insertMessage(imsg);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, sendNotificationName);
-        nc.postNotification(notification);
-    }
-
-    void sendImageMessage(Bitmap bmp) {
-        double w = bmp.getWidth();
-        double h = bmp.getHeight();
-        double newHeight = 640.0;
-        double newWidth = newHeight*w/h;
+    protected void sendTextMessage(String text) {}
+    protected void sendImageMessage(Bitmap bmp) {}
+    protected void sendAudioMessage() {}
+    protected void sendLocationMessage(float longitude, float latitude, String address) {}
 
 
-        Bitmap bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
-
-        double sw = 256.0;
-        double sh = 256.0*h/w;
-
-        Bitmap thumbnail = Bitmap.createScaledBitmap(bmp, (int)sw, (int)sh, true);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        bigBMP.compress(Bitmap.CompressFormat.JPEG, 100, os);
-        ByteArrayOutputStream os2 = new ByteArrayOutputStream();
-        thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, os2);
-
-        String originURL = localImageURL();
-        String thumbURL = localImageURL();
-        try {
-            FileCache.getInstance().storeByteArray(originURL, os);
-            FileCache.getInstance().storeByteArray(thumbURL, os2);
-
-            String path = FileCache.getInstance().getCachedFilePath(originURL);
-            String thumbPath = FileCache.getInstance().getCachedFilePath(thumbURL);
-
-            String tpath = path + "@256w_256h_0c";
-            File f = new File(thumbPath);
-            File t = new File(tpath);
-            f.renameTo(t);
-
-            IMessage imsg = new IMessage();
-            imsg.sender = this.sender;
-            imsg.receiver = this.receiver;
-            imsg.setContent(IMessage.newImage("file:" + path));
-            imsg.timestamp = now();
-            saveMessage(imsg);
-
-            insertMessage(imsg);
-
-            sendMessage(imsg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private String localImageURL() {
+    protected String localImageURL() {
         UUID uuid = UUID.randomUUID();
         return "http://localhost/images/"+ uuid.toString() + ".png";
     }
 
-    private String localAudioURL() {
+    protected String localAudioURL() {
         UUID uuid = UUID.randomUUID();
         return "http://localhost/audios/" + uuid.toString() + ".amr";
     }
 
-
-    private void sendAudioMessage() {
-        String tfile = audioRecorder.getPathName();
-
-        try {
-            long mduration = AudioUtil.getAudioDuration(tfile);
-
-            if (mduration < 1000) {
-                Toast.makeText(this, "录音时间太短了", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            long duration = mduration/1000;
-
-            String url = localAudioURL();
-            IMessage imsg = new IMessage();
-            imsg.sender = this.sender;
-            imsg.receiver = this.receiver;
-            imsg.setContent(IMessage.newAudio(url, duration));
-            imsg.timestamp = now();
-
-            saveMessage(imsg);
-
-            Log.i(TAG, "msg local id:" + imsg.msgLocalID);
-
-            insertMessage(imsg);
-
-            IMessage.Audio audio = (IMessage.Audio)imsg.content;
-            FileInputStream is = new FileInputStream(new File(tfile));
-            Log.i(TAG, "store audio url:" + audio.url);
-            FileCache.getInstance().storeFile(audio.url, is);
-
-            sendMessage(imsg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-            return;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-    }
 
 
     void getPicture() {
@@ -1014,38 +883,14 @@ public class MessageActivity extends BaseActivity implements
             String address = data.getStringExtra("address");
 
             Log.i(TAG, "address:" + address + " longitude:" + longitude + " latitude:" + latitude);
-
-            IMessage imsg = new IMessage();
-            imsg.sender = this.sender;
-            imsg.receiver = this.receiver;
-            IMessage.Location loc = IMessage.newLocation(latitude, longitude);
-            imsg.setContent(loc);
-            imsg.timestamp = now();
-            saveMessage(imsg);
-
-            loc.address = address;
-            if (TextUtils.isEmpty(loc.address)) {
-                queryLocation(imsg);
-            } else {
-                IMessage attachment = new IMessage();
-                attachment.content = IMessage.newAttachment(imsg.msgLocalID, loc.address);
-                attachment.sender = imsg.sender;
-                attachment.receiver = imsg.receiver;
-                saveMessage(attachment);
-            }
-
-            insertMessage(imsg);
-            sendMessage(imsg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, sendNotificationName);
-            nc.postNotification(notification);
+            sendLocationMessage(longitude, latitude, address);
         } else {
             Log.i(TAG, "invalide request code:" + requestCode);
             return;
         }
 
     }
+
 
 
     void play(IMessage message) {
@@ -1131,7 +976,7 @@ public class MessageActivity extends BaseActivity implements
         }
     }
 
-    private void queryLocation(final IMessage msg) {
+    protected void queryLocation(final IMessage msg) {
         final IMessage.Location loc = (IMessage.Location)msg.content;
 
         msg.setGeocoding(true);
@@ -1148,11 +993,7 @@ public class MessageActivity extends BaseActivity implements
                     Log.i(TAG, "address:" + address);
                     loc.address = address;
 
-                    IMessage attachment = new IMessage();
-                    attachment.content = IMessage.newAttachment(msg.msgLocalID, address);
-                    attachment.sender = msg.sender;
-                    attachment.receiver = msg.receiver;
-                    saveMessage(attachment);
+                    saveMessageAttachment(msg, address);
                 } else {
                     // 定位失败;
                 }
@@ -1183,15 +1024,4 @@ public class MessageActivity extends BaseActivity implements
         }
         return null;
     }
-
-    @Override
-    public void onAudioDownloadSuccess(IMessage msg) {
-        Log.i(TAG, "audio download success");
-    }
-    @Override
-    public void onAudioDownloadFail(IMessage msg) {
-        Log.i(TAG, "audio download fail");
-    }
-
-
 }

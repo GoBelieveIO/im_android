@@ -16,6 +16,7 @@ import com.beetle.bauhinia.CustomerMessageActivity;
 import com.beetle.bauhinia.db.Conversation;
 import com.beetle.bauhinia.db.ConversationIterator;
 import com.beetle.bauhinia.db.CustomerMessageDB;
+import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessage.GroupNotification;
 import com.beetle.bauhinia.tools.NotificationCenter;
@@ -269,20 +270,29 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         return (int)(t/1000);
     }
 
+    public void onCustomerSupportMessage(CustomerMessage msg) {
 
+    }
     public void onCustomerMessage(CustomerMessage msg) {
         Log.i(TAG, "on customer service message");
-        IMessage imsg = new IMessage();
+        ICustomerMessage imsg = new ICustomerMessage();
         imsg.timestamp = now();
         imsg.msgLocalID = msg.msgLocalID;
-        imsg.sender = msg.sender;
-        imsg.receiver = msg.receiver;
+        imsg.sender = msg.customerID;
+        imsg.receiver = msg.storeID;
+        imsg.customerAppID = msg.customerAppID;
+        imsg.customerID = msg.customerID;
+        imsg.storeID = msg.storeID;
+        imsg.sellerID = msg.sellerID;
+        imsg.isSupport = false;
+        imsg.isOutgoing = true;
+
         imsg.setContent(msg.content);
 
-        int pos = findConversationPosition(msg.customer, Conversation.CONVERSATION_CUSTOMER_SERVICE);
+        int pos = findConversationPosition(msg.storeID, Conversation.CONVERSATION_CUSTOMER_SERVICE);
         Conversation conversation = null;
         if (pos == -1) {
-            conversation = newPeerConversation(msg.customer);
+            conversation = newPeerConversation(msg.storeID);
         } else {
             conversation = conversations.get(pos);
         }
@@ -301,10 +311,10 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             //pos == 0
         }
     }
-    public void onCustomerMessageACK(int msgLocalID, long uid) {
+    public void onCustomerMessageACK(CustomerMessage msg) {
 
     }
-    public void onCustomerMessageFailure(int msgLocalID, long uid) {
+    public void onCustomerMessageFailure(CustomerMessage msg) {
 
     }
 
