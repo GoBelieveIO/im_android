@@ -57,24 +57,26 @@ public class AudioRecorder {
 
                         @Override
                         public void onCompletion(MediaPlayer arg0) {
-                            start = true;
-                            try {
-                                Log.i(TAG, "start record");
-                                AudioRecorder.this.recorder = new MediaRecorder();
 
-                                recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-                                recorder.setOutputFormat(MediaRecorder.OutputFormat.AMR_NB);
-                                recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-                                recorder.setOutputFile(AudioRecorder.this.pathName);
-                                recorder.prepare();
-                                recorder.start();
-                            } catch (Exception e) {
-                                Log.e(TAG,
-                                        "Record start error:  " + e != null ? e
-                                                .getMessage() : "");
-                            }
                         }
                     });
+
+            start = true;
+            try {
+                Log.i(TAG, "start record");
+                AudioRecorder.this.recorder = new MediaRecorder();
+
+                recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                recorder.setOutputFormat(MediaRecorder.OutputFormat.AMR_NB);
+                recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+                recorder.setOutputFile(AudioRecorder.this.pathName);
+                recorder.prepare();
+                recorder.start();
+            } catch (Exception e) {
+                Log.e(TAG,
+                        "Record start error:  " + e != null ? e
+                                .getMessage() : "");
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
