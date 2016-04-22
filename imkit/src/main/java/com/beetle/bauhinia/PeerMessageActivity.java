@@ -419,7 +419,7 @@ public class PeerMessageActivity extends MessageActivity implements
         imsg.receiver = this.receiver;
         imsg.setContent(IMessage.newText(text));
         imsg.timestamp = now();
-
+        imsg.isOutgoing = true;
         saveMessage(imsg);
         sendMessage(imsg);
 
@@ -467,6 +467,7 @@ public class PeerMessageActivity extends MessageActivity implements
             imsg.receiver = this.receiver;
             imsg.setContent(IMessage.newImage("file:" + path));
             imsg.timestamp = now();
+            imsg.isOutgoing = true;
             saveMessage(imsg);
 
             insertMessage(imsg);
@@ -501,7 +502,7 @@ public class PeerMessageActivity extends MessageActivity implements
             imsg.receiver = this.receiver;
             imsg.setContent(IMessage.newAudio(url, duration));
             imsg.timestamp = now();
-
+            imsg.isOutgoing = true;
             saveMessage(imsg);
 
             Log.i(TAG, "msg local id:" + imsg.msgLocalID);
@@ -535,6 +536,7 @@ public class PeerMessageActivity extends MessageActivity implements
         IMessage.Location loc = IMessage.newLocation(latitude, longitude);
         imsg.setContent(loc);
         imsg.timestamp = now();
+        imsg.isOutgoing = true;
         saveMessage(imsg);
 
         loc.address = address;
