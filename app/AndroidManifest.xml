@@ -84,7 +84,7 @@
         <activity
             android:name="com.beetle.bauhinia.PeerMessageActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize"
+            android:windowSoftInputMode="adjustResize|stateHidden"
             android:theme="@style/imkit.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -94,7 +94,7 @@
         <activity
             android:name="com.beetle.bauhinia.CustomerMessageActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize"
+            android:windowSoftInputMode="adjustResize|stateHidden"
             android:theme="@style/imkit.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
