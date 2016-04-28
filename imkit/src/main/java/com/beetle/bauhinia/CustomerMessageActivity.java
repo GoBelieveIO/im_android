@@ -586,15 +586,15 @@ public class CustomerMessageActivity extends MessageActivity
 
             msg.setContent(IMessage.newAudio(url, duration));
 
-            saveMessage(msg);
-            Log.i(TAG, "msg local id:" + msg.msgLocalID);
-            insertMessage(msg);
-            sendMessage(msg);
-
             IMessage.Audio audio = (IMessage.Audio)msg.content;
             FileInputStream is = new FileInputStream(new File(tfile));
             Log.i(TAG, "store audio url:" + audio.url);
             FileCache.getInstance().storeFile(audio.url, is);
+
+            saveMessage(msg);
+            Log.i(TAG, "msg local id:" + msg.msgLocalID);
+            insertMessage(msg);
+            sendMessage(msg);
 
             NotificationCenter nc = NotificationCenter.defaultCenter();
             Notification notification = new Notification(msg, sendNotificationName);

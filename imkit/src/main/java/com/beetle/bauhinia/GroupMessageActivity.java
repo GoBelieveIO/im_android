@@ -587,17 +587,16 @@ public class GroupMessageActivity extends MessageActivity implements
             imsg.setContent(IMessage.newAudio(url, duration));
             imsg.timestamp = now();
             imsg.isOutgoing = true;
-            saveMessage(imsg);
-
-            Log.i(TAG, "msg local id:" + imsg.msgLocalID);
-
-            insertMessage(imsg);
 
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
             FileInputStream is = new FileInputStream(new File(tfile));
             Log.i(TAG, "store audio url:" + audio.url);
             FileCache.getInstance().storeFile(audio.url, is);
 
+            saveMessage(imsg);
+            Log.i(TAG, "msg local id:" + imsg.msgLocalID);
+
+            insertMessage(imsg);
             sendMessage(imsg);
 
             NotificationCenter nc = NotificationCenter.defaultCenter();
