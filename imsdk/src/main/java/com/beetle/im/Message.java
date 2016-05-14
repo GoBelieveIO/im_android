@@ -170,8 +170,32 @@ public class Message {
                 Log.e("imservice", "encode utf8 error");
                 return null;
             }
+        } else if (cmd == Command.MSG_ROOM_IM) {
+            RoomMessage rm = (RoomMessage)body;
+
+            BytePacket.writeInt64(rm.sender, buf, pos);
+            pos += 8;
+            BytePacket.writeInt64(rm.receiver, buf, pos);
+            pos += 8;
+            try {
+                byte[] c = rm.content.getBytes("UTF-8");
+                if (c.length + 24 >= 32 * 1024) {
+                    Log.e("imservice", "packet buffer overflow");
+                    return null;
+                }
+                System.arraycopy(c, 0, buf, pos, c.length);
+                return Arrays.copyOf(buf, HEAD_SIZE + 16 + c.length);
+            } catch (Exception e) {
+                Log.e("imservice", "encode utf8 error");
+                return null;
+            }
+        } else if (cmd == Command.MSG_ENTER_ROOM || cmd == Command.MSG_LEAVE_ROOM) {
+            Long roomID = (Long)body;
+            BytePacket.writeInt64(roomID, buf, pos);
+            return Arrays.copyOf(buf, HEAD_SIZE + 8);
+        } else {
+            return null;
         }
-        return null;
     }
 
     public boolean unpack(byte[] data) {
@@ -282,6 +306,23 @@ public class Message {
             } catch (Exception e) {
                 return false;
             }
+        } else if (cmd == Command.MSG_ROOM_IM) {
+            RoomMessage rt = new RoomMessage();
+            rt.sender = BytePacket.readInt64(data, pos);
+            pos += 8;
+            rt.receiver = BytePacket.readInt64(data, pos);
+            pos += 8;
+            try {
+                rt.content = new String(data, pos, data.length - pos, "UTF-8");
+                this.body = rt;
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        } else if (cmd == Command.MSG_ENTER_ROOM || cmd == Command.MSG_LEAVE_ROOM) {
+            long roomID = BytePacket.readInt64(data, pos);
+            this.body = new Long(roomID);
+            return true;
         } else {
             return true;
         }

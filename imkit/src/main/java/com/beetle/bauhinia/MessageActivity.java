@@ -112,7 +112,7 @@ public class MessageActivity extends BaseActivity implements
     AudioUtil audioUtil;
 
     ListView listview;
-    TextView titleView;
+    protected TextView titleView;
     TextView subtitleView;
     Toolbar toolbar;
 
@@ -807,7 +807,7 @@ public class MessageActivity extends BaseActivity implements
         messages = newMessages;
     }
 
-    void insertMessage(IMessage imsg) {
+    protected void insertMessage(IMessage imsg) {
         IMessage lastMsg = null;
         if (messages.size() > 0) {
             lastMsg = messages.get(messages.size() - 1);

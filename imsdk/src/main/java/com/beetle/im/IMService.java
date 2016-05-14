@@ -64,6 +64,8 @@ public class IMService {
     private long uid;
     private long appID;
 
+    private long roomID;
+
     PeerMessageHandler peerMessageHandler;
     GroupMessageHandler groupMessageHandler;
     CustomerMessageHandler customerMessageHandler;
@@ -75,6 +77,7 @@ public class IMService {
     ArrayList<CustomerMessageObserver> customerServiceMessageObservers = new ArrayList<CustomerMessageObserver>();
     ArrayList<VOIPObserver> voipObservers = new ArrayList<VOIPObserver>();
     ArrayList<RTMessageObserver> rtMessageObservers = new ArrayList<RTMessageObserver>();
+    ArrayList<RoomMessageObserver> roomMessageObservers = new ArrayList<RoomMessageObserver>();
 
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
     HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
@@ -256,6 +259,17 @@ public class IMService {
 
     public void removeRTObserver(RTMessageObserver ob){
         rtMessageObservers.remove(ob);
+    }
+
+    public void addRoomObserver(RoomMessageObserver ob) {
+        if (roomMessageObservers.contains(ob)) {
+            return;
+        }
+        roomMessageObservers.add(ob);
+    }
+
+    public void removeRoomObserver(RoomMessageObserver ob) {
+        roomMessageObservers.remove(ob);
     }
 
     public void pushVOIPObserver(VOIPObserver ob) {
@@ -446,6 +460,43 @@ public class IMService {
         return sendMessage(msg);
     }
 
+    public boolean sendRoomMessage(RoomMessage rm) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_ROOM_IM;
+        msg.body = rm;
+        return sendMessage(msg);
+    }
+
+    private void sendEnterRoom(long roomID) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_ENTER_ROOM;
+        msg.body = new Long(roomID);
+        sendMessage(msg);
+    }
+
+    private void sendLeaveRoom(long roomID) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_LEAVE_ROOM;
+        msg.body = new Long(roomID);
+        sendMessage(msg);
+    }
+
+    public void enterRoom(long roomID) {
+        if (roomID == 0) {
+            return;
+        }
+        this.roomID = roomID;
+        sendEnterRoom(roomID);
+    }
+
+    public void leaveRoom(long roomID) {
+        if (this.roomID != roomID || roomID == 0) {
+            return;
+        }
+        sendLeaveRoom(roomID);
+        this.roomID = 0;
+    }
+
     private void close() {
         Iterator iter = peerMessages.entrySet().iterator();
         while (iter.hasNext()) {
@@ -587,6 +638,9 @@ public class IMService {
                     IMService.this.connectState = ConnectState.STATE_CONNECTED;
                     IMService.this.publishConnectState();
                     IMService.this.sendAuth();
+                    if (IMService.this.roomID > 0) {
+                        IMService.this.sendEnterRoom(IMService.this.roomID);
+                    }
                     IMService.this.tcp.startRead();
                 }
             }
@@ -820,6 +874,7 @@ public class IMService {
             ob.onRTMessage(rt);
         }
     }
+
     private void handleVOIPControl(Message msg) {
         VOIPControl ctl = (VOIPControl)msg.body;
 
@@ -829,6 +884,14 @@ public class IMService {
         }
         VOIPObserver ob = voipObservers.get(count-1);
         ob.onVOIPControl(ctl);
+    }
+
+    private void handleRoomMessage(Message msg) {
+        RoomMessage rm = (RoomMessage)msg.body;
+        for (int i= 0; i < roomMessageObservers.size(); i++) {
+            RoomMessageObserver ob = roomMessageObservers.get(i);
+            ob.onRoomMessage(rm);
+        }
     }
 
     private void handlePong(Message msg) {
@@ -867,6 +930,8 @@ public class IMService {
             handleCustomerMessage(msg);
         } else if (msg.cmd == Command.MSG_CUSTOMER_SUPPORT) {
             handleCustomerSupportMessage(msg);
+        } else if (msg.cmd == Command.MSG_ROOM_IM) {
+            handleRoomMessage(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
