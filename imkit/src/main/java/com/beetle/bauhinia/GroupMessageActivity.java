@@ -39,6 +39,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
     public static final String SEND_MESSAGE_NAME = "send_group_message";
     public static final String CLEAR_MESSAGES = "clear_group_messages";
+    public static final String CLEAR_NEW_MESSAGES = "clear_group_new_messages";
 
     private final int PAGE_SIZE = 10;
 
@@ -94,6 +95,11 @@ public class GroupMessageActivity extends MessageActivity implements
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "peer message activity destory");
+
+        NotificationCenter nc = NotificationCenter.defaultCenter();
+        Notification notification = new Notification(this.groupID, CLEAR_NEW_MESSAGES);
+        nc.postNotification(notification);
+
         GroupOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
         IMService.getInstance().removeGroupObserver(this);

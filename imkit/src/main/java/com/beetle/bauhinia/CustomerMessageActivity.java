@@ -37,6 +37,8 @@ public class CustomerMessageActivity extends MessageActivity
         CustomerOutbox.OutboxObserver {
     public static final String SEND_MESSAGE_NAME = "send_cs_message";
     public static final String CLEAR_MESSAGES = "clear_cs_messages";
+    public static final String CLEAR_NEW_MESSAGES = "clear_cs_new_messages";
+
 
     private final int PAGE_SIZE = 10;
 
@@ -135,6 +137,10 @@ public class CustomerMessageActivity extends MessageActivity
     protected void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "peer message activity destory");
+
+        NotificationCenter nc = NotificationCenter.defaultCenter();
+        Notification notification = new Notification(this.storeID, CLEAR_NEW_MESSAGES);
+        nc.postNotification(notification);
 
         CustomerOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
@@ -396,8 +402,13 @@ public class CustomerMessageActivity extends MessageActivity
 
     @Override
     void clearConversation() {
+        super.clearConversation();
         CustomerMessageDB db = CustomerMessageDB.getInstance();
         db.clearCoversation(this.storeID);
+
+        NotificationCenter nc = NotificationCenter.defaultCenter();
+        Notification notification = new Notification(this.storeID, clearNotificationName);
+        nc.postNotification(notification);
     }
 
     @Override
