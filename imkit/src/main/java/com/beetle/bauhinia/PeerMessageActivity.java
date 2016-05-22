@@ -219,6 +219,7 @@ public class PeerMessageActivity extends MessageActivity implements
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
+        imsg.isOutgoing = (msg.sender == this.currentUID);
 
         downloadMessageContent(imsg);
 
