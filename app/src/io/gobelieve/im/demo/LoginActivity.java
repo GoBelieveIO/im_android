@@ -3,6 +3,7 @@ package io.gobelieve.im.demo;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -148,7 +149,6 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
 
     private String login(long uid) {
         //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务
-        //sandbox地址: "http://sandbox.demo.gobelieve.io"
         String URL = "http://demo.gobelieve.io";
         String uri = String.format("%s/auth/token", URL);
         try {
@@ -156,6 +156,11 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
             HttpPost request = new HttpPost(uri);
             JSONObject json = new JSONObject();
             json.put("uid", uid);
+            int PLATFORM_ANDROID = 2;
+            String androidID = Settings.Secure.getString(this.getContentResolver(),
+                    Settings.Secure.ANDROID_ID);
+            json.put("platform_id", PLATFORM_ANDROID);
+            json.put("device_id", androidID);
             StringEntity s = new StringEntity(json.toString());
             s.setContentEncoding((Header) new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
             request.setEntity(s);
