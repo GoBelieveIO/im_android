@@ -126,6 +126,10 @@ public class CustomerMessageActivity extends MessageActivity
         if (!TextUtils.isEmpty(peerName)) {
             titleView.setText(peerName);
         }
+        //显示最后一条消息
+        if (this.messages.size() > 0) {
+            listview.setSelection(this.messages.size() - 1);
+        }
 
         CustomerOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);

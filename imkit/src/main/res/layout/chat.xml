@@ -52,7 +52,7 @@
             android:divider="@null"
             android:dividerHeight="5dp"
             android:scrollbarStyle="outsideOverlay"
-            android:stackFromBottom="true"
+            android:stackFromBottom="false"
             android:layout_weight="1"
             android:transcriptMode="normal"
             android:cacheColorHint="#00000000"

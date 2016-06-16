@@ -84,6 +84,10 @@ public class GroupMessageActivity extends MessageActivity implements
 
         this.loadConversationData();
         titleView.setText(groupName);
+        //显示最后一条消息
+        if (this.messages.size() > 0) {
+            listview.setSelection(this.messages.size() - 1);
+        }
 
         GroupOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);

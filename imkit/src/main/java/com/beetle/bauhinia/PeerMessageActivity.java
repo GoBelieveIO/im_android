@@ -82,6 +82,11 @@ public class PeerMessageActivity extends MessageActivity implements
         this.loadConversationData();
         titleView.setText(peerName);
 
+        //显示最后一条消息
+        if (this.messages.size() > 0) {
+            listview.setSelection(this.messages.size() - 1);
+        }
+
         PeerOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);
         IMService.getInstance().addPeerObserver(this);
