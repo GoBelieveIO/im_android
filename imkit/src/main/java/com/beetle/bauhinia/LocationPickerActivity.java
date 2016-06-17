@@ -7,13 +7,14 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.BounceInterpolator;
-import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amap.api.location.AMapLocation;
@@ -23,10 +24,7 @@ import com.amap.api.location.LocationProviderProxy;
 import com.amap.api.maps2d.AMap;
 import com.amap.api.maps2d.CameraUpdateFactory;
 import com.amap.api.maps2d.MapView;
-import com.amap.api.maps2d.model.BitmapDescriptorFactory;
 import com.amap.api.maps2d.model.LatLng;
-import com.amap.api.maps2d.model.Marker;
-import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
@@ -36,7 +34,6 @@ import com.beetle.bauhinia.activity.BaseActivity;
 import com.beetle.imkit.R;
 
 import java.lang.ref.WeakReference;
-import java.util.Locale;
 
 /**
  * AMapV1地图demo总汇
@@ -47,6 +44,7 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
 
     private AMap aMap;
     private View pin;
+    private TextView label;
     private GeocodeSearch mGeocodeSearch;
     private LocationManagerProxy mLocationManagerProxy;
     private MyHandler mMyHandler;
@@ -73,6 +71,7 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
         mapView.onCreate(savedInstanceState);// 必须要写
         aMap = mapView.getMap();
 
+        label = (TextView) findViewById(R.id.label);
         pin = findViewById(R.id.pin);
         aMap.setOnMapTouchListener(new AMap.OnMapTouchListener() {
             @Override
@@ -81,6 +80,7 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
                     if (!isCameraChanging) {
                         isCameraChanging = true;
                         pinUp();
+                        setLabel(null);
                     }
                 } else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
                     isCameraChanging = false;
@@ -168,6 +168,7 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
 
         LatLng latLng = new LatLng(latitude, longitude);
         aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+        setLabel(address);
 
 //        Toast.makeText(this, String.format(Locale.getDefault(), "lat:%f,lon:%f,%s", latitude, longitude, address), Toast.LENGTH_SHORT).show();
 //        Marker marker = aMap.addMarker(new MarkerOptions()
@@ -289,14 +290,14 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
         mGeocodeSearch.getFromLocationAsyn(query);// 设置同步逆地理编码请求
     }
 
-    public void pinUp() {
+    private void pinUp() {
         ObjectAnimator anim = ObjectAnimator.ofFloat(pin, "TranslationY", -getPinY());
         anim.setDuration(500);
         anim.setInterpolator(new AccelerateInterpolator());
         anim.start();
     }
 
-    public void pinDown() {
+    private void pinDown() {
         ObjectAnimator anim = ObjectAnimator.ofFloat(pin, "TranslationY", 0);
         anim.setDuration(1000);
         anim.setInterpolator(new BounceInterpolator());
@@ -305,5 +306,14 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
 
     private int getPinY() {
         return pin.getHeight() - getResources().getDimensionPixelOffset(R.dimen.pin_margin);
+    }
+
+    private void setLabel(String address) {
+        label.setText(address);
+        if (!TextUtils.isEmpty(address)) {
+            label.setVisibility(View.VISIBLE);
+        } else {
+            label.setVisibility(View.GONE);
+        }
     }
 }
