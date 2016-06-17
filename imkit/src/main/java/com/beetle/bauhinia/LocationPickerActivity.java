@@ -1,6 +1,6 @@
 package com.beetle.bauhinia;
 
-import android.app.Activity;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
@@ -9,6 +9,11 @@ import android.os.Handler;
 import android.os.Message;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.BounceInterpolator;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.amap.api.location.AMapLocation;
@@ -27,15 +32,12 @@ import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
 import com.amap.api.services.geocoder.RegeocodeQuery;
 import com.amap.api.services.geocoder.RegeocodeResult;
+import com.beetle.bauhinia.activity.BaseActivity;
+import com.beetle.imkit.R;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
+import java.util.Locale;
 
-import com.beetle.bauhinia.activity.BaseActivity;
-import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.tools.Notification;
-import com.beetle.bauhinia.tools.NotificationCenter;
-import com.beetle.imkit.R;
 /**
  * AMapV1地图demo总汇
  */
@@ -44,6 +46,8 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
     private MapView mapView;
 
     private AMap aMap;
+    private View pin;
+    private GeocodeSearch mGeocodeSearch;
     private LocationManagerProxy mLocationManagerProxy;
     private MyHandler mMyHandler;
 
@@ -51,6 +55,8 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
     double longitude = 0;
     double latitude = 0;
     String address;
+
+    private boolean isCameraChanging = false;
 
     public static Intent newIntent(Context context) {
         Intent intent = new Intent();
@@ -61,11 +67,33 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.chat_location);
+        setContentView(R.layout.location_picker);
 
         mapView = (MapView) findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);// 必须要写
         aMap = mapView.getMap();
+
+        pin = findViewById(R.id.pin);
+        aMap.setOnMapTouchListener(new AMap.OnMapTouchListener() {
+            @Override
+            public void onTouch(MotionEvent motionEvent) {
+                if (motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
+                    if (!isCameraChanging) {
+                        isCameraChanging = true;
+                        pinUp();
+                    }
+                } else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                    isCameraChanging = false;
+                    pinDown();
+                    latitude = aMap.getCameraPosition().target.latitude;
+                    longitude = aMap.getCameraPosition().target.longitude;
+                    queryLocation();
+                }
+            }
+        });
+
+        mGeocodeSearch = new GeocodeSearch(this);
+        mGeocodeSearch.setOnGeocodeSearchListener(this);
 
         // 定位当前位置
         getLocation();
@@ -86,8 +114,8 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
             }
 
             Intent intent = new Intent();
-            intent.putExtra("longitude", (float)longitude);
-            intent.putExtra("latitude", (float)latitude);
+            intent.putExtra("longitude", (float) longitude);
+            intent.putExtra("latitude", (float) latitude);
             intent.putExtra("address", address);
             setResult(RESULT_OK, intent);
 
@@ -96,6 +124,7 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
         }
         return super.onOptionsItemSelected(item);
     }
+
     /**
      * 方法必须重写
      */
@@ -140,19 +169,25 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
         LatLng latLng = new LatLng(latitude, longitude);
         aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
 
-        Marker marker = aMap.addMarker(new MarkerOptions()
-                .position(latLng)
-                .title(address)
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                .draggable(true));
-        marker.showInfoWindow();
+//        Toast.makeText(this, String.format(Locale.getDefault(), "lat:%f,lon:%f,%s", latitude, longitude, address), Toast.LENGTH_SHORT).show();
+//        Marker marker = aMap.addMarker(new MarkerOptions()
+//                .position(latLng)
+//                .title(address)
+//                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+//                .draggable(true));
+//        marker.showInfoWindow();
     }
 
     @Override
     public void onRegeocodeSearched(RegeocodeResult result, int rCode) {
-        if (rCode == 0 && result != null && result.getRegeocodeAddress() != null
-                && result.getRegeocodeAddress().getFormatAddress() != null) {
-            setLocation(latitude, longitude, result.getRegeocodeAddress().getFormatAddress());
+        if (rCode == 0 && result != null && result.getRegeocodeAddress() != null) {
+            String address;
+            if (result.getRegeocodeAddress().getPois() != null && result.getRegeocodeAddress().getPois().size() > 0) {
+                address = result.getRegeocodeAddress().getPois().get(0).getTitle();
+            } else {
+                address = result.getRegeocodeAddress().getFormatAddress();
+            }
+            setLocation(latitude, longitude, address);
         } else {
             // 定位失败;
         }
@@ -246,5 +281,29 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
             mLocationManagerProxy.destory();
         }
         mLocationManagerProxy = null;
+    }
+
+    private void queryLocation() {
+        // 第一个参数表示一个Latlng，第二参数表示范围多少米，第三个参数表示是火系坐标系还是GPS原生坐标系
+        RegeocodeQuery query = new RegeocodeQuery(new LatLonPoint(latitude, longitude), 200, GeocodeSearch.AMAP);
+        mGeocodeSearch.getFromLocationAsyn(query);// 设置同步逆地理编码请求
+    }
+
+    public void pinUp() {
+        ObjectAnimator anim = ObjectAnimator.ofFloat(pin, "TranslationY", -getPinY());
+        anim.setDuration(500);
+        anim.setInterpolator(new AccelerateInterpolator());
+        anim.start();
+    }
+
+    public void pinDown() {
+        ObjectAnimator anim = ObjectAnimator.ofFloat(pin, "TranslationY", 0);
+        anim.setDuration(1000);
+        anim.setInterpolator(new BounceInterpolator());
+        anim.start();
+    }
+
+    private int getPinY() {
+        return pin.getHeight() - getResources().getDimensionPixelOffset(R.dimen.pin_margin);
     }
 }
