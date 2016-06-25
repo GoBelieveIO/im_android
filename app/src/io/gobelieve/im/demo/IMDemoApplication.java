@@ -15,8 +15,7 @@ import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
-import com.tencent.android.tpush.XGIOperateCallback;
-import com.tencent.android.tpush.XGPushManager;
+
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -43,22 +42,6 @@ public class IMDemoApplication extends Application {
         //app可以单独部署服务器，给予第三方应用更多的灵活性
         mIMService.setHost("imnode.gobelieve.io");
         IMHttpAPI.setAPIURL("http://api.gobelieve.io");
-
-        XGIOperateCallback callback = new XGIOperateCallback() {
-            @Override
-            public void onSuccess(Object data, int i) {
-                Log.d("TPush", "注册成功，设备token为：" + data);
-                IMDemoApplication.this.mDeviceToken = (String)data;
-            }
-
-            @Override
-            public void onFail(Object data, int errCode, String msg) {
-                Log.d("TPush", "注册失败，错误码：" + errCode + ",错误信息：" + msg);
-            }
-
-        };
-        //接入信鸽推送
-        XGPushManager.registerPush(getApplicationContext(), callback);
 
 
         String androidID = Settings.Secure.getString(this.getContentResolver(),

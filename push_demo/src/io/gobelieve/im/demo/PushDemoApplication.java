@@ -15,6 +15,8 @@ import com.beetle.bauhinia.db.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 import com.huawei.android.pushagent.api.PushManager;
+import com.tencent.android.tpush.XGIOperateCallback;
+import com.tencent.android.tpush.XGPushManager;
 import com.xiaomi.mipush.sdk.MiPushClient;
 
 import rx.android.schedulers.AndroidSchedulers;
@@ -28,10 +30,15 @@ import rx.functions.Action1;
 public class PushDemoApplication extends Application {
     private static PushDemoApplication sApplication;
 
+    private String mXGPushToken = null;
     private String mXiaomiPushToken = null;
     private String mHuaweiPushToken = null;
     private boolean mIsLogin = false;
     private boolean mIsBind = false;
+
+    private final int USE_XG = 1;
+    private final int USE_XM = 0;
+    private final int USE_HW = 0;
 
     @Override
     public void onCreate() {
@@ -68,11 +75,12 @@ public class PushDemoApplication extends Application {
     }
 
     private void initPush() {
-        // 华为设备启动华为push，其他设备启动小米push
-        if (isHuaweiDevice()) {
+        if (USE_HW != 0) {
             initHuaweiPush();
-        } else {
+        } else if (USE_XM != 0) {
             initXiaomiPush();
+        } else if (USE_XG != 0) {
+            initXGPush();
         }
     }
 
@@ -85,6 +93,23 @@ public class PushDemoApplication extends Application {
         return !TextUtils.isEmpty(os) && os.toLowerCase().contains("miui");
     }
 
+    private void initXGPush() {
+        XGIOperateCallback callback = new XGIOperateCallback() {
+            @Override
+            public void onSuccess(Object data, int i) {
+                Log.d("TPush", "注册成功，设备token为：" + data);
+                PushDemoApplication.this.setXGPushToken((String)data);
+            }
+
+            @Override
+            public void onFail(Object data, int errCode, String msg) {
+                Log.d("TPush", "注册失败，错误码：" + errCode + ",错误信息：" + msg);
+            }
+
+        };
+        //接入信鸽推送
+        XGPushManager.registerPush(getApplicationContext(), callback);
+    }
     private void initXiaomiPush() {
         // 注册push服务，注册成功后会向XiaomiPushReceiver发送广播
         // 可以从onCommandResult方法中MiPushCommandMessage对象参数中获取注册信息
@@ -118,18 +143,26 @@ public class PushDemoApplication extends Application {
         }
     }
 
+    public void setXGPushToken(String token) {
+        this.mXGPushToken = token;
+        if (!TextUtils.isEmpty(mXGPushToken) && mIsLogin && !mIsBind) {
+            // 已登录尚未绑定时
+            bindWithXG();
+        }
+    }
+
     public void bindDeviceTokenToIM() {
         mIsLogin = true;
-        if (isHuaweiDevice()) {
-            // 由于华为推送的token是通过回调返回，此时可能还未获取，需等HuaweiPushReceiver执行setHuaweiPushToken
-            if (!TextUtils.isEmpty(mHuaweiPushToken)) {
-                bindWithHuawei();
-            }
-        } else {
-            // 小米情况同华为
-            if (!TextUtils.isEmpty(mXiaomiPushToken)) {
-                bindWithXiaomi();
-            }
+
+        if (!TextUtils.isEmpty(mHuaweiPushToken)) {
+            bindWithHuawei();
+        }
+        // 小米情况同华为
+        if (!TextUtils.isEmpty(mXiaomiPushToken)) {
+            bindWithXiaomi();
+        }
+        if (!TextUtils.isEmpty(mXGPushToken)) {
+            bindWithXG();
         }
     }
 
@@ -142,6 +175,12 @@ public class PushDemoApplication extends Application {
     private void bindWithXiaomi() {
         PostDeviceToken postDeviceToken = new PostDeviceToken();
         postDeviceToken.xmDeviceToken = mXiaomiPushToken;
+        bindDeviceTokenToIM(postDeviceToken);
+    }
+
+    private void bindWithXG() {
+        PostDeviceToken postDeviceToken = new PostDeviceToken();
+        postDeviceToken.xgDeviceToken = mXGPushToken;
         bindDeviceTokenToIM(postDeviceToken);
     }
 

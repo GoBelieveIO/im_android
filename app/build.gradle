@@ -42,7 +42,6 @@ dependencies {
     compile project(':imkit')
     compile project(':imsdk')
     compile project(':asynctcp')
-    compile files('libs/Xg_sdk_v2.38_20150405_2046.jar')
 }
 
 android {
