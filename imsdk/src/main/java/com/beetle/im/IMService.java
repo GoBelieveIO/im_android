@@ -70,7 +70,6 @@ public class IMService {
     GroupMessageHandler groupMessageHandler;
     CustomerMessageHandler customerMessageHandler;
     ArrayList<IMServiceObserver> observers = new ArrayList<IMServiceObserver>();
-    ArrayList<LoginPointObserver> loginPointObservers = new ArrayList<LoginPointObserver>();
     ArrayList<GroupMessageObserver> groupObservers = new ArrayList<GroupMessageObserver>();
     ArrayList<PeerMessageObserver> peerObservers = new ArrayList<PeerMessageObserver>();
     ArrayList<SystemMessageObserver> systemMessageObservers = new ArrayList<SystemMessageObserver>();
@@ -195,16 +194,6 @@ public class IMService {
         observers.remove(ob);
     }
 
-    public void addLoginPointObserver(LoginPointObserver ob) {
-        if (loginPointObservers.contains(ob)) {
-            return;
-        }
-        loginPointObservers.add(ob);
-    }
-
-    public void removeLoginPointObserver(LoginPointObserver ob) {
-        loginPointObservers.remove(ob);
-    }
 
     public void addPeerObserver(PeerMessageObserver ob) {
         if (peerObservers.contains(ob)) {
@@ -898,10 +887,6 @@ public class IMService {
         this.pingTimestamp = 0;
     }
 
-    private void handleLoginPoint(Message msg) {
-        publishLoginPoint((LoginPoint) msg.body);
-    }
-
     private void handleMessage(Message msg) {
         Log.i(TAG, "message cmd:" + msg.cmd);
         if (msg.cmd == Command.MSG_AUTH_STATUS) {
@@ -918,8 +903,6 @@ public class IMService {
             handleGroupIMMessage(msg);
         } else if (msg.cmd == Command.MSG_GROUP_NOTIFICATION) {
             handleGroupNotification(msg);
-        } else if (msg.cmd == Command.MSG_LOGIN_POINT) {
-            handleLoginPoint(msg);
         } else if (msg.cmd == Command.MSG_SYSTEM) {
             handleSystemMessage(msg);
         } else if (msg.cmd == Command.MSG_RT) {
@@ -1089,13 +1072,6 @@ public class IMService {
         for (int i = 0; i < observers.size(); i++ ) {
             IMServiceObserver ob = observers.get(i);
             ob.onConnectState(connectState);
-        }
-    }
-
-    private void publishLoginPoint(final LoginPoint lp) {
-        for (int i = 0; i < loginPointObservers.size(); i++) {
-            LoginPointObserver ob = loginPointObservers.get(i);
-            ob.onLoginPoint(lp);
         }
     }
 

@@ -245,19 +245,6 @@ public class Message {
             } catch (Exception e) {
                 return false;
             }
-        } else if (cmd == Command.MSG_LOGIN_POINT) {
-            LoginPoint lp = new LoginPoint();
-            lp.upTimestamp = BytePacket.readInt32(data, pos);
-            pos += 4;
-            lp.platformID = data[pos];
-            pos++;
-            try {
-                lp.deviceID = new String(data, pos, data.length - 13, "UTF-8");
-                this.body = lp;
-                return true;
-            } catch (Exception e) {
-                return false;
-            }
         } else if (cmd == Command.MSG_SYSTEM) {
             try {
                 this.body = new String(data, pos, data.length - HEAD_SIZE, "UTF-8");
