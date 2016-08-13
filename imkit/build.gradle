@@ -1,5 +1,31 @@
 apply plugin: 'com.android.library'
 
+
+apply plugin: 'maven'
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "file://localhost/$rootDir/repo/")
+            pom.version = '1.0'
+            pom.artifactId = 'imkit'
+            pom.groupId = "com.beetle.im"
+        }
+    }
+}
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.sourceFiles
+}
+
+artifacts {
+    archives androidSourcesJar
+}
+
+
+
+
 android {
     compileSdkVersion 21
     buildToolsVersion "21.1.1"
