@@ -82,7 +82,7 @@ public class GroupMessageActivity extends MessageActivity implements
         this.receiver = groupID;
 
         this.loadConversationData();
-        titleView.setText(groupName);
+        getSupportActionBar().setTitle(groupName);
         //显示最后一条消息
         if (this.messages.size() > 0) {
             listview.setSelection(this.messages.size() - 1);

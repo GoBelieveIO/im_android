@@ -80,7 +80,7 @@ public class PeerMessageActivity extends MessageActivity implements
         this.receiver = peerUID;
 
         this.loadConversationData();
-        titleView.setText(peerName);
+        getSupportActionBar().setTitle(peerName);
 
         //显示最后一条消息
         if (this.messages.size() > 0) {

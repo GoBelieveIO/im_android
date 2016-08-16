@@ -112,10 +112,7 @@ public class MessageActivity extends BaseActivity implements
     AudioUtil audioUtil;
 
     ListView listview;
-    protected TextView titleView;
-    TextView subtitleView;
-    Toolbar toolbar;
-
+    
     static final int ITEM_TAKE_PICTURE = 1;
     static final int ITEM_PICTURE = 2;
     static final int ITEM_LOCATION = 3;
@@ -162,9 +159,9 @@ public class MessageActivity extends BaseActivity implements
         Log.i(TAG, "record file name:" + recordFileName);
 
         listview = (ListView)findViewById(R.id.list_view);
-        titleView = (TextView)findViewById(R.id.title);
-        subtitleView = (TextView)findViewById(R.id.subtitle);
-        toolbar = (Toolbar)findViewById(R.id.support_toolbar);
+        //titleView = (TextView)findViewById(R.id.title);
+        //subtitleView = (TextView)findViewById(R.id.subtitle);
+        //toolbar = (Toolbar)findViewById(R.id.support_toolbar);
 
         extendMenuItemClickListener = new MyItemClickListener();
         inputMenu = (EaseChatInputMenu)findViewById(R.id.input_menu);
@@ -237,7 +234,7 @@ public class MessageActivity extends BaseActivity implements
 
 
         setSubtitle();
-        setSupportActionBar(toolbar);
+        //setSupportActionBar(toolbar);
 
         audioUtil = new AudioUtil(this);
         audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -662,12 +659,7 @@ public class MessageActivity extends BaseActivity implements
     }
 
     protected void setSubtitle(String subtitle) {
-        subtitleView.setText(subtitle);
-        if (subtitle.length() > 0) {
-            subtitleView.setVisibility(View.VISIBLE);
-        } else {
-            subtitleView.setVisibility(View.GONE);
-        }
+
     }
 
     @Override

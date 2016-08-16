@@ -124,7 +124,7 @@ public class CustomerMessageActivity extends MessageActivity
 
         this.loadConversationData();
         if (!TextUtils.isEmpty(peerName)) {
-            titleView.setText(peerName);
+            getSupportActionBar().setTitle(peerName);
         }
         //显示最后一条消息
         if (this.messages.size() > 0) {
