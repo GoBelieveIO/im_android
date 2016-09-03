@@ -53,7 +53,7 @@
             android:name="com.beetle.bauhinia.PeerMessageActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/imkit.NoActionBar">
+            android:theme="@style/imkit.ActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
@@ -81,7 +81,7 @@
             android:name="io.gobelieve.im.demo.AppGroupMessageActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/imkit.NoActionBar">
+            android:theme="@style/imkit.ActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>

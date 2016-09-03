@@ -4,8 +4,8 @@
     <string name="app_name">IMDemo</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
-    <string name="login_account">用户id</string>
-    <string name="login_target_account">群组id</string>
+    <string name="login_account">用户id(1-10)</string>
+    <string name="login_target_account">群组id(15)</string>
     <string name="login_login">登  录</string>
     <string name="main_settings">设置</string>
     <string name="main_contacts">通讯录</string>
