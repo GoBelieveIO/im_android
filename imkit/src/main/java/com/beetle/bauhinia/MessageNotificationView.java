@@ -14,7 +14,7 @@ public class MessageNotificationView extends MessageRowView {
     public MessageNotificationView(Context context) {
         super(context);
         final int contentLayout;
-        contentLayout = R.layout.chat_content_text;
+        contentLayout = R.layout.chat_content_small_text;
 
         ViewGroup group = (ViewGroup)this.findViewById(R.id.content);
         group.addView(inflater.inflate(contentLayout, group, false));
