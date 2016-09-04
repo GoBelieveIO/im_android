@@ -110,50 +110,6 @@ public class GroupMessageActivity extends MessageActivity implements
     }
 
 
-    public static class User {
-        public long uid;
-        public String name;
-        public String avatarURL;
-
-        //name为nil时，界面显示identifier字段
-        public String identifier;
-    }
-
-    protected User getUser(long uid) {
-        User u = new User();
-        u.uid = uid;
-        u.name = null;
-        u.avatarURL = "";
-        u.identifier = String.format("%d", uid);
-        return u;
-    }
-
-    public interface GetUserCallback {
-        void onUser(User u);
-    }
-
-    protected void asyncGetUser(long uid, GetUserCallback cb) {
-
-    }
-
-    private void loadUserName(IMessage msg) {
-        User u = getUser(msg.sender);
-
-        msg.setSenderAvatar(u.avatarURL);
-        if (TextUtils.isEmpty(u.name)) {
-            msg.setSenderName(u.identifier);
-            final IMessage fmsg = msg;
-            asyncGetUser(msg.sender, new GetUserCallback() {
-                @Override
-                public void onUser(User u) {
-                    fmsg.setSenderName(u.name);
-                    fmsg.setSenderAvatar(u.avatarURL);
-                }
-            });
-        } else {
-            msg.setSenderName(u.name);
-        }
-    }
 
     protected void loadConversationData() {
         messages = new ArrayList<IMessage>();
@@ -170,7 +126,6 @@ public class GroupMessageActivity extends MessageActivity implements
                 IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
                 attachments.put(attachment.msg_id, attachment);
             } else {
-                loadUserName(msg);
                 updateNotificationDesc(msg);
                 msg.isOutgoing = (msg.sender == currentUID);
                 messages.add(0, msg);
@@ -180,6 +135,7 @@ public class GroupMessageActivity extends MessageActivity implements
             }
         }
         downloadMessageContent(messages, count);
+        loadUserName(messages, count);
         checkMessageFailureFlag(messages, count);
         resetMessageTimeBase();
     }
@@ -202,7 +158,6 @@ public class GroupMessageActivity extends MessageActivity implements
                 IMessage.Attachment attachment = (IMessage.Attachment) msg.content;
                 attachments.put(attachment.msg_id, attachment);
             } else {
-                loadUserName(msg);
                 updateNotificationDesc(msg);
                 msg.isOutgoing = (msg.sender == currentUID);
                 messages.add(0, msg);
@@ -213,6 +168,7 @@ public class GroupMessageActivity extends MessageActivity implements
         }
         if (count > 0) {
             downloadMessageContent(messages, count);
+            loadUserName(messages, count);
             checkMessageFailureFlag(messages, count);
             resetMessageTimeBase();
             adapter.notifyDataSetChanged();
@@ -379,8 +335,43 @@ public class GroupMessageActivity extends MessageActivity implements
         }
     }
 
+    @Override
+    protected void sendMessageContent(IMessage.MessageContent content) {
+        IMessage imsg = new IMessage();
+        imsg.sender = this.sender;
+        imsg.receiver = this.receiver;
+        imsg.setContent(content);
+        imsg.timestamp = now();
+        imsg.isOutgoing = true;
+        saveMessage(imsg);
 
-    void sendMessage(IMessage imsg) {
+        loadUserName(imsg);
+        if (imsg.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
+            IMessage.Location loc = (IMessage.Location)imsg.content;
+
+            if (TextUtils.isEmpty(loc.address)) {
+                queryLocation(imsg);
+            } else {
+                saveMessageAttachment(imsg, loc.address);
+            }
+        }
+        sendMessage(imsg);
+
+        insertMessage(imsg);
+
+        NotificationCenter nc = NotificationCenter.defaultCenter();
+        Notification notification = new Notification(imsg, sendNotificationName);
+        nc.postNotification(notification);
+    }
+
+    @Override
+    protected void resend(IMessage msg) {
+        eraseMessageFailure(msg);
+        msg.setFailure(false);
+        this.sendMessage(msg);
+    }
+
+    protected void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
             GroupOutbox ob = GroupOutbox.getInstance();
             IMessage.Audio audio = (IMessage.Audio)imsg.content;
@@ -503,147 +494,4 @@ public class GroupMessageActivity extends MessageActivity implements
 
 
 
-    protected void sendTextMessage(String text) {
-        if (text.length() == 0) {
-            return;
-        }
-
-        IMessage imsg = new IMessage();
-        imsg.sender = this.sender;
-        imsg.receiver = this.receiver;
-        imsg.setContent(IMessage.newText(text));
-        imsg.timestamp = now();
-        imsg.isOutgoing = true;
-        saveMessage(imsg);
-        sendMessage(imsg);
-
-        insertMessage(imsg);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, sendNotificationName);
-        nc.postNotification(notification);
-    }
-
-    protected void sendImageMessage(Bitmap bmp) {
-        double w = bmp.getWidth();
-        double h = bmp.getHeight();
-        double newHeight = 640.0;
-        double newWidth = newHeight*w/h;
-
-
-        Bitmap bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
-
-        double sw = 256.0;
-        double sh = 256.0*h/w;
-
-        Bitmap thumbnail = Bitmap.createScaledBitmap(bmp, (int)sw, (int)sh, true);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        bigBMP.compress(Bitmap.CompressFormat.JPEG, 100, os);
-        ByteArrayOutputStream os2 = new ByteArrayOutputStream();
-        thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, os2);
-
-        String originURL = localImageURL();
-        String thumbURL = localImageURL();
-        try {
-            FileCache.getInstance().storeByteArray(originURL, os);
-            FileCache.getInstance().storeByteArray(thumbURL, os2);
-
-            String path = FileCache.getInstance().getCachedFilePath(originURL);
-            String thumbPath = FileCache.getInstance().getCachedFilePath(thumbURL);
-
-            String tpath = path + "@256w_256h_0c";
-            File f = new File(thumbPath);
-            File t = new File(tpath);
-            f.renameTo(t);
-
-            IMessage imsg = new IMessage();
-            imsg.sender = this.sender;
-            imsg.receiver = this.receiver;
-            imsg.setContent(IMessage.newImage("file:" + path));
-            imsg.timestamp = now();
-            imsg.isOutgoing = true;
-            saveMessage(imsg);
-
-            insertMessage(imsg);
-
-            sendMessage(imsg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    protected void sendAudioMessage() {
-        String tfile = audioRecorder.getPathName();
-
-        try {
-            long mduration = AudioUtil.getAudioDuration(tfile);
-
-            if (mduration < 1000) {
-                Toast.makeText(this, "录音时间太短了", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            long duration = mduration/1000;
-
-            String url = localAudioURL();
-            IMessage imsg = new IMessage();
-            imsg.sender = this.sender;
-            imsg.receiver = this.receiver;
-            imsg.setContent(IMessage.newAudio(url, duration));
-            imsg.timestamp = now();
-            imsg.isOutgoing = true;
-
-            IMessage.Audio audio = (IMessage.Audio)imsg.content;
-            FileInputStream is = new FileInputStream(new File(tfile));
-            Log.i(TAG, "store audio url:" + audio.url);
-            FileCache.getInstance().storeFile(audio.url, is);
-
-            saveMessage(imsg);
-            Log.i(TAG, "msg local id:" + imsg.msgLocalID);
-
-            insertMessage(imsg);
-            sendMessage(imsg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-            return;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-    }
-
-    protected void sendLocationMessage(float longitude, float latitude, String address) {
-        IMessage imsg = new IMessage();
-        imsg.sender = this.sender;
-        imsg.receiver = this.receiver;
-        IMessage.Location loc = IMessage.newLocation(latitude, longitude);
-        imsg.setContent(loc);
-        imsg.timestamp = now();
-        imsg.isOutgoing = true;
-        saveMessage(imsg);
-
-        loc.address = address;
-        if (TextUtils.isEmpty(loc.address)) {
-            queryLocation(imsg);
-        } else {
-            saveMessageAttachment(imsg, loc.address);
-        }
-
-        insertMessage(imsg);
-        sendMessage(imsg);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, sendNotificationName);
-        nc.postNotification(notification);
-    }
 }

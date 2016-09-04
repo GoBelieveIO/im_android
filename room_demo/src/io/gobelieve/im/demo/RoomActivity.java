@@ -48,8 +48,7 @@ public class RoomActivity extends MessageActivity implements RoomMessageObserver
             return;
         }
 
-        titleView.setText(name);
-
+        getSupportActionBar().setTitle(name);
         IMService.getInstance().addRoomObserver(this);
         IMService.getInstance().addObserver(this);
         IMService.getInstance().enterRoom(roomID);

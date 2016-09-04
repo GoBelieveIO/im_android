@@ -287,7 +287,14 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
+
     @Override
+    protected void resend(IMessage msg) {
+        eraseMessageFailure(msg);
+        msg.setFailure(false);
+        this.sendMessage(msg);
+    }
+
     void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
             PeerOutbox ob = PeerOutbox.getInstance();
@@ -320,7 +327,6 @@ public class PeerMessageActivity extends MessageActivity implements
         saveMessage(attachment);
     }
 
-    @Override
     void saveMessage(IMessage imsg) {
         if (imsg.sender == this.currentUID) {
             PeerMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
@@ -329,7 +335,6 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
-    @Override
     void markMessageFailure(IMessage imsg) {
         long cid = 0;
         if (imsg.sender == this.currentUID) {
@@ -340,7 +345,6 @@ public class PeerMessageActivity extends MessageActivity implements
         PeerMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, cid);
     }
 
-    @Override
     void eraseMessageFailure(IMessage imsg) {
         long cid = 0;
         if (imsg.sender == this.currentUID) {
@@ -421,147 +425,33 @@ public class PeerMessageActivity extends MessageActivity implements
     }
 
 
-    protected void sendTextMessage(String text) {
-        if (text.length() == 0) {
-            return;
-        }
-
+    protected void sendMessageContent(IMessage.MessageContent content) {
         IMessage imsg = new IMessage();
         imsg.sender = this.sender;
         imsg.receiver = this.receiver;
-        imsg.setContent(IMessage.newText(text));
+        imsg.setContent(content);
         imsg.timestamp = now();
         imsg.isOutgoing = true;
         saveMessage(imsg);
-        sendMessage(imsg);
+        loadUserName(imsg);
 
-        insertMessage(imsg);
+        if (imsg.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
+            IMessage.Location loc = (IMessage.Location)imsg.content;
 
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, sendNotificationName);
-        nc.postNotification(notification);
-    }
-
-    protected void sendImageMessage(Bitmap bmp) {
-        double w = bmp.getWidth();
-        double h = bmp.getHeight();
-        double newHeight = 640.0;
-        double newWidth = newHeight*w/h;
-
-
-        Bitmap bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
-
-        double sw = 256.0;
-        double sh = 256.0*h/w;
-
-        Bitmap thumbnail = Bitmap.createScaledBitmap(bmp, (int)sw, (int)sh, true);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        bigBMP.compress(Bitmap.CompressFormat.JPEG, 100, os);
-        ByteArrayOutputStream os2 = new ByteArrayOutputStream();
-        thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, os2);
-
-        String originURL = localImageURL();
-        String thumbURL = localImageURL();
-        try {
-            FileCache.getInstance().storeByteArray(originURL, os);
-            FileCache.getInstance().storeByteArray(thumbURL, os2);
-
-            String path = FileCache.getInstance().getCachedFilePath(originURL);
-            String thumbPath = FileCache.getInstance().getCachedFilePath(thumbURL);
-
-            String tpath = path + "@256w_256h_0c";
-            File f = new File(thumbPath);
-            File t = new File(tpath);
-            f.renameTo(t);
-
-            IMessage imsg = new IMessage();
-            imsg.sender = this.sender;
-            imsg.receiver = this.receiver;
-            imsg.setContent(IMessage.newImage("file:" + path));
-            imsg.timestamp = now();
-            imsg.isOutgoing = true;
-            saveMessage(imsg);
-
-            insertMessage(imsg);
-
-            sendMessage(imsg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    protected void sendAudioMessage() {
-        String tfile = audioRecorder.getPathName();
-
-        try {
-            long mduration = AudioUtil.getAudioDuration(tfile);
-
-            if (mduration < 1000) {
-                Toast.makeText(this, "录音时间太短了", Toast.LENGTH_SHORT).show();
-                return;
+            if (TextUtils.isEmpty(loc.address)) {
+                queryLocation(imsg);
+            } else {
+                saveMessageAttachment(imsg, loc.address);
             }
-            long duration = mduration/1000;
-
-            String url = localAudioURL();
-            IMessage imsg = new IMessage();
-            imsg.sender = this.sender;
-            imsg.receiver = this.receiver;
-            imsg.setContent(IMessage.newAudio(url, duration));
-            imsg.timestamp = now();
-            imsg.isOutgoing = true;
-
-            IMessage.Audio audio = (IMessage.Audio)imsg.content;
-            FileInputStream is = new FileInputStream(new File(tfile));
-            Log.i(TAG, "store audio url:" + audio.url);
-            FileCache.getInstance().storeFile(audio.url, is);
-
-            saveMessage(imsg);
-            Log.i(TAG, "msg local id:" + imsg.msgLocalID);
-
-            insertMessage(imsg);
-            sendMessage(imsg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-            return;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
         }
-    }
 
-    protected void sendLocationMessage(float longitude, float latitude, String address) {
-        IMessage imsg = new IMessage();
-        imsg.sender = this.sender;
-        imsg.receiver = this.receiver;
-        IMessage.Location loc = IMessage.newLocation(latitude, longitude);
-        imsg.setContent(loc);
-        imsg.timestamp = now();
-        imsg.isOutgoing = true;
-        saveMessage(imsg);
-
-        loc.address = address;
-        if (TextUtils.isEmpty(loc.address)) {
-            queryLocation(imsg);
-        } else {
-            saveMessageAttachment(imsg, loc.address);
-        }
+        sendMessage(imsg);
 
         insertMessage(imsg);
-        sendMessage(imsg);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
         Notification notification = new Notification(imsg, sendNotificationName);
         nc.postNotification(notification);
     }
+
 }

@@ -50,50 +50,7 @@ public class CustomerMessageActivity extends MessageActivity
     protected long sellerID;
 
 
-    public static class User {
-        public long uid;
-        public String name;
-        public String avatarURL;
 
-        //name为nil时，界面显示identifier字段
-        public String identifier;
-    }
-
-    protected User getUser(long uid) {
-        User u = new User();
-        u.uid = uid;
-        u.name = null;
-        u.avatarURL = "";
-        u.identifier = String.format("%d", uid);
-        return u;
-    }
-
-    public interface GetUserCallback {
-        void onUser(User u);
-    }
-
-    protected void asyncGetUser(long uid, GetUserCallback cb) {
-
-    }
-
-    private void loadUserName(IMessage msg) {
-        User u = getUser(msg.sender);
-
-        msg.setSenderAvatar(u.avatarURL);
-        if (TextUtils.isEmpty(u.name)) {
-            msg.setSenderName(u.identifier);
-            final IMessage fmsg = msg;
-            asyncGetUser(msg.sender, new GetUserCallback() {
-                @Override
-                public void onUser(User u) {
-                    fmsg.setSenderName(u.name);
-                    fmsg.setSenderAvatar(u.avatarURL);
-                }
-            });
-        } else {
-            msg.setSenderName(u.name);
-        }
-    }
 
 
     public CustomerMessageActivity() {
@@ -167,7 +124,6 @@ public class CustomerMessageActivity extends MessageActivity
                 IMessage.Attachment attachment = (IMessage.Attachment) msg.content;
                 attachments.put(attachment.msg_id, attachment);
             } else {
-                loadUserName(msg);
                 msg.isOutgoing = !msg.isSupport;
                 messages.add(0, msg);
                 if (++count >= PAGE_SIZE) {
@@ -184,6 +140,7 @@ public class CustomerMessageActivity extends MessageActivity
         }
 
         downloadMessageContent(messages, count);
+        loadUserName(messages, count);
         checkMessageFailureFlag(messages, count);
         resetMessageTimeBase();
     }
@@ -242,8 +199,6 @@ public class CustomerMessageActivity extends MessageActivity
                 IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
                 attachments.put(attachment.msg_id, attachment);
             } else{
-                loadUserName(msg);
-
                 msg.isOutgoing = !msg.isSupport;
                 messages.add(0, msg);
                 if (++count >= PAGE_SIZE) {
@@ -253,6 +208,7 @@ public class CustomerMessageActivity extends MessageActivity
         }
         if (count > 0) {
             downloadMessageContent(messages, count);
+            loadUserName(messages, count);
             checkMessageFailureFlag(messages, count);
             resetMessageTimeBase();
             adapter.notifyDataSetChanged();
@@ -352,6 +308,51 @@ public class CustomerMessageActivity extends MessageActivity
     }
 
     @Override
+    protected void sendMessageContent(IMessage.MessageContent content) {
+        ICustomerMessage msg = new ICustomerMessage();
+        msg.customerID = currentUID;
+        msg.customerAppID = appID;
+        msg.storeID = storeID;
+        msg.sellerID = sellerID;
+
+        msg.timestamp = now();
+        msg.sender = currentUID;
+        msg.receiver = storeID;
+
+        msg.isSupport = false;
+        msg.isOutgoing = true;
+
+        msg.setContent(content);
+
+        saveMessage(msg);
+
+        loadUserName(msg);
+
+        if (msg.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
+            IMessage.Location loc = (IMessage.Location)msg.content;
+
+            if (TextUtils.isEmpty(loc.address)) {
+                queryLocation(msg);
+            } else {
+                saveMessageAttachment(msg, loc.address);
+            }
+        }
+
+        sendMessage(msg);
+        insertMessage(msg);
+
+        NotificationCenter nc = NotificationCenter.defaultCenter();
+        Notification notification = new Notification(msg, sendNotificationName);
+        nc.postNotification(notification);
+    }
+
+    @Override
+    protected void resend(IMessage msg) {
+        eraseMessageFailure(msg);
+        msg.setFailure(false);
+        this.sendMessage(msg);
+    }
+
     void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
             CustomerOutbox ob = CustomerOutbox.getInstance();
@@ -389,17 +390,16 @@ public class CustomerMessageActivity extends MessageActivity
         saveMessage(attachment);
     }
 
-    @Override
     void saveMessage(IMessage imsg) {
         CustomerMessageDB.getInstance().insertMessage(imsg, storeID);
     }
 
-    @Override
+
     void markMessageFailure(IMessage imsg) {
         CustomerMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, storeID);
     }
 
-    @Override
+
     void eraseMessageFailure(IMessage imsg) {
         CustomerMessageDB.getInstance().eraseMessageFailure(imsg.msgLocalID, storeID);
     }
@@ -483,177 +483,4 @@ public class CustomerMessageActivity extends MessageActivity
     }
 
 
-
-    protected void sendTextMessage(String text) {
-        if (text.length() == 0) {
-            return;
-        }
-
-        ICustomerMessage msg = new ICustomerMessage();
-        msg.customerID = currentUID;
-        msg.customerAppID = appID;
-        msg.storeID = storeID;
-        msg.sellerID = sellerID;
-
-        msg.timestamp = now();
-        msg.sender = currentUID;
-        msg.receiver = storeID;
-
-        msg.isSupport = false;
-        msg.isOutgoing = true;
-
-        msg.setContent(IMessage.newText(text));
-
-        saveMessage(msg);
-        sendMessage(msg);
-        insertMessage(msg);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(msg, sendNotificationName);
-        nc.postNotification(notification);
-    }
-
-    protected void sendImageMessage(Bitmap bmp) {
-        double w = bmp.getWidth();
-        double h = bmp.getHeight();
-        double newHeight = 640.0;
-        double newWidth = newHeight*w/h;
-
-
-        Bitmap bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
-
-        double sw = 256.0;
-        double sh = 256.0*h/w;
-
-        Bitmap thumbnail = Bitmap.createScaledBitmap(bmp, (int)sw, (int)sh, true);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        bigBMP.compress(Bitmap.CompressFormat.JPEG, 100, os);
-        ByteArrayOutputStream os2 = new ByteArrayOutputStream();
-        thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, os2);
-
-        String originURL = localImageURL();
-        String thumbURL = localImageURL();
-        try {
-            FileCache.getInstance().storeByteArray(originURL, os);
-            FileCache.getInstance().storeByteArray(thumbURL, os2);
-
-            String path = FileCache.getInstance().getCachedFilePath(originURL);
-            String thumbPath = FileCache.getInstance().getCachedFilePath(thumbURL);
-
-            String tpath = path + "@256w_256h_0c";
-            File f = new File(thumbPath);
-            File t = new File(tpath);
-            f.renameTo(t);
-
-            ICustomerMessage msg = new ICustomerMessage();
-            msg.customerID = currentUID;
-            msg.customerAppID = appID;
-            msg.storeID = storeID;
-            msg.sellerID = sellerID;
-            msg.timestamp = now();
-            msg.sender = currentUID;
-            msg.receiver = storeID;
-
-            msg.isSupport = false;
-            msg.isOutgoing = true;
-
-            msg.setContent(IMessage.newImage("file:" + path));
-
-            saveMessage(msg);
-            insertMessage(msg);
-            sendMessage(msg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(msg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    protected void sendAudioMessage() {
-        String tfile = audioRecorder.getPathName();
-
-        try {
-            long mduration = AudioUtil.getAudioDuration(tfile);
-
-            if (mduration < 1000) {
-                Toast.makeText(this, "录音时间太短了", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            long duration = mduration/1000;
-
-            String url = localAudioURL();
-
-            ICustomerMessage msg = new ICustomerMessage();
-            msg.customerID = currentUID;
-            msg.customerAppID = appID;
-            msg.storeID = storeID;
-            msg.sellerID = sellerID;
-            msg.timestamp = now();
-            msg.sender = currentUID;
-            msg.receiver = storeID;
-
-            msg.isSupport = false;
-            msg.isOutgoing = true;
-
-            msg.setContent(IMessage.newAudio(url, duration));
-
-            IMessage.Audio audio = (IMessage.Audio)msg.content;
-            FileInputStream is = new FileInputStream(new File(tfile));
-            Log.i(TAG, "store audio url:" + audio.url);
-            FileCache.getInstance().storeFile(audio.url, is);
-
-            saveMessage(msg);
-            Log.i(TAG, "msg local id:" + msg.msgLocalID);
-            insertMessage(msg);
-            sendMessage(msg);
-
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(msg, sendNotificationName);
-            nc.postNotification(notification);
-
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-            return;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-    }
-
-    protected void sendLocationMessage(float longitude, float latitude, String address) {
-
-        ICustomerMessage msg = new ICustomerMessage();
-        msg.customerID = currentUID;
-        msg.customerAppID = appID;
-        msg.storeID = storeID;
-        msg.sellerID = sellerID;
-        msg.timestamp = now();
-        msg.sender = currentUID;
-        msg.receiver = storeID;
-
-        msg.isSupport = false;
-        msg.isOutgoing = true;
-        IMessage.Location loc = IMessage.newLocation(latitude, longitude);
-        msg.setContent(loc);
-
-        saveMessage(msg);
-
-        loc.address = address;
-        if (TextUtils.isEmpty(loc.address)) {
-            queryLocation(msg);
-        } else {
-            saveMessageAttachment(msg, loc.address);
-         }
-
-        insertMessage(msg);
-        sendMessage(msg);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(msg, sendNotificationName);
-        nc.postNotification(notification);
-    }
 }
