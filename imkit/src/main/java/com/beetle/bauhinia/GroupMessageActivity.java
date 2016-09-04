@@ -305,6 +305,8 @@ public class GroupMessageActivity extends MessageActivity implements
             } else {
                 notification.description = String.format("\"%s\"离开群", u.name);
             }
+        } else if (notification.notificationType == IMessage.GroupNotification.NOTIFICATION_GROUP_NAME_UPDATED) {
+            notification.description = String.format("群组改名为\"%s\"", notification.groupName);
         }
     }
 
