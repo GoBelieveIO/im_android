@@ -49,16 +49,6 @@ public class CustomerMessageActivity extends MessageActivity
     protected long storeID;
     protected long sellerID;
 
-
-
-
-
-    public CustomerMessageActivity() {
-        super();
-        sendNotificationName = SEND_MESSAGE_NAME;
-        clearNotificationName = CLEAR_MESSAGES;
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -342,7 +332,7 @@ public class CustomerMessageActivity extends MessageActivity
         insertMessage(msg);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(msg, sendNotificationName);
+        Notification notification = new Notification(msg, SEND_MESSAGE_NAME);
         nc.postNotification(notification);
     }
 
@@ -411,7 +401,7 @@ public class CustomerMessageActivity extends MessageActivity
         db.clearCoversation(this.storeID);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(this.storeID, clearNotificationName);
+        Notification notification = new Notification(this.storeID, CLEAR_MESSAGES);
         nc.postNotification(notification);
     }
 

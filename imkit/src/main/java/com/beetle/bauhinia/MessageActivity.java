@@ -79,10 +79,6 @@ public class MessageActivity extends BaseActivity implements
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
 
-    protected String sendNotificationName;
-    protected String clearNotificationName;
-
-
 
     protected boolean isShowUserName = false;
 

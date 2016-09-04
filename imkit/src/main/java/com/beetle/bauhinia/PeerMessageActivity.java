@@ -48,11 +48,7 @@ public class PeerMessageActivity extends MessageActivity implements
     protected long peerUID;
     protected String peerName;
 
-    public PeerMessageActivity() {
-        super();
-        sendNotificationName = SEND_MESSAGE_NAME;
-        clearNotificationName = CLEAR_MESSAGES;
-    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -364,7 +360,7 @@ public class PeerMessageActivity extends MessageActivity implements
 
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(this.receiver, clearNotificationName);
+        Notification notification = new Notification(this.receiver, CLEAR_MESSAGES);
         nc.postNotification(notification);
 
     }
@@ -450,7 +446,7 @@ public class PeerMessageActivity extends MessageActivity implements
         insertMessage(imsg);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, sendNotificationName);
+        Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
         nc.postNotification(notification);
     }
 

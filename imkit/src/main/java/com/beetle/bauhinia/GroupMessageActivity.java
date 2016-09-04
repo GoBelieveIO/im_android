@@ -51,8 +51,6 @@ public class GroupMessageActivity extends MessageActivity implements
 
     public GroupMessageActivity() {
         super();
-        sendNotificationName = SEND_MESSAGE_NAME;
-        clearNotificationName = CLEAR_MESSAGES;
         isShowUserName = true;
     }
 
@@ -360,7 +358,7 @@ public class GroupMessageActivity extends MessageActivity implements
         insertMessage(imsg);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, sendNotificationName);
+        Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
         nc.postNotification(notification);
     }
 
@@ -433,7 +431,7 @@ public class GroupMessageActivity extends MessageActivity implements
         db.clearCoversation(this.groupID);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(this.receiver, clearNotificationName);
+        Notification notification = new Notification(this.receiver, CLEAR_MESSAGES);
         nc.postNotification(notification);
     }
 
