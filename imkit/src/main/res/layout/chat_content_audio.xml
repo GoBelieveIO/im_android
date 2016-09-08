@@ -9,7 +9,8 @@
     <ImageView
         android:id="@+id/play_control"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:src="@drawable/ease_chatfrom_voice_playing"/>
 
     <ProgressBar
         android:id="@+id/progress"
@@ -17,10 +18,22 @@
         android:layout_width="160dp"
         android:layout_height="wrap_content" />
 
+
+
     <TextView
         android:id="@+id/duration"
         android:textColor="@android:color/black"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:text="1s"
+        />
+
+    <ImageView
+        android:id="@+id/listen"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:src="@drawable/circle_audio"
+        android:layout_marginLeft="4dp" />
+
 
 </LinearLayout>

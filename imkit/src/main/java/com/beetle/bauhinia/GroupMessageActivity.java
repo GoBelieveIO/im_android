@@ -10,6 +10,7 @@ import android.widget.Toast;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageIterator;
+import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.tools.AudioDownloader;
 import com.beetle.bauhinia.tools.AudioUtil;
 import com.beetle.bauhinia.tools.FileCache;
@@ -405,6 +406,11 @@ public class GroupMessageActivity extends MessageActivity implements
 
     void saveMessage(IMessage imsg) {
         GroupMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
+    }
+
+    @Override
+    protected void markMessageListened(IMessage imsg) {
+        GroupMessageDB.getInstance().markMessageListened(imsg.msgLocalID, imsg.receiver);
     }
 
     void markMessageFailure(IMessage imsg) {

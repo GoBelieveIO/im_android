@@ -718,6 +718,10 @@ public class MessageActivity extends BaseActivity implements
         return (int)(t/1000);
     }
 
+    protected void markMessageListened(IMessage imsg) {
+        Log.i(TAG, "not implemented");
+    }
+
     protected void resend(IMessage msg) {
         Log.i(TAG, "not implemented");
     }
@@ -1028,6 +1032,10 @@ public class MessageActivity extends BaseActivity implements
                     audioUtil.startPlay(FileCache.getInstance().getCachedFilePath(audio.url));
                     playingMessage = message;
                     message.setPlaying(true);
+                    if (!message.isListened() && !message.isOutgoing) {
+                        message.setListened(true);
+                        markMessageListened(message);
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();

@@ -283,6 +283,18 @@ public class GroupMessageDB extends MessageDB {
         }
     }
 
+    public boolean markMessageListened(int msgLocalID, long gid) {
+        try {
+            File file = new File(this.dir, fileName(gid));
+            RandomAccessFile f = new RandomAccessFile(file, "rw");
+            addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_LISTENED);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
     public boolean clearCoversation(long uid) {
         try {
             File file = new File(this.dir, fileName(uid));

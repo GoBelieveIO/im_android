@@ -379,6 +379,20 @@ public class IMessage {
         changeSupport.firePropertyChange("ack", old, ack);
     }
 
+    public boolean isListened() {
+        return (flags & MessageFlag.MESSAGE_FLAG_LISTENED) != 0;
+    }
+
+    public void setListened(boolean listened) {
+        boolean old = isListened();
+        if (listened) {
+            flags = flags | MessageFlag.MESSAGE_FLAG_LISTENED;
+        } else {
+            flags = flags & (~MessageFlag.MESSAGE_FLAG_LISTENED);
+        }
+        changeSupport.firePropertyChange("listened", old, listened);
+    }
+
     public boolean getGeocoding() {
         return this.geocoding;
     }

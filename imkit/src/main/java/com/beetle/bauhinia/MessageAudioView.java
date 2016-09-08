@@ -35,10 +35,12 @@ public class MessageAudioView extends MessageRowView {
     class AudioHolder  {
         ImageView control;
         TextView duration;
+        ImageView listen;
 
         AudioHolder(View view) {
             control = (ImageView)view.findViewById(R.id.play_control);
             duration = (TextView)view.findViewById(R.id.duration);
+            listen = (ImageView)view.findViewById(R.id.listen);
         }
     }
 
@@ -78,13 +80,12 @@ public class MessageAudioView extends MessageRowView {
                 .toFormatter();
         audioHolder.duration.setText(periodFormatter.print(period));
 
+        if (!msg.isListened() && !msg.isOutgoing) {
+            audioHolder.listen.setVisibility(VISIBLE);
+        } else {
+            audioHolder.listen.setVisibility(GONE);
+        }
 
-//        boolean uploading = msg.getUploading();
-//        if (uploading) {
-//            uploadingProgressBar.setVisibility(View.VISIBLE);
-//        } else {
-//            uploadingProgressBar.setVisibility(View.GONE);
-//        }
         convertView.requestLayout();
     }
 
@@ -111,6 +112,13 @@ public class MessageAudioView extends MessageRowView {
                 } else {
                     audioHolder.control.setImageResource(R.drawable.ease_chatto_voice_playing);
                 }
+            }
+        } else if (event.getPropertyName().equals("listened")) {
+            AudioHolder audioHolder =  new AudioHolder(this);
+            if (!this.message.isListened() && !this.message.isOutgoing) {
+                audioHolder.listen.setVisibility(VISIBLE);
+            } else {
+                audioHolder.listen.setVisibility(GONE);
             }
         }
     }

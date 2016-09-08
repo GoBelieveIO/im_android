@@ -72,6 +72,8 @@ public class PeerMessageActivity extends MessageActivity implements
             return;
         }
 
+        Log.i(TAG, "local id:" + currentUID +  "peer id:" + peerUID);
+
         this.sender = currentUID;
         this.receiver = peerUID;
 
@@ -329,6 +331,17 @@ public class PeerMessageActivity extends MessageActivity implements
         } else {
             PeerMessageDB.getInstance().insertMessage(imsg, imsg.sender);
         }
+    }
+
+    @Override
+    protected void markMessageListened(IMessage imsg) {
+        long cid = 0;
+        if (imsg.sender == this.currentUID) {
+            cid = imsg.receiver;
+        } else {
+            cid = imsg.sender;
+        }
+        PeerMessageDB.getInstance().markMessageListened(imsg.msgLocalID, cid);
     }
 
     void markMessageFailure(IMessage imsg) {
