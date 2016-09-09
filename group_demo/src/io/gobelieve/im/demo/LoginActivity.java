@@ -52,7 +52,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
     }
 
     private void go2Chat(long sender, long receiver, String token) {
-        IMService.getInstance().setToken(token);
+        IMService.getInstance().stop();
 
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);

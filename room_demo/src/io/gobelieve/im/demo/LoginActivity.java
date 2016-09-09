@@ -55,7 +55,7 @@ public class LoginActivity extends FragmentActivity implements View.OnClickListe
 
 
     private void go2Chat(long sender, long receiver, String token) {
-        IMService.getInstance().setToken(token);
+        IMService.getInstance().stop();
 
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);
