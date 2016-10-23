@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="common_bg">#fcfcfc</color>
+    <color name="common_header_blue">#00abf1</color>
+    <color name="view_focused">#11000000</color>
+    <color name="view_pressed">@color/view_focused</color>
+    <color name="btn_login_normal">#2dafa3</color>
+    <color name="btn_login_pressed">@color/common_header_blue</color>
+    <color name="btn_gray_normal">#c0c0c0</color>
+    <color name="bottom_bar_normal_bg">#2D2F31</color>
+    <color name="common_botton_bar_blue">#2ea7e0</color>
+    <color name="common_bottom_bar_normal_bg">#2d2f31</color>
+    <color name="common_bottom_bar_selected_bg">#161718</color>
+    <color name="divider_list">#cccccc</color>
+    <color name="blue_337aba">#337aba</color>
+    <color name="setting_item_pressed">@color/btn_login_pressed</color>
+    <color name="setting_divider">#e6e6e6</color>
+    <color name="gray_33">#333333</color>
+    <color name="bg_chat">#f2f0eb</color>
+    <color name="gray_normal">#666667</color>
+
+    <color name="white_trans_40">#66FFFFFF</color>
+
+    <color name="main_regist">#fffff0</color>
+</resources>

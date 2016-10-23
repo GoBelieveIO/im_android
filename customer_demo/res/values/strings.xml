@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">IMDemo</string>
+    <string name="action_settings">Settings</string>
+    <string name="login_account">用户id</string>
+    <string name="login_target_account">用户名</string>
+    <string name="login_login">登  录</string>
+
+</resources>

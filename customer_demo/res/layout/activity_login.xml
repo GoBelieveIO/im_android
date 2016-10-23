@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_background">
+
+    <!--发送用户id-->
+    <View
+        android:id="@+id/line_sender_underline"
+        style="@style/login_edittext_underline"
+        android:layout_marginTop="140dp" />
+
+    <ImageView
+        android:id="@+id/iv_sender"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/line_sender_underline"
+        android:layout_alignBottom="@id/line_sender_underline"
+        android:layout_marginBottom="9dp"
+        android:layout_marginLeft="22dp"
+        android:src="@drawable/ic_account" />
+
+    <EditText
+        android:id="@+id/et_username"
+        style="@style/login_editnumber"
+        android:layout_above="@id/line_sender_underline"
+        android:layout_alignBottom="@id/line_sender_underline"
+        android:layout_toRightOf="@id/iv_sender"
+        android:hint="@string/login_account" />
+
+
+
+    <View
+        android:id="@+id/line_receiver_underline"
+        style="@style/login_edittext_underline"
+        android:layout_below="@id/line_sender_underline"
+        android:layout_marginTop="44dp" />
+
+
+    <ImageView
+        android:id="@+id/iv_receiver"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/line_receiver_underline"
+        android:layout_marginBottom="9dp"
+        android:layout_marginLeft="22dp"
+        android:src="@drawable/ic_account" />
+
+    <EditText
+        android:id="@+id/et_target_username"
+        style="@style/login_edittext"
+        android:layout_alignBottom="@id/line_receiver_underline"
+        android:layout_toRightOf="@id/iv_receiver"
+        android:hint="@string/login_target_account" />
+
+    <Button
+        android:id="@+id/btn_login"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/line_receiver_underline"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginTop="45dp"
+        android:background="@drawable/btn_login_selector"
+        android:text="@string/login_login"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/h2"
+        android:onClick="onLogin" />
+
+
+</RelativeLayout>

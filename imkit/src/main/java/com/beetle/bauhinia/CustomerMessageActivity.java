@@ -42,7 +42,7 @@ public class CustomerMessageActivity extends MessageActivity
 
     private final int PAGE_SIZE = 10;
 
-    protected String peerName;
+    protected String title;
     protected long currentUID;
 
     protected long appID;
@@ -59,9 +59,9 @@ public class CustomerMessageActivity extends MessageActivity
         appID = intent.getLongExtra("app_id", 0);
         storeID = intent.getLongExtra("store_id", 0);
         sellerID = intent.getLongExtra("seller_id", 0);
-        peerName = intent.getStringExtra("peer_name");
+        title = intent.getStringExtra("title");
 
-        Log.i(TAG, "uid:" + currentUID + " app id:" + appID + " store id:" + storeID + " seller id:" + sellerID + " name:" + peerName);
+        Log.i(TAG, "uid:" + currentUID + " app id:" + appID + " store id:" + storeID + " seller id:" + sellerID + " title:" + title);
         if (appID == 0 || currentUID == 0 || storeID == 0) {
             return;
         }
@@ -70,8 +70,8 @@ public class CustomerMessageActivity extends MessageActivity
 
 
         this.loadConversationData();
-        if (!TextUtils.isEmpty(peerName)) {
-            getSupportActionBar().setTitle(peerName);
+        if (!TextUtils.isEmpty(title)) {
+            getSupportActionBar().setTitle(title);
         }
         //显示最后一条消息
         if (this.messages.size() > 0) {

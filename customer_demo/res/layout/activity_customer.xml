@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <TextView
+        android:id="@+id/new_message"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:text="没有新消息"
+        android:textColor="@color/black"
+        android:textAlignment="center" />
+
+
+    <Button
+        android:id="@+id/btn_chat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/new_message"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginTop="45dp"
+        android:background="@drawable/btn_login_selector"
+        android:text="客服"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/h2"
+        android:onClick="onChat" />
+
+    <Button
+        android:id="@+id/btn_logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_chat"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginTop="15dp"
+        android:background="@drawable/btn_login_selector"
+        android:text="注销"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/h2"
+        android:onClick="onLogout" />
+
+
+</RelativeLayout>
