@@ -68,7 +68,7 @@ public class CustomerManager {
     private static int PUSH_XG = 4;
     private static int PUSH_JG = 5;
 
-    private static String URL = "http://192.168.1.142";
+    private static String URL = "http://api.gobelieve.io";
 
     private static CustomerManager instance = new CustomerManager();
     public static CustomerManager getInstance() {
@@ -173,7 +173,7 @@ public class CustomerManager {
     //如果注册失败是因为网络波动导致，开发者可尝试多次调用，从而提供注册的成功率
     public void registerClient(final String uid, final String name, final String avatar, final OnRegisterCallback callback) {
 
-        String url = "http://192.168.1.142/customer/register";
+        String url = URL + "/customer/register";
         OkHttpClient client = new OkHttpClient();
 
         JSONObject body = new JSONObject();
@@ -190,9 +190,9 @@ public class CustomerManager {
             return;
         }
 
-        String basic = String.format("Basic %d:%s", this.appID, this.appKey);
+        String basic = String.format("%d:%s", this.appID, this.appKey);
         byte [] encode = Base64.encode(basic.getBytes(), Base64.NO_WRAP);
-        String auth = new String(encode);
+        String auth = String.format("Basic %s", new String(encode));
 
         MediaType JSON = MediaType.parse("application/json; charset=utf-8");
         RequestBody requestBody = RequestBody.create(JSON, body.toString());
@@ -205,12 +205,22 @@ public class CustomerManager {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                callback.onFailure(1000, "注册失败");
+                mainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onFailure(1000, "注册失败");
+                    }
+                });
             }
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.code() != 200) {
-                    callback.onFailure(2000, "注册失败");
+                    mainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onFailure(2000, "注册失败");
+                        }
+                    });
                     return;
                 }
 
@@ -249,8 +259,6 @@ public class CustomerManager {
                         }
                     };
                     CustomerManager.this.mainHandler.post(r);
-
-
                 }
             }
         });
@@ -284,8 +292,6 @@ public class CustomerManager {
         IMService.getInstance().setUID(this.clientID);
         IMService.getInstance().setDeviceID(deviceID);
         IMHttpAPI.setToken(token);
-
-        IMService.getInstance().setHost("192.168.1.142");
     }
 
 
@@ -399,6 +405,7 @@ public class CustomerManager {
 
         return request;
     }
+
     private void bindDeviceToken(final String deviceToken, final int pushType, final OnBindCallback callback) {
         OkHttpClient client = new OkHttpClient();
 
