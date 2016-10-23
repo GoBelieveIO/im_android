@@ -1,6 +1,5 @@
 package com.beetle.bauhinia;
 
-
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -26,11 +25,40 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import retrofit.http.Body;
 
-/**
- * Created by houxh on 16/10/23.
+
+
+
+//只有在打开客服聊天界面的情况下，才会建立一个socket的长链接来收发消息
+//退出聊天界面后， 用apns来推送新消息的提醒，从而保证资源消耗的最优化
+/* 应用没有用户系统
+ * 1.app启动时
+ * CustomerManager.getInstance().init(getApplicationContext(), appID, appKey, androidID)
+ *
+ * if (CustomerManager.getInstance().getClientID() == 0) {
+ *     CustomerManager.getInstance().registerClient()
+ * } else {
+ *     CustomerManager.getInstance.login()
+ * }
+ *
+ * 应用有用户系统
+ * 1.app启动时
+ * CustomerManager.getInstance().init(getApplicationContext(), appID, appKey, androidID)
+ *
+ *
+ * 2.用户登录后，使用用户的id和用户名称来注册顾客id
+ * if (CustomerManager.getInstance().getUid() != 当前uid) {
+ *     CustomerManager.getInstance().registerClient(uid)
+ * } else {
+ *     CustomerManager.getInstance().login();
+ * }
+ *
+ * 3.用户注销
+ * CustomerManager.getInstance().unbindDeviceToken(callback {
+ *    CustomerManager.getInstance().unregisterClient();
+ * });
  */
+
 
 public class CustomerManager {
     private static int PUSH_UNKNOWN = 0;
@@ -70,7 +98,7 @@ public class CustomerManager {
     Handler mainHandler;
 
     //应用启动时，初始化CustomerManager
-    public void Init(Context context, long appID, String appKey, String deviceID) {
+    public void init(Context context, long appID, String appKey, String deviceID) {
         this.context = context;
 
         mainHandler = new Handler(Looper.getMainLooper());

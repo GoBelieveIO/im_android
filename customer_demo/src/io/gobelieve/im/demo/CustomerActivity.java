@@ -2,7 +2,6 @@ package io.gobelieve.im.demo;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
 import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -14,14 +13,12 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.CustomerManager;
 import com.beetle.bauhinia.CustomerMessageActivity;
-import com.beetle.bauhinia.PeerMessageActivity;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 
 
 /**
- * LoginActivity
- */
+  */
 public class CustomerActivity extends FragmentActivity  implements
         NotificationCenter.NotificationCenterObserver{
 
@@ -46,7 +43,7 @@ public class CustomerActivity extends FragmentActivity  implements
         String androidID = Settings.Secure.getString(this.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
 
-        CustomerManager.getInstance().Init(getApplicationContext(),
+        CustomerManager.getInstance().init(getApplicationContext(),
                 7, "sVDIlIiDUm7tWPYWhi6kfNbrqui3ez44", androidID);
 
 
