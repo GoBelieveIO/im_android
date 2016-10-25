@@ -38,8 +38,6 @@ public class CustomerActivity extends FragmentActivity  implements
         mEtAccount = (EditText) findViewById(R.id.et_username);
         mEtTargetAccount = (EditText) findViewById(R.id.et_target_username);
 
-
-
         String androidID = Settings.Secure.getString(this.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
 
@@ -49,6 +47,8 @@ public class CustomerActivity extends FragmentActivity  implements
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
         nc.addObserver(this, CustomerMessageActivity.CLEAR_NEW_MESSAGES);
+
+
     }
 
     @Override
@@ -96,7 +96,7 @@ public class CustomerActivity extends FragmentActivity  implements
         mEtAccount = null;
         mEtTargetAccount = null;
 
-        //测试
+        //测试的devicetoken
         CustomerManager.getInstance().bindGCMDeviceToken("123dff", new CustomerManager.OnBindCallback() {
             @Override
             public void onSuccess() {
@@ -106,6 +106,28 @@ public class CustomerActivity extends FragmentActivity  implements
             @Override
             public void onFailure(int code, String message) {
                 Log.i(TAG, "bind device token failure");
+            }
+        });
+
+        CustomerManager.getInstance().getUnreadMessage(new CustomerManager.OnGetUnreadCallback() {
+            @Override
+            public void onSuccess(boolean hasUnread) {
+                if (newTextView == null) {
+                    return;
+                }
+
+                if (hasUnread) {
+                    newTextView.setText("新消息");
+                    newTextView.setTextColor(Color.RED);
+                } else {
+                    newTextView.setText("没有新消息");
+                    newTextView.setTextColor(Color.BLACK);
+                }
+            }
+
+            @Override
+            public void onFailure(int code, String message) {
+                Log.i(TAG, "获取未读消息失败");
             }
         });
     }

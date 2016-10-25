@@ -508,6 +508,85 @@ public class CustomerManager {
         });
     }
 
+    public interface OnGetUnreadCallback {
+        void onSuccess(boolean hasUnread);
+        void onFailure(int code, String message);
+    }
+
+    private Request newGetUnreadRequest() {
+        String p = String.format("/messages/offline?platform_id=2&device_id=%s", this.deviceID);
+        String url = URL + p;
+        String auth = String.format("Bearer %s", this.token);
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Authorization", auth)
+                .get()
+                .build();
+
+        return request;
+    }
+
+    public void getUnreadMessage(final OnGetUnreadCallback callback) {
+        if (this.clientID == 0) {
+            return;
+        }
+
+        Request request = newGetUnreadRequest();
+        OkHttpClient client = new OkHttpClient();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                final String message = e.getMessage();
+                mainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onFailure(1000, message == null ? "" : message);
+                    }
+                });
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.code() != 200) {
+                    mainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onFailure(2000, "get unread failure");
+                        }
+                    });
+                    return;
+                }
+
+                try {
+                    String resp = response.body().string();
+                    JSONObject obj = new JSONObject(resp);
+
+                    JSONObject data = obj.getJSONObject("data");
+                    final int hasNew = data.getInt("new");
+                    Runnable r = new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess(hasNew == 1);
+                        }
+                    };
+                    CustomerManager.this.mainHandler.post(r);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    Runnable r = new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onFailure(1000, "get unread failure");
+                        }
+                    };
+                    CustomerManager.this.mainHandler.post(r);
+                }
+
+            }
+        });
+
+    }
+
     public void startCustomerActivity(Context context, String title) {
         Intent intent = new Intent();
         intent.putExtra("current_uid", this.clientID);
