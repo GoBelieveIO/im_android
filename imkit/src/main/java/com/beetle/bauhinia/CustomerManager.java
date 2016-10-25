@@ -27,8 +27,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 
-
-
 //只有在打开客服聊天界面的情况下，才会建立一个socket的长链接来收发消息
 //退出聊天界面后， 用apns来推送新消息的提醒，从而保证资源消耗的最优化
 /* 应用没有用户系统
@@ -36,10 +34,16 @@ import okhttp3.Response;
  * CustomerManager.getInstance().init(getApplicationContext(), appID, appKey, androidID)
  *
  * if (CustomerManager.getInstance().getClientID() == 0) {
- *     CustomerManager.getInstance().registerClient()
+ *     CustomerManager.getInstance().registerClient(name, callback{
+ *          //注册成功之后，登录当前用户
+ *          CustomerManager.getInstance.login()
+ *     })
  * } else {
  *     CustomerManager.getInstance.login()
  * }
+ *
+ * 2.将推送的devicetoken绑定到当前用户
+ * CustomerManager.getInstance.bindDeviceToken(deviceToken, callback)
  *
  * 应用有用户系统
  * 1.app启动时
@@ -48,15 +52,28 @@ import okhttp3.Response;
  *
  * 2.用户登录后，使用用户的id和用户名称来注册顾客id
  * if (CustomerManager.getInstance().getUid() != 当前uid) {
- *     CustomerManager.getInstance().registerClient(uid)
+ *     CustomerManager.getInstance().registerClient(uid, name, avatar, callback {
+ *          //注册成功之后，登录当前用户
+ *          CustomerManager.getInstance.login()
+ *     })
  * } else {
  *     CustomerManager.getInstance().login();
  * }
  *
- * 3.用户注销
+ * 3.将推送的devicetoken绑定到当前用户
+ * CustomerManager.getInstance.bindDeviceToken(deviceToken, callback)
+ *
+ * 4.用户注销
  * CustomerManager.getInstance().unbindDeviceToken(callback {
  *    CustomerManager.getInstance().unregisterClient();
  * });
+ *
+ *
+ * 如何处理未读消息的提醒
+ * app启动的时候调用getunreadmessage获取未读标志，
+ * 之后通过推送通道的透传消息来接受未读消息的通知，
+ * 透传消息的内容json对象，格式如下：
+ * {"xiaowei":{"new":1}}
  */
 
 
