@@ -1,5 +1,6 @@
 package com.beetle.bauhinia.db;
 
+import com.beetle.bauhinia.tools.Notification;
 import com.beetle.im.BytePacket;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -27,6 +28,7 @@ public class IMessage {
     public static final String NOTIFICATION = "notification";
     public static final String LINK = "link";
     public static final String ATTACHMENT = "attachment";
+    public static final String HEADLINE = "headline";
     public static final String TIMEBASE = "timebase";
 
     public static enum MessageType {
@@ -38,6 +40,7 @@ public class IMessage {
         MESSAGE_GROUP_NOTIFICATION,
         MESSAGE_LINK,
         MESSAGE_ATTACHMENT,
+        MESSAGE_HEADLINE,
         MESSAGE_TIME_BASE //虚拟的消息，不会存入磁盘
     }
 
@@ -100,6 +103,18 @@ public class IMessage {
         attachment.address = address;
         attachment.msg_id = msgLocalID;
         return attachment;
+    }
+
+    public static Headline newHeadline(String headline) {
+        Headline head = new Headline();
+        JsonObject content = new JsonObject();
+        JsonObject headlineJson = new JsonObject();
+        headlineJson.addProperty("headline", headline);
+        content.add(HEADLINE, headlineJson);
+        head.raw = content.toString();
+        head.headline = headline;
+        head.description = headline;
+        return head;
     }
 
     public static TimeBase newTimeBase(int timestamp) {
@@ -204,14 +219,33 @@ public class IMessage {
         public MessageType getType() { return MessageType.MESSAGE_LOCATION; }
     }
 
-    public static class TimeBase extends MessageContent {
+    public static abstract class Notification extends MessageContent {
+        public String description;
+
+        public String getDescription() {
+            return this.description;
+        }
+    }
+
+    public static class TimeBase extends Notification {
         public int timestamp;
         public MessageType getType() {
             return MessageType.MESSAGE_TIME_BASE;
         }
     }
 
-    public static class GroupNotification extends MessageContent {
+    public static class Headline extends Notification {
+        public String headline;
+
+        public String getDescription() {
+            return this.headline;
+        }
+        public MessageType getType() {
+            return MessageType.MESSAGE_HEADLINE;
+        }
+    }
+
+    public static class GroupNotification extends Notification {
         public static final int NOTIFICATION_GROUP_CREATED = 1;//群创建
         public static final int NOTIFICATION_GROUP_DISBAND = 2;//群解散
         public static final int NOTIFICATION_GROUP_MEMBER_ADDED = 3;//群成员加入
@@ -225,7 +259,6 @@ public class IMessage {
 
         public int notificationType;
 
-        public String description;
         public long groupID;
 
         public int timestamp;//单位:秒
@@ -275,6 +308,8 @@ public class IMessage {
                 content = gson.fromJson(element.get(ATTACHMENT), Attachment.class);
             } else if (element.has(LINK)) {
                 content = gson.fromJson(element.get(LINK), Link.class);
+            } else if (element.has(HEADLINE)) {
+                content = gson.fromJson(element.get(HEADLINE), Headline.class);
             } else {
                 content = new Unknown();
             }

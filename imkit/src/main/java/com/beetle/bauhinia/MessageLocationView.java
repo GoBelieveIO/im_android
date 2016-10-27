@@ -28,8 +28,8 @@ public class MessageLocationView extends MessageRowView {
         progressBar = (ProgressBar)findViewById(R.id.progress_bar);
     }
 
-    public void setMessage(IMessage msg, boolean incomming) {
-        super.setMessage(msg, incomming);
+    public void setMessage(IMessage msg) {
+        super.setMessage(msg);
         IMessage.Location loc = (IMessage.Location)this.message.content;
         if (loc.address != null && loc.address.length() > 0) {
             TextView content = (TextView) findViewById(R.id.text);

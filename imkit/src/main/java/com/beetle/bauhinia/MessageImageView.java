@@ -31,8 +31,8 @@ public class MessageImageView extends MessageRowView {
         }
     }
 
-    public void setMessage(IMessage msg, boolean incomming) {
-        super.setMessage(msg, incomming);
+    public void setMessage(IMessage msg) {
+        super.setMessage(msg);
 
         ImageView imageView = (ImageView)findViewById(R.id.image);
         Picasso.with(context)

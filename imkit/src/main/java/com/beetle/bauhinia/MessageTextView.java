@@ -19,8 +19,8 @@ public class MessageTextView extends MessageRowView {
     }
 
     @Override
-    public void setMessage(IMessage msg, boolean incomming) {
-        super.setMessage(msg, incomming);
+    public void setMessage(IMessage msg) {
+        super.setMessage(msg);
 
         IMessage.MessageType mediaType = message.content.getType();
 

@@ -21,11 +21,11 @@ public class MessageNotificationView extends MessageRowView {
     }
 
     @Override
-    public void setMessage(IMessage msg, boolean incomming) {
-        super.setMessage(msg, incomming);
+    public void setMessage(IMessage msg) {
+        super.setMessage(msg);
 
         TextView content = (TextView) findViewById(R.id.text);
-        String text = ((IMessage.GroupNotification) msg.content).description;
+        String text = ((IMessage.Notification) msg.content).getDescription();
         content.setText(text);
 
         requestLayout();
@@ -36,7 +36,7 @@ public class MessageNotificationView extends MessageRowView {
         super.propertyChange(event);
         if (event.getPropertyName().equals("downloading")) {
             TextView content = (TextView) findViewById(R.id.text);
-            String text = ((IMessage.GroupNotification) this.message.content).description;
+            String text = ((IMessage.Notification) this.message.content).getDescription();
             content.setText(text);
         }
     }

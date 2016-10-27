@@ -24,8 +24,8 @@ public class MessageLinkView extends MessageRowView {
         group.addView(inflater.inflate(contentLayout, group, false));
     }
 
-    public void setMessage(IMessage msg, boolean incomming) {
-        super.setMessage(msg, incomming);
+    public void setMessage(IMessage msg) {
+        super.setMessage(msg);
         IMessage.Link linkMsg = (IMessage.Link) msg.content;
 
         ImageView imageView = (ImageView)findViewById(R.id.image);

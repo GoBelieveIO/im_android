@@ -11,7 +11,7 @@
     android:paddingLeft="6dp"
     android:minHeight="24dp"
     android:lineSpacingExtra="2dp"
-    android:background="#ffcccccc"
+    android:background="@drawable/rounded_corner"
     android:textColor="@color/white"
     android:maxWidth="225.0dp"
     android:text="test"

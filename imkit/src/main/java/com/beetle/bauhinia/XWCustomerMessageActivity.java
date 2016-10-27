@@ -14,6 +14,8 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.beetle.bauhinia.db.ICustomerMessage;
+import com.beetle.bauhinia.db.IMessage;
 import com.beetle.im.IMService;
 
 import org.json.JSONException;
@@ -133,10 +135,27 @@ public class XWCustomerMessageActivity extends CustomerMessageActivity implement
                     Log.i(TAG, "get supporter:" + sellerID + " name:" + name);
 
                     if (newSeller) {
-                        //todo 提示新的客服人员
                         if (IMService.getInstance().getConnectState() ==  IMService.ConnectState.STATE_CONNECTED) {
                             XWCustomerMessageActivity.this.enableSend();
                         }
+
+                        ICustomerMessage msg = new ICustomerMessage();
+                        msg.customerID = currentUID;
+                        msg.customerAppID = appID;
+                        msg.storeID = storeID;
+                        msg.sellerID = sellerID;
+
+                        msg.timestamp = now();
+                        msg.sender = storeID;
+                        msg.receiver = currentUID;
+
+                        msg.isSupport = true;
+                        msg.isOutgoing = false;
+
+                        String t = String.format("%s为您服务", name);
+                        msg.setContent(IMessage.newHeadline(t));
+                        saveMessage(msg);
+                        insertMessage(msg);
                     }
 
                 } catch (JSONException e) {

@@ -45,8 +45,8 @@ public class MessageAudioView extends MessageRowView {
     }
 
     @Override
-    public void setMessage(IMessage msg, boolean incomming) {
-        super.setMessage(msg, incomming);
+    public void setMessage(IMessage msg) {
+        super.setMessage(msg);
 
         boolean playing = message.getPlaying();
         View convertView = this;
@@ -56,7 +56,7 @@ public class MessageAudioView extends MessageRowView {
 
         if (playing) {
             AnimationDrawable voiceAnimation;
-            if (incomming) {
+            if (!msg.isOutgoing) {
                 audioHolder.control.setImageResource(R.anim.voice_from_icon);
             } else {
                 audioHolder.control.setImageResource(R.anim.voice_to_icon);
@@ -64,7 +64,7 @@ public class MessageAudioView extends MessageRowView {
             voiceAnimation = (AnimationDrawable) audioHolder.control.getDrawable();
             voiceAnimation.start();
         } else {
-            if (incomming) {
+            if (!msg.isOutgoing) {
                 audioHolder.control.setImageResource(R.drawable.ease_chatfrom_voice_playing);
             } else {
                 audioHolder.control.setImageResource(R.drawable.ease_chatto_voice_playing);
@@ -98,7 +98,7 @@ public class MessageAudioView extends MessageRowView {
             AudioHolder audioHolder =  new AudioHolder(this);
             if (playing) {
                 AnimationDrawable voiceAnimation;
-                if (incomming) {
+                if (!this.message.isOutgoing) {
                     audioHolder.control.setImageResource(R.anim.voice_from_icon);
                 } else {
                     audioHolder.control.setImageResource(R.anim.voice_to_icon);
@@ -107,7 +107,7 @@ public class MessageAudioView extends MessageRowView {
                 voiceAnimation.start();
                 Log.i("gobelieve", "start animation");
             } else {
-                if (incomming) {
+                if (!this.message.isOutgoing) {
                     audioHolder.control.setImageResource(R.drawable.ease_chatfrom_voice_playing);
                 } else {
                     audioHolder.control.setImageResource(R.drawable.ease_chatto_voice_playing);

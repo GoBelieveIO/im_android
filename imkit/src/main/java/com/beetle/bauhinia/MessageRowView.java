@@ -27,8 +27,6 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
 
     protected LayoutInflater inflater;
 
-    protected boolean incomming;
-
     public MessageRowView(Context context) {
         super(context);
         this.context = context;
@@ -65,17 +63,16 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
         this.contentView = group;
     }
 
-    public void setMessage(IMessage msg, boolean incomming) {
+    public void setMessage(IMessage msg) {
         if (this.message != null) {
             this.message.removePropertyChangeListener(this);
         }
         this.message = msg;
         this.message.addPropertyChangeListener(this);
-        this.incomming = incomming;
 
         this.contentView.setTag(this.message);
 
-        if (!incomming) {
+        if (msg.isOutgoing) {
             if (msg.isFailure()) {
                 ImageView flagView = (ImageView) findViewById(R.id.flag);
                 flagView.setVisibility(View.VISIBLE);
