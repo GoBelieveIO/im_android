@@ -85,8 +85,8 @@ public class XWCustomerMessageActivity extends CustomerMessageActivity implement
         new AsyncTask<Void, Integer, String>() {
             @Override
             protected String doInBackground(Void... urls) {
-                //重试10次
-                for (int i = 0; i < 10; i++) {
+                //重试5次
+                for (int i = 0; i < 5; i++) {
                     OkHttpClient client = new OkHttpClient();
                     Request request = newGetSupporterRequest(storeID);
                     try {
@@ -98,7 +98,7 @@ public class XWCustomerMessageActivity extends CustomerMessageActivity implement
                     }
 
                     try {
-                        Thread.sleep((i+1) * 1000);
+                        Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
