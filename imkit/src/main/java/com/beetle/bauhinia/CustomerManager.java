@@ -305,9 +305,9 @@ public class CustomerManager {
         csDB.setDir(dir);
         IMService.getInstance().setCustomerMessageHandler(CustomerMessageHandler.getInstance());
 
-        IMService.getInstance().setToken(token);
+        IMService.getInstance().setToken(this.token);
         IMService.getInstance().setUID(this.clientID);
-        IMService.getInstance().setDeviceID(deviceID);
+        IMService.getInstance().setDeviceID(this.deviceID);
         IMHttpAPI.setToken(token);
     }
 
@@ -606,6 +606,7 @@ public class CustomerManager {
 
     public void startCustomerActivity(Context context, String title) {
         Intent intent = new Intent();
+        intent.putExtra("token", this.token);
         intent.putExtra("current_uid", this.clientID);
         intent.putExtra("store_id", this.storeID);
         intent.putExtra("app_id", this.appID);

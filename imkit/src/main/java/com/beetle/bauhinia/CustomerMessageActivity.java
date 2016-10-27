@@ -122,13 +122,6 @@ public class CustomerMessageActivity extends MessageActivity
             }
         }
 
-
-        if (this.sellerID == 0 && count > 0) {
-            //找出最近联系过的客服人员ID
-            ICustomerMessage msg = (ICustomerMessage) messages.get(count - 1);
-            this.sellerID = msg.sellerID;
-        }
-
         downloadMessageContent(messages, count);
         loadUserName(messages, count);
         checkMessageFailureFlag(messages, count);
@@ -243,8 +236,6 @@ public class CustomerMessageActivity extends MessageActivity
         downloadMessageContent(imsg);
 
         insertMessage(imsg);
-
-        this.sellerID = msg.sellerID;
     }
 
     @Override
@@ -268,8 +259,6 @@ public class CustomerMessageActivity extends MessageActivity
         downloadMessageContent(imsg);
 
         insertMessage(imsg);
-
-        this.sellerID = msg.sellerID;
     }
 
     @Override
