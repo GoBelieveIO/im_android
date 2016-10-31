@@ -36,7 +36,7 @@ public class MessageImageView extends MessageRowView {
 
         ImageView imageView = (ImageView)findViewById(R.id.image);
         Picasso.with(context)
-                .load(((IMessage.Image) msg.content).image + "@256w_256h_0c")
+                .load(((IMessage.Image) msg.content).url + "@256w_256h_0c")
                 .placeholder(R.drawable.image_download_fail)
                 .into(imageView);
 

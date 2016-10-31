@@ -893,7 +893,7 @@ public class MessageActivity extends BaseActivity implements
             File t = new File(tpath);
             f.renameTo(t);
 
-            sendMessageContent(IMessage.newImage("file:" + path));
+            sendMessageContent(IMessage.newImage("file:" + path, (int)newWidth, (int)newHeight));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -1076,7 +1076,7 @@ public class MessageActivity extends BaseActivity implements
             if (msg.msgLocalID == imageMessage.msgLocalID) {
                 position = galleryImages.size();
             }
-            galleryImages.add(new GalleryImage(image.image));
+            galleryImages.add(new GalleryImage(image.url));
         }
         Intent intent = GalleryUI.getCallingIntent(this, galleryImages, position);
         startActivity(intent);

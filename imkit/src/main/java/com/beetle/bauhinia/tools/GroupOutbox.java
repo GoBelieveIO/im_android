@@ -30,7 +30,9 @@ public class GroupOutbox extends Outbox{
         IMMessage msg = new IMMessage();
         msg.sender = imsg.sender;
         msg.receiver = imsg.receiver;
-        msg.content = IMessage.newImage(url).getRaw();
+
+        IMessage.Image image = (IMessage.Image)imsg.content;
+        msg.content = IMessage.newImage(url, image.width, image.height).getRaw();
         msg.msgLocalID = imsg.msgLocalID;
 
         IMService im = IMService.getInstance();

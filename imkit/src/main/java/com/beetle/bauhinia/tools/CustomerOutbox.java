@@ -32,10 +32,9 @@ public class CustomerOutbox extends Outbox {
         msg.customerID = cm.customerID;
         msg.storeID = cm.storeID;
         msg.sellerID = cm.sellerID;
-        msg.content = IMessage.newImage(url).getRaw();
 
-
-
+        IMessage.Image image = (IMessage.Image)imsg.content;
+        msg.content = IMessage.newImage(url, image.width, image.height).getRaw();
 
         IMService im = IMService.getInstance();
         im.sendCustomerMessage(msg);

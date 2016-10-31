@@ -381,7 +381,7 @@ public class GroupMessageActivity extends MessageActivity implements
         } else if (imsg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
             IMessage.Image image = (IMessage.Image)imsg.content;
             //prefix:"file:"
-            String path = image.image.substring(5);
+            String path = image.url.substring(5);
             imsg.setUploading(true);
             GroupOutbox.getInstance().uploadImage(imsg, path);
         } else {

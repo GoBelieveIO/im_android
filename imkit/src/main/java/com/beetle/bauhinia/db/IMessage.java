@@ -1,7 +1,5 @@
 package com.beetle.bauhinia.db;
 
-import com.beetle.bauhinia.tools.Notification;
-import com.beetle.im.BytePacket;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -10,7 +8,6 @@ import com.google.gson.JsonObject;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -23,6 +20,7 @@ public class IMessage {
 
     public static final String TEXT = "text";
     public static final String IMAGE = "image";
+    public static final String IMAGE2 = "image2";
     public static final String LOCATION = "location";
     public static final String AUDIO = "audio";
     public static final String NOTIFICATION = "notification";
@@ -70,12 +68,18 @@ public class IMessage {
         return audio;
     }
 
-    public static Image newImage(String url) {
+    public static Image newImage(String url, int width, int height) {
         Image image = new Image();
         JsonObject content = new JsonObject();
+        //兼容性
         content.addProperty(IMAGE, url);
+        JsonObject obj = new JsonObject();
+        obj.addProperty("url", url);
+        obj.addProperty("width", width);
+        obj.addProperty("height", height);
+        content.add(IMAGE2, obj);
         image.raw = content.toString();
-        image.image = url;
+        image.url = url;
         return image;
     }
 
@@ -198,7 +202,9 @@ public class IMessage {
     }
 
     public static class Image extends MessageContent {
-        public String image;
+        public String url;
+        public int width;
+        public int height;
         public MessageType getType() {
             return MessageType.MESSAGE_IMAGE;
         }
@@ -296,8 +302,12 @@ public class IMessage {
             JsonObject element = gson.fromJson(raw, JsonObject.class);
             if (element.has(TEXT)) {
                 content = gson.fromJson(raw, Text.class);
-            } else if (element.has(IMAGE)){
-                content = gson.fromJson(raw, Image.class);
+            } else if (element.has(IMAGE2)) {
+                content = gson.fromJson(element.get(IMAGE2), Image.class);
+            } else if (element.has(IMAGE)) {
+                Image image = new Image();
+                image.url = element.get(IMAGE).getAsString();
+                content = image;
             } else if (element.has(AUDIO)) {
                 content = gson.fromJson(element.get(AUDIO), Audio.class);
             } else if (element.has(NOTIFICATION)) {
