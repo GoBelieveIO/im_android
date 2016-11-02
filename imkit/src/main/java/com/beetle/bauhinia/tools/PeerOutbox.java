@@ -37,7 +37,7 @@ public class PeerOutbox extends Outbox {
         msg.receiver = imsg.receiver;
 
         IMessage.Image image = (IMessage.Image)imsg.content;
-        msg.content = IMessage.newImage(url, image.width, image.height).getRaw();
+        msg.content = IMessage.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         msg.msgLocalID = imsg.msgLocalID;
 
         IMService im = IMService.getInstance();
@@ -52,7 +52,7 @@ public class PeerOutbox extends Outbox {
         msg.sender = imsg.sender;
         msg.receiver = imsg.receiver;
         msg.msgLocalID = imsg.msgLocalID;
-        msg.content = IMessage.newAudio(url, audio.duration).getRaw();
+        msg.content = IMessage.newAudio(url, audio.duration, audio.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
         im.sendPeerMessage(msg);

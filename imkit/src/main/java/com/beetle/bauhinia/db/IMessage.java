@@ -10,6 +10,7 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.UUID;
 
 /**
  * Created by houxh on 14-7-22.
@@ -46,21 +47,26 @@ public class IMessage {
 
     public static Text newText(String text) {
         Text t = new Text();
+        String uuid = UUID.randomUUID().toString();
+
         JsonObject textContent = new JsonObject();
         textContent.addProperty(TEXT, text);
+        textContent.addProperty("uuid", uuid);
         t.raw = textContent.toString();
         t.text = text;
         return t;
     }
 
-    public static Audio newAudio(String url, long duration) {
+    public static Audio newAudio(String url, long duration, String uuid) {
         Audio audio = new Audio();
+
 
         JsonObject content = new JsonObject();
         JsonObject audioJson = new JsonObject();
         audioJson.addProperty("duration", duration);
         audioJson.addProperty("url", url);
         content.add(AUDIO, audioJson);
+        content.addProperty("uuid", uuid);
         audio.raw = content.toString();
 
         audio.duration = duration;
@@ -68,8 +74,14 @@ public class IMessage {
         return audio;
     }
 
-    public static Image newImage(String url, int width, int height) {
+    public static Audio newAudio(String url, long duration) {
+        String uuid = UUID.randomUUID().toString();
+        return newAudio(url, duration, uuid);
+    }
+
+    public static Image newImage(String url, int width, int height, String uuid) {
         Image image = new Image();
+
         JsonObject content = new JsonObject();
         //兼容性
         content.addProperty(IMAGE, url);
@@ -78,18 +90,27 @@ public class IMessage {
         obj.addProperty("width", width);
         obj.addProperty("height", height);
         content.add(IMAGE2, obj);
+        content.addProperty("uuid", uuid);
         image.raw = content.toString();
         image.url = url;
         return image;
     }
 
+    public static Image newImage(String url, int width, int height) {
+        String uuid = UUID.randomUUID().toString();
+        return newImage(url, width, height, uuid);
+    }
+
     public static Location newLocation(float latitude, float longitude) {
         Location location = new Location();
+        String uuid = UUID.randomUUID().toString();
+
         JsonObject content = new JsonObject();
         JsonObject locationJson = new JsonObject();
         locationJson.addProperty("latitude", latitude);
         locationJson.addProperty("longitude", longitude);
         content.add(LOCATION, locationJson);
+        content.addProperty("uuid", uuid);
         location.raw = content.toString();
         location.longitude = longitude;
         location.latitude = latitude;
@@ -183,7 +204,8 @@ public class IMessage {
     }
 
     public abstract static class MessageContent {
-        public String raw;
+        protected String raw;
+        protected String uuid;
 
         public MessageType getType() {
             return MessageType.MESSAGE_UNKNOWN;
@@ -191,6 +213,14 @@ public class IMessage {
 
         public String getRaw() {
             return raw;
+        }
+
+        public String getUUID() {
+            return uuid;
+        }
+
+        public void setUUID(String uuid) {
+            this.uuid = uuid;
         }
     }
 
@@ -323,11 +353,16 @@ public class IMessage {
             } else {
                 content = new Unknown();
             }
+            if (element.has("uuid")) {
+                content.setUUID(element.get("uuid").getAsString());
+            }
         } catch (Exception e) {
             content = new Unknown();
         }
 
         content.raw = raw;
+
+
     }
 
     public void setContent(MessageContent content) {
