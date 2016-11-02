@@ -66,6 +66,10 @@ public class IMService {
 
     private long roomID;
 
+    private long syncKey;
+    private HashMap<Long, Long> groupSyncKeys = new HashMap<Long, Long>();
+
+    SyncKeyHandler syncKeyHandler;
     PeerMessageHandler peerMessageHandler;
     GroupMessageHandler groupMessageHandler;
     CustomerMessageHandler customerMessageHandler;
@@ -171,6 +175,26 @@ public class IMService {
     public void setAppID(long appID) { this.appID = appID; }
     public void setDeviceID(String deviceID) {
         this.deviceID = deviceID;
+    }
+
+    public void setSyncKey(long syncKey) {
+        this.syncKey = syncKey;
+    }
+
+    public void addSuperGroupSyncKey(long groupID, long syncKey) {
+        this.groupSyncKeys.put(groupID, syncKey);
+    }
+
+    public void removeSuperGroupSyncKey(long groupID) {
+        this.groupSyncKeys.remove(groupID);
+    }
+
+    public void clearSuperGroupSyncKeys() {
+        this.groupSyncKeys.clear();
+    }
+
+    public void setSyncKeyHandler(SyncKeyHandler handler) {
+        this.syncKeyHandler = handler;
     }
 
     public void setPeerMessageHandler(PeerMessageHandler handler) {
@@ -575,6 +599,22 @@ public class IMService {
         Log.d(TAG, "start connect timer:" + this.connectFailCount);
     }
 
+    private void onConnected() {
+        Log.i(TAG, "tcp connected");
+        this.connectFailCount = 0;
+        this.connectState = ConnectState.STATE_CONNECTED;
+        this.publishConnectState();
+        this.sendAuth();
+        if (this.roomID > 0) {
+            this.sendEnterRoom(IMService.this.roomID);
+        }
+        this.sendSync(IMService.this.syncKey);
+        for (Map.Entry<Long, Long> e : this.groupSyncKeys.entrySet()) {
+            this.sendGroupSync(e.getKey(), e.getValue());
+        }
+        this.tcp.startRead();
+    }
+
     private void connect() {
         if (this.tcp != null) {
             return;
@@ -622,15 +662,7 @@ public class IMService {
                     IMService.this.close();
                     IMService.this.startConnectTimer();
                 } else {
-                    Log.i(TAG, "tcp connected");
-                    IMService.this.connectFailCount = 0;
-                    IMService.this.connectState = ConnectState.STATE_CONNECTED;
-                    IMService.this.publishConnectState();
-                    IMService.this.sendAuth();
-                    if (IMService.this.roomID > 0) {
-                        IMService.this.sendEnterRoom(IMService.this.roomID);
-                    }
-                    IMService.this.tcp.startRead();
+                    IMService.this.onConnected();
                 }
             }
         });
@@ -883,6 +915,63 @@ public class IMService {
         }
     }
 
+    private void handleSyncNotify(Message msg) {
+        Log.i(TAG, "sync notify:" + msg.body);
+        Long newSyncKey = (Long)msg.body;
+        if (newSyncKey > this.syncKey) {
+            sendSync(this.syncKey);
+        }
+    }
+
+    private void handleSyncBegin(Message msg) {
+        Log.i(TAG, "sync begin...:" + msg.body);
+    }
+
+    private void handleSyncEnd(Message msg) {
+        Log.i(TAG, "sync end...:" + msg.body);
+        Long newSyncKey = (Long)msg.body;
+        if (newSyncKey > this.syncKey) {
+            this.syncKey = newSyncKey;
+            if (this.syncKeyHandler != null) {
+                this.syncKeyHandler.saveSyncKey(this.syncKey);
+            }
+        }
+    }
+
+    private void handleSyncGroupNotify(Message msg) {
+        GroupSyncKey key = (GroupSyncKey)msg.body;
+        Log.i(TAG, "group sync notify:" + key.groupID + " " + key.syncKey);
+
+        Long origin = new Long(0);
+        if (this.groupSyncKeys.containsKey(key.groupID)) {
+            origin = this.groupSyncKeys.get(key.groupID);
+        }
+        if (key.syncKey > origin) {
+            this.sendGroupSync(key.groupID, origin);
+        }
+    }
+
+    private void handleSyncGroupBegin(Message msg) {
+        GroupSyncKey key = (GroupSyncKey)msg.body;
+        Log.i(TAG, "sync group begin...:" + key.groupID + " " + key.syncKey);
+    }
+
+    private void handleSyncGroupEnd(Message msg) {
+        GroupSyncKey key = (GroupSyncKey)msg.body;
+        Log.i(TAG, "sync group end...:" + key.groupID + " " + key.syncKey);
+
+        Long origin = new Long(0);
+        if (this.groupSyncKeys.containsKey(key.groupID)) {
+            origin = this.groupSyncKeys.get(key.groupID);
+        }
+        if (key.syncKey > origin) {
+            this.groupSyncKeys.put(key.groupID, key.syncKey);
+            if (this.syncKeyHandler != null) {
+                this.syncKeyHandler.saveGroupSyncKey(key.groupID, key.syncKey);
+            }
+        }
+    }
+
     private void handlePong(Message msg) {
         this.pingTimestamp = 0;
     }
@@ -915,6 +1004,18 @@ public class IMService {
             handleCustomerSupportMessage(msg);
         } else if (msg.cmd == Command.MSG_ROOM_IM) {
             handleRoomMessage(msg);
+        } else if (msg.cmd == Command.MSG_SYNC_NOTIFY) {
+            handleSyncNotify(msg);
+        } else if (msg.cmd == Command.MSG_SYNC_BEGIN) {
+            handleSyncBegin(msg);
+        } else if (msg.cmd == Command.MSG_SYNC_END) {
+            handleSyncEnd(msg);
+        } else if (msg.cmd == Command.MSG_SYNC_GROUP_NOTIFY) {
+            handleSyncGroupNotify(msg);
+        } else if (msg.cmd == Command.MSG_SYNC_GROUP_BEGIN) {
+            handleSyncGroupBegin(msg);
+        } else if (msg.cmd == Command.MSG_SYNC_GROUP_END) {
+            handleSyncGroupEnd(msg);
         } else {
             Log.i(TAG, "unknown message cmd:"+msg.cmd);
         }
@@ -972,6 +1073,23 @@ public class IMService {
         auth.deviceID = this.deviceID;
         msg.body = auth;
 
+        sendMessage(msg);
+    }
+
+    private void sendSync(long syncKey) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_SYNC;
+        msg.body = new Long(syncKey);
+        sendMessage(msg);
+    }
+
+    private void sendGroupSync(long groupID, long syncKey) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_SYNC_GROUP;
+        GroupSyncKey key = new GroupSyncKey();
+        key.groupID = groupID;
+        key.syncKey = syncKey;
+        msg.body = key;
         sendMessage(msg);
     }
 

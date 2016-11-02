@@ -13,6 +13,7 @@ import android.widget.Toast;
 import com.beetle.bauhinia.PeerMessageActivity;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.body.PostDeviceToken;
+import com.beetle.bauhinia.db.SyncKeyHandler;
 import com.beetle.im.IMService;
 
 import org.apache.http.Header;
@@ -27,6 +28,8 @@ import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -36,6 +39,7 @@ import rx.functions.Action1;
  * Description: 登录页面,给用户指定消息发送方Id
  */
 public class LoginActivity extends BaseActivity implements View.OnClickListener {
+    private final String TAG = "demo";
     private EditText mEtAccount;
     private EditText mEtTargetAccount;
 
@@ -59,6 +63,20 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);
         IMService.getInstance().setUID(sender);
+
+        SyncKeyHandler handler = new SyncKeyHandler(this.getApplicationContext(), "sync_key");
+        handler.load();
+
+        HashMap<Long, Long> groupSyncKeys = handler.getSuperGroupSyncKeys();
+        IMService.getInstance().clearSuperGroupSyncKeys();
+        for (Map.Entry<Long, Long> e : groupSyncKeys.entrySet()) {
+            IMService.getInstance().addSuperGroupSyncKey(e.getKey(), e.getValue());
+            Log.i(TAG, "group id:" + e.getKey() + "sync key:" + e.getValue());
+        }
+        IMService.getInstance().setSyncKey(handler.getSyncKey());
+        Log.i(TAG, "sync key:" + handler.getSyncKey());
+        IMService.getInstance().setSyncKeyHandler(handler);
+
         IMService.getInstance().start();
 
         IMDemoApplication app = (IMDemoApplication)getApplication();
@@ -150,6 +168,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
     private String login(long uid) {
         //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务
         String URL = "http://demo.gobelieve.io";
+        
         String uri = String.format("%s/auth/token", URL);
         try {
             HttpClient getClient = new DefaultHttpClient();
@@ -195,34 +214,4 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
             return null;
         }
     }
-
-    private static final char HEX_DIGITS[] = {
-            '0',
-            '1',
-            '2',
-            '3',
-            '4',
-            '5',
-            '6',
-            '7',
-            '8',
-            '9',
-            'A',
-            'B',
-            'C',
-            'D',
-            'E',
-            'F'
-    };
-
-    public final static String bin2Hex(byte[] b) {
-        StringBuilder sb = new StringBuilder(b.length * 2);
-        for (int i = 0; i < b.length; i++) {
-            sb.append(HEX_DIGITS[(b[i] & 0xf0) >>> 4]);
-            sb.append(HEX_DIGITS[b[i] & 0x0f]);
-        }
-        return sb.toString();
-    }
-
-
 }

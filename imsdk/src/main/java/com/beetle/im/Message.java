@@ -33,6 +33,17 @@ class Command{
     public static final int MSG_CUSTOMER = 24;
     public static final int MSG_CUSTOMER_SUPPORT = 25;
 
+    public static final int MSG_SYNC = 26;
+    public static final int MSG_SYNC_BEGIN = 27;
+    public static final int MSG_SYNC_END = 28;
+    public static final int MSG_SYNC_NOTIFY = 29;
+
+    public static final int MSG_SYNC_GROUP = 30;
+    public static final int MSG_SYNC_GROUP_BEGIN = 31;
+    public static final int MSG_SYNC_GROUP_END = 32;
+    public static final int MSG_SYNC_GROUP_NOTIFY = 33;
+
+
     public static final int MSG_VOIP_CONTROL = 64;
 }
 
@@ -46,6 +57,14 @@ class AuthenticationToken {
     public String token;
     public int platformID;
     public String deviceID;
+}
+
+//个人消息：typedef long SyncKey
+
+//超级群
+class GroupSyncKey {
+    public long groupID;
+    public long syncKey;
 }
 
 public class Message {
@@ -190,9 +209,20 @@ public class Message {
                 return null;
             }
         } else if (cmd == Command.MSG_ENTER_ROOM || cmd == Command.MSG_LEAVE_ROOM) {
-            Long roomID = (Long)body;
+            Long roomID = (Long) body;
             BytePacket.writeInt64(roomID, buf, pos);
             return Arrays.copyOf(buf, HEAD_SIZE + 8);
+        } else if (cmd == Command.MSG_SYNC) {
+            Long syncKey = (Long) body;
+            BytePacket.writeInt64(syncKey, buf, pos);
+            return Arrays.copyOf(buf, HEAD_SIZE + 8);
+        } else if (cmd == Command.MSG_SYNC_GROUP) {
+            GroupSyncKey syncKey = (GroupSyncKey)body;
+            BytePacket.writeInt64(syncKey.groupID, buf, pos);
+            pos += 8;
+            BytePacket.writeInt64(syncKey.syncKey, buf, pos);
+            pos += 8;
+            return Arrays.copyOf(buf, HEAD_SIZE + 16);
         } else {
             return null;
         }
@@ -309,6 +339,22 @@ public class Message {
         } else if (cmd == Command.MSG_ENTER_ROOM || cmd == Command.MSG_LEAVE_ROOM) {
             long roomID = BytePacket.readInt64(data, pos);
             this.body = new Long(roomID);
+            return true;
+        } else if (cmd == Command.MSG_SYNC_BEGIN ||
+                cmd == Command.MSG_SYNC_END ||
+                cmd == Command.MSG_SYNC_NOTIFY) {
+            long key = BytePacket.readInt64(data, pos);
+            this.body = new Long(key);
+            return true;
+        } else if (cmd == Command.MSG_SYNC_GROUP_BEGIN ||
+                cmd == Command.MSG_SYNC_GROUP_END ||
+                cmd == Command.MSG_SYNC_GROUP_NOTIFY) {
+            GroupSyncKey key = new GroupSyncKey();
+            key.groupID = BytePacket.readInt64(data, pos);
+            pos += 8;
+            key.syncKey = BytePacket.readInt64(data, pos);
+            pos += 8;
+            this.body = key;
             return true;
         } else {
             return true;
