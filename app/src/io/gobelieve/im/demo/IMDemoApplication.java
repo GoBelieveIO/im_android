@@ -40,9 +40,8 @@ public class IMDemoApplication extends Application {
 
         IMService mIMService = IMService.getInstance();
         //app可以单独部署服务器，给予第三方应用更多的灵活性
-        mIMService.setHost("imnode.gobelieve.io");
+        mIMService.setHost("imnode2.gobelieve.io");
         IMHttpAPI.setAPIURL("http://api.gobelieve.io");
-
 
         String androidID = Settings.Secure.getString(this.getContentResolver(),
                 Settings.Secure.ANDROID_ID);

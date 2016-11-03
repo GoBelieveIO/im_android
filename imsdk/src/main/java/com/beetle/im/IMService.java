@@ -13,7 +13,6 @@ import com.beetle.AsyncTCP;
 import com.beetle.TCPConnectCallback;
 import com.beetle.TCPReadCallback;
 
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -29,7 +28,7 @@ import static android.os.SystemClock.uptimeMillis;
  */
 public class IMService {
 
-    private final String HOST = "imnode.gobelieve.io";
+    private final String HOST = "imnode2.gobelieve.io";
     private final int PORT = 23000;
 
     public enum ConnectState {
