@@ -57,9 +57,9 @@ public class MessageAudioView extends MessageRowView {
         if (playing) {
             AnimationDrawable voiceAnimation;
             if (!msg.isOutgoing) {
-                audioHolder.control.setImageResource(R.anim.voice_from_icon);
+                audioHolder.control.setImageResource(R.drawable.voice_from_icon);
             } else {
-                audioHolder.control.setImageResource(R.anim.voice_to_icon);
+                audioHolder.control.setImageResource(R.drawable.voice_to_icon);
             }
             voiceAnimation = (AnimationDrawable) audioHolder.control.getDrawable();
             voiceAnimation.start();
@@ -99,9 +99,9 @@ public class MessageAudioView extends MessageRowView {
             if (playing) {
                 AnimationDrawable voiceAnimation;
                 if (!this.message.isOutgoing) {
-                    audioHolder.control.setImageResource(R.anim.voice_from_icon);
+                    audioHolder.control.setImageResource(R.drawable.voice_from_icon);
                 } else {
-                    audioHolder.control.setImageResource(R.anim.voice_to_icon);
+                    audioHolder.control.setImageResource(R.drawable.voice_to_icon);
                 }
                 voiceAnimation = (AnimationDrawable) audioHolder.control.getDrawable();
                 voiceAnimation.start();
