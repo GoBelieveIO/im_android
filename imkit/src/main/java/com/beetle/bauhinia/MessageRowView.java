@@ -1,6 +1,7 @@
 package com.beetle.bauhinia;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +16,7 @@ import java.beans.PropertyChangeListener;
 
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.imkit.R;
+import com.squareup.picasso.Picasso;
 
 public class MessageRowView extends FrameLayout implements PropertyChangeListener {
 
@@ -99,6 +101,15 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
                 nameView.setText(msg.getSenderName());
             }
         }
+
+        ImageView headerView = (ImageView)findViewById(R.id.header);
+        String avatar = msg.getSenderAvatar();
+        if (headerView != null && !TextUtils.isEmpty(avatar)) {
+            Picasso.with(context)
+                    .load(avatar)
+                    .placeholder(R.drawable.image_download_fail)
+                    .into(headerView);
+        }
     }
 
     public View getContentView() {
@@ -134,6 +145,14 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
         } else if (event.getPropertyName().equals("senderName")) {
             if (nameView != null) {
                 nameView.setText(this.message.getSenderName());
+            }
+            ImageView headerView = (ImageView)findViewById(R.id.header);
+            String avatar = this.message.getSenderAvatar();
+            if (headerView != null && !TextUtils.isEmpty(avatar)) {
+                Picasso.with(context)
+                        .load(avatar)
+                        .placeholder(R.drawable.image_download_fail)
+                        .into(headerView);
             }
         }
     }
