@@ -10,22 +10,22 @@
     android:descendantFocusability="afterDescendants"
     >
 
-    <ImageView
-        android:id="@+id/header"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginRight="4dp"
-        android:src="@drawable/avatar_contact"/>
-
     <FrameLayout
         android:id="@+id/content"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/chatto_bg"
         android:layout_marginLeft="20dp"
-        android:layout_toLeftOf="@+id/header"
         >
     </FrameLayout>
+
+    <ImageView
+        android:id="@+id/header"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginRight="4dp"
+        android:layout_toRightOf="@+id/content"
+        android:src="@drawable/avatar_contact"/>
 
     <ImageView
         android:id="@+id/flag"
