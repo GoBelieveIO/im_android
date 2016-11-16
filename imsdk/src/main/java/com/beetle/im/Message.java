@@ -43,6 +43,9 @@ class Command{
     public static final int MSG_SYNC_GROUP_END = 32;
     public static final int MSG_SYNC_GROUP_NOTIFY = 33;
 
+    public static final int MSG_SYNC_KEY = 34;
+    public static final int MSG_GROUP_SYNC_KEY = 35;
+
 
     public static final int MSG_VOIP_CONTROL = 64;
 }
@@ -212,11 +215,13 @@ public class Message {
             Long roomID = (Long) body;
             BytePacket.writeInt64(roomID, buf, pos);
             return Arrays.copyOf(buf, HEAD_SIZE + 8);
-        } else if (cmd == Command.MSG_SYNC) {
+        } else if (cmd == Command.MSG_SYNC ||
+                cmd == Command.MSG_SYNC_KEY) {
             Long syncKey = (Long) body;
             BytePacket.writeInt64(syncKey, buf, pos);
             return Arrays.copyOf(buf, HEAD_SIZE + 8);
-        } else if (cmd == Command.MSG_SYNC_GROUP) {
+        } else if (cmd == Command.MSG_SYNC_GROUP ||
+                cmd == Command.MSG_GROUP_SYNC_KEY) {
             GroupSyncKey syncKey = (GroupSyncKey)body;
             BytePacket.writeInt64(syncKey.groupID, buf, pos);
             pos += 8;

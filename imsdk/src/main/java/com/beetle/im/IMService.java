@@ -933,6 +933,7 @@ public class IMService {
             this.syncKey = newSyncKey;
             if (this.syncKeyHandler != null) {
                 this.syncKeyHandler.saveSyncKey(this.syncKey);
+                this.sendSyncKey(this.syncKey);
             }
         }
     }
@@ -968,6 +969,7 @@ public class IMService {
             if (this.syncKeyHandler != null) {
                 this.syncKeyHandler.saveGroupSyncKey(key.groupID, key.syncKey);
             }
+            this.sendGroupSyncKey(key.groupID, key.syncKey);
         }
     }
 
@@ -1082,9 +1084,26 @@ public class IMService {
         sendMessage(msg);
     }
 
+    private void sendSyncKey(long syncKey) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_SYNC_KEY;
+        msg.body = new Long(syncKey);
+        sendMessage(msg);
+    }
+
     private void sendGroupSync(long groupID, long syncKey) {
         Message msg = new Message();
         msg.cmd = Command.MSG_SYNC_GROUP;
+        GroupSyncKey key = new GroupSyncKey();
+        key.groupID = groupID;
+        key.syncKey = syncKey;
+        msg.body = key;
+        sendMessage(msg);
+    }
+
+    private void sendGroupSyncKey(long groupID, long syncKey) {
+        Message msg = new Message();
+        msg.cmd = Command.MSG_GROUP_SYNC_KEY;
         GroupSyncKey key = new GroupSyncKey();
         key.groupID = groupID;
         key.syncKey = syncKey;
