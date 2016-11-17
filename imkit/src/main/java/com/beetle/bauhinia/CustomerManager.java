@@ -195,8 +195,8 @@ public class CustomerManager {
 
         JSONObject body = new JSONObject();
         try {
-            body.put("uid", uid != null ? uid : "");
-            body.put("user_name", (name != null ? name : ""));
+            body.put("customer_id", uid != null ? uid : "");
+            body.put("name", (name != null ? name : ""));
             body.put("avatar", (avatar != null ? avatar : ""));
             body.put("appid", this.appID);
             body.put("device_id", this.deviceID);
