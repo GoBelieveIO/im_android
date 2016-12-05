@@ -54,6 +54,7 @@ public class IMessage {
         textContent.addProperty("uuid", uuid);
         t.raw = textContent.toString();
         t.text = text;
+        t.uuid = uuid;
         return t;
     }
 
@@ -71,6 +72,7 @@ public class IMessage {
 
         audio.duration = duration;
         audio.url = url;
+        audio.uuid = uuid;
         return audio;
     }
 
@@ -93,6 +95,9 @@ public class IMessage {
         content.addProperty("uuid", uuid);
         image.raw = content.toString();
         image.url = url;
+        image.width = width;
+        image.height = height;
+        image.uuid = uuid;
         return image;
     }
 
@@ -114,6 +119,7 @@ public class IMessage {
         location.raw = content.toString();
         location.longitude = longitude;
         location.latitude = latitude;
+        location.uuid = uuid;
         return location;
     }
 
