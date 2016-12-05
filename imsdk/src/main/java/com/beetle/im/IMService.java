@@ -65,8 +65,23 @@ public class IMService {
 
     private long roomID;
 
+    //确保一个时刻只有一个同步过程在运行，以免收到重复的消息
     private long syncKey;
-    private HashMap<Long, Long> groupSyncKeys = new HashMap<Long, Long>();
+    //在同步过程中收到新的syncnotify消息
+    private long pendingSyncKey;
+    private boolean isSyncing;
+    private int syncTimestamp;
+
+    private static class GroupSync {
+        public long groupID;
+        public long syncKey;
+        //在同步过程中收到新的syncnotify消息
+        private long pendingSyncKey;
+        private boolean isSyncing;
+        private int syncTimestamp;
+    }
+
+    private HashMap<Long, GroupSync> groupSyncKeys = new HashMap<Long, GroupSync>();
 
     SyncKeyHandler syncKeyHandler;
     PeerMessageHandler peerMessageHandler;
@@ -181,7 +196,10 @@ public class IMService {
     }
 
     public void addSuperGroupSyncKey(long groupID, long syncKey) {
-        this.groupSyncKeys.put(groupID, syncKey);
+        GroupSync s = new GroupSync();
+        s.groupID = groupID;
+        s.syncKey = syncKey;
+        this.groupSyncKeys.put(groupID, s);
     }
 
     public void removeSuperGroupSyncKey(long groupID) {
@@ -600,16 +618,25 @@ public class IMService {
 
     private void onConnected() {
         Log.i(TAG, "tcp connected");
+
+        int now = now();
         this.connectFailCount = 0;
         this.connectState = ConnectState.STATE_CONNECTED;
         this.publishConnectState();
         this.sendAuth();
         if (this.roomID > 0) {
-            this.sendEnterRoom(IMService.this.roomID);
+            this.sendEnterRoom(this.roomID);
         }
-        this.sendSync(IMService.this.syncKey);
-        for (Map.Entry<Long, Long> e : this.groupSyncKeys.entrySet()) {
-            this.sendGroupSync(e.getKey(), e.getValue());
+        this.sendSync(this.syncKey);
+        this.isSyncing = true;
+        this.syncTimestamp = now;
+        this.pendingSyncKey = 0;
+        for (Map.Entry<Long, GroupSync> e : this.groupSyncKeys.entrySet()) {
+            GroupSync s = e.getValue();
+            this.sendGroupSync(e.getKey(), s.syncKey);
+            s.isSyncing = true;
+            s.syncTimestamp = now;
+            s.pendingSyncKey = 0;
         }
         this.tcp.startRead();
     }
@@ -917,8 +944,18 @@ public class IMService {
     private void handleSyncNotify(Message msg) {
         Log.i(TAG, "sync notify:" + msg.body);
         Long newSyncKey = (Long)msg.body;
-        if (newSyncKey > this.syncKey) {
+        int now = now();
+
+        //4s同步超时
+        boolean isSyncing = this.isSyncing && (now - this.syncTimestamp < 4);
+
+        if (!isSyncing && newSyncKey > this.syncKey) {
             sendSync(this.syncKey);
+            this.isSyncing = true;
+            this.syncTimestamp = now;
+        } else if (newSyncKey > this.pendingSyncKey) {
+            //等待此次同步结束后，再同步
+            this.pendingSyncKey = newSyncKey;
         }
     }
 
@@ -936,18 +973,42 @@ public class IMService {
                 this.sendSyncKey(this.syncKey);
             }
         }
+
+        int now = now();
+        this.isSyncing = false;
+        if (this.pendingSyncKey > this.syncKey) {
+            //上次同步过程中，再次收到了新的SyncGroupNotify消息
+            this.sendSync(this.syncKey);
+            this.isSyncing = true;
+            this.syncTimestamp = now;
+            this.pendingSyncKey = 0;
+        }
     }
 
     private void handleSyncGroupNotify(Message msg) {
         GroupSyncKey key = (GroupSyncKey)msg.body;
         Log.i(TAG, "group sync notify:" + key.groupID + " " + key.syncKey);
 
-        Long origin = new Long(0);
+        GroupSync s = null;
         if (this.groupSyncKeys.containsKey(key.groupID)) {
-            origin = this.groupSyncKeys.get(key.groupID);
+            s = this.groupSyncKeys.get(key.groupID);
+        } else {
+            //接受到新加入的超级群消息
+            s = new GroupSync();
+            s.groupID = key.groupID;
+            s.syncKey = 0;
+            this.groupSyncKeys.put(new Long(key.groupID), s);
         }
-        if (key.syncKey > origin) {
-            this.sendGroupSync(key.groupID, origin);
+
+        int now = now();
+        //4s同步超时
+        boolean isSyncing = s.isSyncing && (now - s.syncTimestamp < 4);
+        if (!isSyncing && key.syncKey > s.syncKey) {
+            this.sendGroupSync(key.groupID, s.syncKey);
+            s.isSyncing = true;
+            s.syncTimestamp = now;
+        } else if (key.syncKey > s.pendingSyncKey) {
+            s.pendingSyncKey = key.syncKey;
         }
     }
 
@@ -960,16 +1021,31 @@ public class IMService {
         GroupSyncKey key = (GroupSyncKey)msg.body;
         Log.i(TAG, "sync group end...:" + key.groupID + " " + key.syncKey);
 
-        Long origin = new Long(0);
+        GroupSync s = null;
         if (this.groupSyncKeys.containsKey(key.groupID)) {
-            origin = this.groupSyncKeys.get(key.groupID);
+            s = this.groupSyncKeys.get(key.groupID);
+        } else {
+            Log.e(TAG, "no group:" + key.groupID + " sync key");
+            return;
         }
-        if (key.syncKey > origin) {
-            this.groupSyncKeys.put(key.groupID, key.syncKey);
+
+        if (key.syncKey > s.syncKey) {
+            s.syncKey = key.syncKey;
             if (this.syncKeyHandler != null) {
                 this.syncKeyHandler.saveGroupSyncKey(key.groupID, key.syncKey);
+                this.sendGroupSyncKey(key.groupID, key.syncKey);
             }
-            this.sendGroupSyncKey(key.groupID, key.syncKey);
+        }
+
+        s.isSyncing = false;
+
+        int now = now();
+        if (s.pendingSyncKey > s.syncKey) {
+            //上次同步过程中，再次收到了新的SyncGroupNotify消息
+            this.sendGroupSync(s.groupID, s.syncKey);
+            s.isSyncing = true;
+            s.syncTimestamp = now;
+            s.pendingSyncKey = 0;
         }
     }
 
