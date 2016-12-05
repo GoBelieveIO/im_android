@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  * Created by houxh on 16/1/18.
@@ -100,6 +101,7 @@ public class CustomerMessageActivity extends MessageActivity
     }
 
     protected void loadConversationData() {
+        HashSet<String> uuidSet = new HashSet<String>();
         messages = new ArrayList<IMessage>();
 
         int count = 0;
@@ -108,6 +110,15 @@ public class CustomerMessageActivity extends MessageActivity
             ICustomerMessage msg = (ICustomerMessage)iter.next();
             if (msg == null) {
                 break;
+            }
+
+            //不加载重复的消息
+            if (!TextUtils.isEmpty(msg.getUUID()) && uuidSet.contains(msg.getUUID())) {
+                continue;
+            }
+
+            if (!TextUtils.isEmpty(msg.getUUID())) {
+                uuidSet.add(msg.getUUID());
             }
 
             if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
@@ -170,12 +181,29 @@ public class CustomerMessageActivity extends MessageActivity
             return;
         }
 
+        HashSet<String> uuidSet = new HashSet<String>();
+        for (int i  = 0; i < messages.size(); i++) {
+            IMessage msg = messages.get(i);
+            if (!TextUtils.isEmpty(msg.getUUID())) {
+                uuidSet.add(msg.getUUID());
+            }
+        }
+
         int count = 0;
         MessageIterator iter = CustomerMessageDB.getInstance().newMessageIterator(storeID, firstMsg.msgLocalID);
         while (iter != null) {
             ICustomerMessage msg = (ICustomerMessage)iter.next();
             if (msg == null) {
                 break;
+            }
+
+            //不加载重复的消息
+            if (!TextUtils.isEmpty(msg.getUUID()) && uuidSet.contains(msg.getUUID())) {
+                continue;
+            }
+
+            if (!TextUtils.isEmpty(msg.getUUID())) {
+                uuidSet.add(msg.getUUID());
             }
 
             if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
@@ -229,8 +257,12 @@ public class CustomerMessageActivity extends MessageActivity
         imsg.isOutgoing = false;
         imsg.sender = msg.storeID;
         imsg.receiver = msg.customerID;
-
         imsg.setContent(msg.content);
+
+        if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
+            Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            return;
+        }
 
         loadUserName(imsg);
         downloadMessageContent(imsg);
@@ -252,8 +284,12 @@ public class CustomerMessageActivity extends MessageActivity
         imsg.isSupport = false;
         imsg.sender = msg.customerID;
         imsg.receiver = msg.storeID;
-
         imsg.setContent(msg.content);
+
+        if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
+            Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            return;
+        }
 
         loadUserName(imsg);
         downloadMessageContent(imsg);

@@ -391,6 +391,15 @@ public class IMessage {
     private boolean downloading;
     private boolean geocoding;
 
+    public String getUUID() {
+        if (this.content != null) {
+            return this.content.getUUID() != null ? this.content.getUUID() : "";
+        } else {
+            return "";
+        }
+    }
+
+
     private PropertyChangeSupport changeSupport = new PropertyChangeSupport(
             this);
 

@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 
 /**
@@ -111,6 +112,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
 
     protected void loadConversationData() {
+        HashSet<String> uuidSet = new HashSet<String>();
         messages = new ArrayList<IMessage>();
 
         int count = 0;
@@ -120,6 +122,16 @@ public class GroupMessageActivity extends MessageActivity implements
             if (msg == null) {
                 break;
             }
+
+            //不加载重复的消息
+            if (!TextUtils.isEmpty(msg.getUUID()) && uuidSet.contains(msg.getUUID())) {
+                continue;
+            }
+
+            if (!TextUtils.isEmpty(msg.getUUID())) {
+                uuidSet.add(msg.getUUID());
+            }
+
 
             if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
                 IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
@@ -144,13 +156,41 @@ public class GroupMessageActivity extends MessageActivity implements
             return;
         }
 
-        IMessage firsMsg = messages.get(0);
+        IMessage firstMsg = null;
+        for (int i  = 0; i < messages.size(); i++) {
+            IMessage msg = messages.get(i);
+            if (msg.msgLocalID > 0) {
+                firstMsg = msg;
+                break;
+            }
+        }
+        if (firstMsg == null) {
+            return;
+        }
+
+        HashSet<String> uuidSet = new HashSet<String>();
+        for (int i  = 0; i < messages.size(); i++) {
+            IMessage msg = messages.get(i);
+            if (!TextUtils.isEmpty(msg.getUUID())) {
+                uuidSet.add(msg.getUUID());
+            }
+        }
+
         int count = 0;
-        MessageIterator iter = GroupMessageDB.getInstance().newMessageIterator(groupID, firsMsg.msgLocalID);
+        MessageIterator iter = GroupMessageDB.getInstance().newMessageIterator(groupID, firstMsg.msgLocalID);
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
                 break;
+            }
+
+            //不加载重复的消息
+            if (!TextUtils.isEmpty(msg.getUUID()) && uuidSet.contains(msg.getUUID())) {
+                continue;
+            }
+
+            if (!TextUtils.isEmpty(msg.getUUID())) {
+                uuidSet.add(msg.getUUID());
             }
 
             if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
@@ -203,6 +243,11 @@ public class GroupMessageActivity extends MessageActivity implements
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
         imsg.isOutgoing = (msg.sender == this.currentUID);
+
+        if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
+            Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            return;
+        }
 
         loadUserName(imsg);
 

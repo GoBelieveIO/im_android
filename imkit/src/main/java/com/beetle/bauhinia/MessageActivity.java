@@ -1181,4 +1181,13 @@ public class MessageActivity extends BaseActivity implements
         }
         return null;
     }
+
+    protected IMessage findMessage(String uuid) {
+        for (IMessage imsg : messages) {
+            if (imsg.getUUID().equals(uuid)) {
+                return imsg;
+            }
+        }
+        return null;
+    }
 }
