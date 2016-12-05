@@ -140,6 +140,7 @@ public class PeerMessageActivity extends MessageActivity implements
         }
 
         downloadMessageContent(messages, count);
+        loadUserName(messages, count);
         checkMessageFailureFlag(messages, count);
         resetMessageTimeBase();
     }
@@ -199,6 +200,7 @@ public class PeerMessageActivity extends MessageActivity implements
         }
         if (count > 0) {
             downloadMessageContent(messages, count);
+            loadUserName(messages, count);
             checkMessageFailureFlag(messages, count);
             resetMessageTimeBase();
             adapter.notifyDataSetChanged();
@@ -256,8 +258,8 @@ public class PeerMessageActivity extends MessageActivity implements
             return;
         }
 
+        loadUserName(imsg);
         downloadMessageContent(imsg);
-
         insertMessage(imsg);
     }
 
