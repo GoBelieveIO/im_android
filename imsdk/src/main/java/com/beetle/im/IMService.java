@@ -434,6 +434,10 @@ public class IMService {
         }
 
         peerMessages.put(new Integer(msg.seq), im);
+
+        //在发送需要回执的消息时尽快发现socket已经断开的情况
+        sendHeartbeat();
+
         return true;
     }
 
@@ -446,6 +450,10 @@ public class IMService {
         }
 
         groupMessages.put(new Integer(msg.seq), im);
+
+        //在发送需要回执的消息时尽快发现socket已经断开的情况
+        sendHeartbeat();
+
         return true;
     }
 
@@ -458,6 +466,10 @@ public class IMService {
         }
 
         customerMessages.put(new Integer(msg.seq), im);
+
+        //在发送需要回执的消息时尽快发现socket已经断开的情况
+        sendHeartbeat();
+
         return true;
     }
 
@@ -470,6 +482,10 @@ public class IMService {
         }
 
         customerMessages.put(new Integer(msg.seq), im);
+
+        //在发送需要回执的消息时尽快发现socket已经断开的情况
+        sendHeartbeat();
+
         return true;
     }
 
@@ -1188,11 +1204,12 @@ public class IMService {
     }
 
     private void sendHeartbeat() {
-        Log.i(TAG, "send ping");
-        Message msg = new Message();
-        msg.cmd = Command.MSG_PING;
-        boolean r = sendMessage(msg);
-        if (r && this.pingTimestamp == 0) {
+        if (connectState == ConnectState.STATE_CONNECTED && this.pingTimestamp == 0) {
+            Log.i(TAG, "send ping");
+            Message msg = new Message();
+            msg.cmd = Command.MSG_PING;
+            sendMessage(msg);
+
             this.pingTimestamp = now();
 
             Timer t = new Timer() {
