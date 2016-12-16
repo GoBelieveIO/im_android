@@ -61,11 +61,13 @@
             android:name="com.beetle.bauhinia.LocationPickerActivity"
             android:label="位置"
             android:theme="@style/imkit.ActionBar"></activity>
+
+
         <activity
             android:name=".RoomActivity"
             android:exported="true"
-            android:theme="@style/imkit.NoActionBar"
-            android:windowSoftInputMode="adjustResize">
+            android:theme="@style/imkit.ActionBar"
+            android:windowSoftInputMode="adjustResize|stateHidden">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
