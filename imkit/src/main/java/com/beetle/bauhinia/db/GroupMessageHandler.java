@@ -22,6 +22,13 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         return (int)(t/1000);
     }
 
+    //当前用户id
+    private long uid;
+
+    public void setUID(long uid) {
+        this.uid = uid;
+    }
+
     public boolean handleMessage(IMMessage msg) {
         GroupMessageDB db = GroupMessageDB.getInstance();
         IMessage imsg = new IMessage();
@@ -29,6 +36,9 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         imsg.receiver = msg.receiver;
         imsg.timestamp = msg.timestamp;
         imsg.setContent(msg.content);
+        if (msg.sender == this.uid) {
+            imsg.flags = MessageFlag.MESSAGE_FLAG_ACK;
+        }
         boolean r = db.insertMessage(imsg, imsg.receiver);
         msg.msgLocalID = imsg.msgLocalID;
         return r;

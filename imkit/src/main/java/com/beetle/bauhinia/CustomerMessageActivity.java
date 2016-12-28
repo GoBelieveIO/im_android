@@ -253,7 +253,7 @@ public class CustomerMessageActivity extends MessageActivity
         imsg.customerID = msg.customerID;
         imsg.storeID = msg.storeID;
         imsg.sellerID = msg.sellerID;
-        imsg.isSupport = false;
+        imsg.isSupport = true;
         imsg.isOutgoing = false;
         imsg.sender = msg.storeID;
         imsg.receiver = msg.customerID;
@@ -282,6 +282,7 @@ public class CustomerMessageActivity extends MessageActivity
         imsg.storeID = msg.storeID;
         imsg.sellerID = msg.sellerID;
         imsg.isSupport = false;
+        imsg.isOutgoing = true;
         imsg.sender = msg.customerID;
         imsg.receiver = msg.storeID;
         imsg.setContent(msg.content);

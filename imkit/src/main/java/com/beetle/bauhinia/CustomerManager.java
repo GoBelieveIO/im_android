@@ -303,10 +303,9 @@ public class CustomerManager {
         String path = String.format("customer_%d", this.clientID);
         File dir = this.context.getDir(path, context.MODE_PRIVATE);
         csDB.setDir(dir);
-        IMService.getInstance().setCustomerMessageHandler(CustomerMessageHandler.getInstance());
 
+        IMService.getInstance().setCustomerMessageHandler(CustomerMessageHandler.getInstance());
         IMService.getInstance().setToken(this.token);
-        IMService.getInstance().setUID(this.clientID);
         IMService.getInstance().setDeviceID(this.deviceID);
         IMHttpAPI.setToken(token);
     }

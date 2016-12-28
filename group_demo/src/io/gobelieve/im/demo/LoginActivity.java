@@ -11,6 +11,8 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.body.PostDeviceToken;
+import com.beetle.bauhinia.db.GroupMessageHandler;
+import com.beetle.bauhinia.db.PeerMessageHandler;
 import com.beetle.im.IMService;
 
 import org.apache.http.Header;
@@ -54,9 +56,11 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
     private void go2Chat(long sender, long receiver, String token) {
         IMService.getInstance().stop();
 
+        PeerMessageHandler.getInstance().setUID(sender);
+        GroupMessageHandler.getInstance().setUID(sender);
+
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);
-        IMService.getInstance().setUID(sender);
         IMService.getInstance().start();
 
 

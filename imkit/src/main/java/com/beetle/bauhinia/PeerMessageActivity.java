@@ -8,6 +8,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.tools.AudioDownloader;
@@ -252,6 +253,9 @@ public class PeerMessageActivity extends MessageActivity implements
         imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
         imsg.isOutgoing = (msg.sender == this.currentUID);
+        if (imsg.isOutgoing) {
+            imsg.flags |= MessageFlag.MESSAGE_FLAG_ACK;
+        }
 
         if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
             Log.i(TAG, "receive repeat message:" + imsg.getUUID());

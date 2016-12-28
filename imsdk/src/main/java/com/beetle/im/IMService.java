@@ -60,7 +60,6 @@ public class IMService {
     private int port;
     private String token;
     private String deviceID;
-    private long uid;
     private long appID;
 
     private long roomID;
@@ -184,7 +183,6 @@ public class IMService {
     public void setToken(String token) {
         this.token = token;
     }
-    public void setUID(long uid) { this.uid = uid; }
     //普通app不需要设置
     public void setAppID(long appID) { this.appID = appID; }
     public void setDeviceID(String deviceID) {
@@ -756,31 +754,15 @@ public class IMService {
     private void handleIMMessage(Message msg) {
         IMMessage im = (IMMessage)msg.body;
         Log.d(TAG, "im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
-
-        if (im.sender == this.uid) {
-            if (peerMessageHandler != null && !peerMessageHandler.handleMessage(im, im.receiver)) {
-                Log.i(TAG, "handle im message fail");
-                return;
-            }
-        } else {
-            if (peerMessageHandler != null && !peerMessageHandler.handleMessage(im, im.sender)) {
-                Log.i(TAG, "handle im message fail");
-                return;
-            }
+        if (peerMessageHandler != null && !peerMessageHandler.handleMessage(im)) {
+            Log.i(TAG, "handle im message fail");
+            return;
         }
         publishPeerMessage(im);
         Message ack = new Message();
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
-
-        if (im.sender == this.uid) {
-            if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
-                Log.w(TAG, "handle message ack fail");
-                return;
-            }
-            publishPeerMessageACK(im.msgLocalID, im.receiver);
-        }
     }
 
     private void handleGroupIMMessage(Message msg) {
@@ -798,14 +780,6 @@ public class IMService {
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
-
-        if (im.sender == this.uid) {
-            if (groupMessageHandler != null && !groupMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
-                Log.i(TAG, "handle group message ack fail");
-                return;
-            }
-            publishGroupMessageACK(im.msgLocalID, im.receiver);
-        }
     }
 
     private void handleGroupNotification(Message msg) {
@@ -897,14 +871,6 @@ public class IMService {
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
-
-        if ((this.appID == 0 || this.appID == cs.customerAppID) && this.uid == cs.customerID) {
-            if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(cs)) {
-                Log.w(TAG, "handle customer service message ack fail");
-                return;
-            }
-            publishCustomerServiceMessageACK(cs);
-        }
     }
 
     private void handleCustomerSupportMessage(Message msg) {
@@ -920,14 +886,6 @@ public class IMService {
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
         sendMessage(ack);
-
-        if (this.appID > 0 && this.appID != cs.customerAppID && this.uid == cs.sellerID) {
-            if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(cs)) {
-                Log.w(TAG, "handle customer service message ack fail");
-                return;
-            }
-            publishCustomerServiceMessageACK(cs);
-        }
     }
 
     private void handleRTMessage(Message msg) {
