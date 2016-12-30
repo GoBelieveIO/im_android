@@ -3,13 +3,10 @@ package io.gobelieve.im.demo;
 import android.content.Context;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.beetle.bauhinia.db.Conversation;
-import com.beetle.bauhinia.db.IMessage;
 import com.squareup.picasso.Picasso;
 
 import java.beans.PropertyChangeEvent;

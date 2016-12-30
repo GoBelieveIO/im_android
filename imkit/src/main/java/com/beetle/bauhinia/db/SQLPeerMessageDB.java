@@ -47,12 +47,9 @@ public class SQLPeerMessageDB extends MessageDB {
     }
 
     public class PeerConversationIterator implements ConversationIterator {
-        private int type;
-
         private SQLiteDatabase db;
         private Cursor cursor;
-        public PeerConversationIterator(SQLiteDatabase db, int type) {
-            this.type = type;
+        public PeerConversationIterator(SQLiteDatabase db) {
             this.db = db;
             this.cursor = db.rawQuery("SELECT MAX(id) as id, peer FROM peer_message GROUP BY peer", null);
         }
@@ -77,7 +74,7 @@ public class SQLPeerMessageDB extends MessageDB {
 
         }
 
-        public Conversation next() {
+        public IMessage next() {
             if (cursor == null) {
                 return null;
             }
@@ -89,17 +86,9 @@ public class SQLPeerMessageDB extends MessageDB {
                 return null;
             }
 
-
             long id = cursor.getLong(cursor.getColumnIndex("id"));
-            long uid = cursor.getLong(cursor.getColumnIndex("peer"));
-
             IMessage msg = getMessage(id);
-
-            Conversation conv = new Conversation();
-            conv.type = this.type;
-            conv.cid = uid;
-            conv.message = msg;
-            return conv;
+            return msg;
         }
     }
 
@@ -191,6 +180,6 @@ public class SQLPeerMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new PeerConversationIterator(db, Conversation.CONVERSATION_PEER);
+        return new PeerConversationIterator(db);
     }
 }

@@ -1,4 +1,6 @@
-package com.beetle.bauhinia.db;
+package io.gobelieve.im.demo;
+
+import com.beetle.bauhinia.db.IMessage;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

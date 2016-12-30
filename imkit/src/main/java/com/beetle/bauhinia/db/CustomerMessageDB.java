@@ -42,11 +42,9 @@ public class CustomerMessageDB extends MessageDB {
     public class CustomerConversationIterator implements ConversationIterator {
 
         private File[] files;
-        private int type;
         private int index;
-        public CustomerConversationIterator(File[] files, int type) {
+        public CustomerConversationIterator(File[] files) {
             this.files = files;
-            this.type = type;
             index = -1;
         }
 
@@ -76,7 +74,7 @@ public class CustomerMessageDB extends MessageDB {
             }
         }
 
-        public Conversation next() {
+        public IMessage next() {
             index++;
             if (files == null || files.length <= index) {
                 return null;
@@ -88,18 +86,11 @@ public class CustomerMessageDB extends MessageDB {
                     continue;
                 }
                 try {
-                    String name = file.getName();
-                    long uid = Long.parseLong(name);
-
                     IMessage msg = getLastMessage(file);
                     if (msg == null) {
                         continue;
                     }
-                    Conversation conv = new Conversation();
-                    conv.type = this.type;
-                    conv.cid = uid;
-                    conv.message = msg;
-                    return conv;
+                    return msg;
                 }  catch (NumberFormatException e) {
                     e.printStackTrace();
                     continue;
@@ -347,6 +338,6 @@ public class CustomerMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new CustomerConversationIterator(this.dir.listFiles(), Conversation.CONVERSATION_CUSTOMER_SERVICE);
+        return new CustomerConversationIterator(this.dir.listFiles());
     }
 }

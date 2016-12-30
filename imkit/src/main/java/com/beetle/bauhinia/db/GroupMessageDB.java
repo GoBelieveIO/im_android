@@ -46,11 +46,9 @@ public class GroupMessageDB extends MessageDB {
     public class GroupConversationIterator implements ConversationIterator {
 
         private File[] files;
-        private int type;
         private int index;
-        public GroupConversationIterator(File[] files, int type) {
+        public GroupConversationIterator(File[] files) {
             this.files = files;
-            this.type = type;
             index = -1;
         }
 
@@ -80,7 +78,7 @@ public class GroupMessageDB extends MessageDB {
             }
         }
 
-        public Conversation next() {
+        public IMessage next() {
             index++;
             if (files == null || files.length <= index) {
                 return null;
@@ -92,18 +90,11 @@ public class GroupMessageDB extends MessageDB {
                     continue;
                 }
                 try {
-                    String name = file.getName();
-                    long uid = Long.parseLong(name);
-
                     IMessage msg = getLastMessage(file);
                     if (msg == null) {
                         continue;
                     }
-                    Conversation conv = new Conversation();
-                    conv.type = this.type;
-                    conv.cid = uid;
-                    conv.message = msg;
-                    return conv;
+                    return msg;
                 }  catch (NumberFormatException e) {
                     e.printStackTrace();
                     continue;
@@ -327,7 +318,7 @@ public class GroupMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new GroupConversationIterator(this.dir.listFiles(), Conversation.CONVERSATION_GROUP);
+        return new GroupConversationIterator(this.dir.listFiles());
     }
 
 }

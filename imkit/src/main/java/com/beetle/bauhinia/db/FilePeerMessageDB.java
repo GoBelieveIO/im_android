@@ -47,11 +47,9 @@ public class FilePeerMessageDB extends MessageDB {
     public class PeerConversationIterator implements ConversationIterator {
 
         private File[] files;
-        private int type;
         private int index;
-        public PeerConversationIterator(File[] files, int type) {
+        public PeerConversationIterator(File[] files) {
             this.files = files;
-            this.type = type;
             index = -1;
         }
 
@@ -81,7 +79,7 @@ public class FilePeerMessageDB extends MessageDB {
             }
         }
 
-        public Conversation next() {
+        public IMessage next() {
             index++;
             if (files == null || files.length <= index) {
                 return null;
@@ -94,17 +92,12 @@ public class FilePeerMessageDB extends MessageDB {
                 }
                 try {
                     String name = file.getName();
-                    long uid = Long.parseLong(name);
-
+                    Log.i("beetle", "file name:" + name);
                     IMessage msg = getLastMessage(file);
                     if (msg == null) {
                         continue;
                     }
-                    Conversation conv = new Conversation();
-                    conv.type = this.type;
-                    conv.cid = uid;
-                    conv.message = msg;
-                    return conv;
+                    return msg;
                 }  catch (NumberFormatException e) {
                     e.printStackTrace();
                     continue;
@@ -320,6 +313,6 @@ public class FilePeerMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new PeerConversationIterator(this.dir.listFiles(), Conversation.CONVERSATION_PEER);
+        return new PeerConversationIterator(this.dir.listFiles());
     }
 }

@@ -15,7 +15,6 @@ import android.support.v7.widget.Toolbar;
 import com.beetle.bauhinia.CustomerMessageActivity;
 import com.beetle.bauhinia.GroupMessageActivity;
 import com.beetle.bauhinia.PeerMessageActivity;
-import com.beetle.bauhinia.db.Conversation;
 import com.beetle.bauhinia.db.ConversationIterator;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
@@ -211,13 +210,15 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         conversations = new ArrayList<Conversation>();
         ConversationIterator iter = PeerMessageDB.getInstance().newConversationIterator();
         while (true) {
-            Conversation conv = iter.next();
-            if (conv == null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
                 break;
             }
-            if (conv.message == null) {
-                continue;
-            }
+
+            Conversation conv = new Conversation();
+            conv.type = Conversation.CONVERSATION_PEER;
+            conv.message = msg;
+            conv.cid = (this.currentUID == msg.sender) ? msg.receiver : msg.sender;
             updatePeerConversationName(conv);
             updateConversationDetail(conv);
             conversations.add(conv);
@@ -225,13 +226,15 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
         iter = GroupMessageDB.getInstance().newConversationIterator();
         while (true) {
-            Conversation conv = iter.next();
-            if (conv == null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
                 break;
             }
-            if (conv.message == null) {
-                continue;
-            }
+            Conversation conv = new Conversation();
+            conv.type = Conversation.CONVERSATION_GROUP;
+            conv.message = msg;
+            conv.cid = msg.receiver;
+
             updateGroupConversationName(conv);
             updateNotificationDesc(conv);
             updateConversationDetail(conv);
