@@ -10,19 +10,14 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 /**
- * Created by houxh on 14-7-22.
+ * Created by houxh on 16/1/18.
  */
+public class FileCustomerMessageDB extends MessageDB {
 
-
-
-
-
-public class FilePeerMessageDB extends MessageDB {
-
-    private class PeerMessageIterator implements MessageIterator{
+    private class CustomerMessageIterator implements MessageIterator{
         private ReverseFile revFile;
 
-        public PeerMessageIterator(RandomAccessFile f) throws IOException {
+        public CustomerMessageIterator(RandomAccessFile f) throws IOException {
             if (!MessageDB.checkHeader(f)) {
                 Log.i("imservice", "check header fail");
                 return;
@@ -30,7 +25,7 @@ public class FilePeerMessageDB extends MessageDB {
             this.revFile = new ReverseFile(f);
         }
 
-        public PeerMessageIterator(RandomAccessFile f, int lastMsgID) throws IOException {
+        public CustomerMessageIterator(RandomAccessFile f, int lastMsgID) throws IOException {
             if (!MessageDB.checkHeader(f)) {
                 Log.i("imservice", "check header fail");
                 return;
@@ -40,15 +35,15 @@ public class FilePeerMessageDB extends MessageDB {
 
         public IMessage next() {
             if (this.revFile == null) return null;
-            return FilePeerMessageDB.readMessage(this.revFile);
+            return FileCustomerMessageDB.readMessage(this.revFile);
         }
     }
 
-    public class PeerConversationIterator implements ConversationIterator {
+    public class CustomerConversationIterator implements ConversationIterator {
 
         private File[] files;
         private int index;
-        public PeerConversationIterator(File[] files) {
+        public CustomerConversationIterator(File[] files) {
             this.files = files;
             index = -1;
         }
@@ -56,7 +51,7 @@ public class FilePeerMessageDB extends MessageDB {
         private IMessage getLastMessage(File file) {
             try {
                 RandomAccessFile f = new RandomAccessFile(file, "r");
-                MessageIterator iter = new PeerMessageIterator(f);
+                MessageIterator iter = new CustomerMessageIterator(f);
 
                 IMessage msg = null;
                 while (true) {
@@ -91,8 +86,6 @@ public class FilePeerMessageDB extends MessageDB {
                     continue;
                 }
                 try {
-                    String name = file.getName();
-                    Log.i("beetle", "file name:" + name);
                     IMessage msg = getLastMessage(file);
                     if (msg == null) {
                         continue;
@@ -107,6 +100,8 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
+
+
     private File dir;
 
     public void setDir(File dir) {
@@ -114,35 +109,44 @@ public class FilePeerMessageDB extends MessageDB {
     }
 
     private String fileName(long uid) {
-        return ""+uid;
+        return "" + uid;
     }
 
-    public static boolean writeMessage(RandomAccessFile f, IMessage msg) {
+    public static boolean writeMessage(RandomAccessFile f, IMessage m) {
         try {
+
+            ICustomerMessage msg = (ICustomerMessage)m;
+
             byte[] buf = new byte[64 * 1024];
             int pos = 0;
 
             byte[] content = msg.content.raw.getBytes("UTF-8");
-            int len = content.length + 8 + 8 + 4 + 4;
+            int len = content.length + 4 + 4 + 8 + 8 + 8 + 8 + 1;
             if (4 + 4 + len + 4 + 4 > 64 * 1024) return false;
 
             BytePacket.writeInt32(IMMAGIC, buf, pos);
             pos += 4;
             BytePacket.writeInt32(len, buf, pos);
-
             pos += 4;
             BytePacket.writeInt32(msg.flags, buf, pos);
             pos += 4;
             BytePacket.writeInt32(msg.timestamp, buf, pos);
             pos += 4;
-            BytePacket.writeInt64(msg.sender, buf, pos);
+
+
+            BytePacket.writeInt64(msg.customerAppID, buf, pos);
             pos += 8;
-            BytePacket.writeInt64(msg.receiver, buf, pos);
+            BytePacket.writeInt64(msg.customerID, buf, pos);
             pos += 8;
+            BytePacket.writeInt64(msg.storeID, buf, pos);
+            pos += 8;
+            BytePacket.writeInt64(msg.sellerID, buf, pos);
+            pos += 8;
+            buf[pos] = (byte)(msg.isSupport ? 1 : 0);
+            pos += 1;
+
             System.arraycopy(content, 0, buf, pos, content.length);
             pos += content.length;
-
-
             BytePacket.writeInt32(len, buf, pos);
             pos += 4;
             BytePacket.writeInt32(IMMAGIC, buf, pos);
@@ -174,18 +178,35 @@ public class FilePeerMessageDB extends MessageDB {
                 return null;
             }
 
-            IMessage msg = new IMessage();
+            ICustomerMessage msg = new ICustomerMessage();
             msg.msgLocalID = (int)file.getFilePointer();
             int pos = 8;
             msg.flags = BytePacket.readInt32(buf, pos);
             pos += 4;
             msg.timestamp = BytePacket.readInt32(buf, pos);
             pos += 4;
-            msg.sender = BytePacket.readInt64(buf, pos);
+
+
+            msg.customerAppID = BytePacket.readInt64(buf, pos);
             pos += 8;
-            msg.receiver = BytePacket.readInt64(buf, pos);
+            msg.customerID = BytePacket.readInt64(buf, pos);
             pos += 8;
-            msg.setContent(new String(buf, pos, len - 24, "UTF-8"));
+            msg.storeID = BytePacket.readInt64(buf, pos);
+            pos += 8;
+            msg.sellerID = BytePacket.readInt64(buf, pos);
+            pos += 8;
+            msg.isSupport = (int)(buf[pos]) == 1 ? true : false;
+            pos += 1;
+
+            if (msg.isSupport) {
+                msg.sender = msg.storeID;
+                msg.receiver = msg.customerID;
+            } else {
+                msg.sender = msg.customerID;
+                msg.receiver = msg.storeID;
+            }
+
+            msg.setContent(new String(buf, pos, len - 41, "UTF-8"));
             return msg;
         } catch (Exception e) {
             Log.e("imservice", "read file exception:" + e);
@@ -193,8 +214,7 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
-
-    public static boolean insertMessage(RandomAccessFile f, IMessage msg) throws IOException{
+    public static boolean insertMessage(RandomAccessFile f, IMessage msg) throws IOException {
         long size = f.length();
         if (size < HEADER_SIZE && size > 0) {
             f.setLength(0);
@@ -210,7 +230,6 @@ public class FilePeerMessageDB extends MessageDB {
         writeMessage(f, msg);
         return true;
     }
-
 
     public boolean insertMessage(IMessage msg, long uid) {
         try {
@@ -281,6 +300,7 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
+
     public boolean clearCoversation(long uid) {
         try {
             File file = new File(this.dir, fileName(uid));
@@ -294,7 +314,7 @@ public class FilePeerMessageDB extends MessageDB {
         try {
             File file = new File(this.dir, fileName(uid));
             RandomAccessFile f = new RandomAccessFile(file, "r");
-            return new PeerMessageIterator(f);
+            return new CustomerMessageIterator(f);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -305,7 +325,7 @@ public class FilePeerMessageDB extends MessageDB {
         try {
             File file = new File(this.dir, fileName(uid));
             RandomAccessFile f = new RandomAccessFile(file, "r");
-            return new PeerMessageIterator(f, firstMsgID);
+            return new CustomerMessageIterator(f, firstMsgID);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -313,6 +333,6 @@ public class FilePeerMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new PeerConversationIterator(this.dir.listFiles());
+        return new CustomerConversationIterator(this.dir.listFiles());
     }
 }

@@ -48,24 +48,10 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         btnLogin.setOnClickListener(this);
     }
 
+    //登录成功绑定推送的devicetoken
     private void go2Chat(long sender, long receiver, String token) {
-        PeerMessageHandler.getInstance().setUID(sender);
-        IMHttpAPI.setToken(token);
-        IMService.getInstance().setToken(token);
-        IMService.getInstance().start();
-
         PushDemoApplication.getApplication().bindDeviceTokenToIM();
-
-        Intent intent = new Intent(this, PeerMessageActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("peer_uid", receiver);
-        intent.putExtra("peer_name", "测试");
-        intent.putExtra("current_uid", sender);
-        startActivity(intent);
-        finish();
     }
-
-
 
     @Override
     public void onClick(View v) {

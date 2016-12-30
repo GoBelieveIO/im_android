@@ -3,6 +3,7 @@ package com.beetle.bauhinia;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
@@ -10,13 +11,18 @@ import android.util.Base64;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.CustomerMessageHandler;
+import com.beetle.bauhinia.db.GroupMessageDB;
+import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.im.IMService;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -25,6 +31,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+
+import static android.database.sqlite.SQLiteDatabase.OPEN_READWRITE;
 
 
 //只有在打开客服聊天界面的情况下，才会建立一个socket的长链接来收发消息
@@ -297,8 +305,36 @@ public class CustomerManager {
         save();
     }
 
+    private void copyDataBase(String asset, String path) throws IOException {
+        InputStream mInput = this.context.getAssets().open(asset);
+        OutputStream mOutput = new FileOutputStream(path);
+        byte[] mBuffer = new byte[1024];
+        int mLength;
+        while ((mLength = mInput.read(mBuffer))>0)
+        {
+            mOutput.write(mBuffer, 0, mLength);
+        }
+        mOutput.flush();
+        mOutput.close();
+        mInput.close();
+    }
     //顾客登录
     public void login() {
+        //sqlite
+//        try {
+//            File p = context.getDir("db_" + this.clientID, context.MODE_PRIVATE);
+//            File f = new File(p, "gobelieve.db");
+//            String path = f.getPath();
+//            if (!f.exists()) {
+//                copyDataBase("gobelieve.db", path);
+//            }
+//            SQLiteDatabase db = SQLiteDatabase.openDatabase(path, null, OPEN_READWRITE, null);
+//            CustomerMessageDB.getInstance().setDb(db);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+        //file
         CustomerMessageDB csDB = CustomerMessageDB.getInstance();
         String path = String.format("customer_%d", this.clientID);
         File dir = this.context.getDir(path, context.MODE_PRIVATE);

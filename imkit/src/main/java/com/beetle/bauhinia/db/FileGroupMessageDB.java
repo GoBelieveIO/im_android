@@ -10,19 +10,13 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 /**
- * Created by houxh on 14-7-22.
+ * Created by houxh on 15/3/21.
  */
-
-
-
-
-
-public class FilePeerMessageDB extends MessageDB {
-
-    private class PeerMessageIterator implements MessageIterator{
+public class FileGroupMessageDB extends MessageDB {
+    private class GroupMessageIterator implements MessageIterator{
         private ReverseFile revFile;
 
-        public PeerMessageIterator(RandomAccessFile f) throws IOException {
+        public GroupMessageIterator(RandomAccessFile f) throws IOException {
             if (!MessageDB.checkHeader(f)) {
                 Log.i("imservice", "check header fail");
                 return;
@@ -30,7 +24,7 @@ public class FilePeerMessageDB extends MessageDB {
             this.revFile = new ReverseFile(f);
         }
 
-        public PeerMessageIterator(RandomAccessFile f, int lastMsgID) throws IOException {
+        public GroupMessageIterator(RandomAccessFile f, int lastMsgID) throws IOException {
             if (!MessageDB.checkHeader(f)) {
                 Log.i("imservice", "check header fail");
                 return;
@@ -40,15 +34,16 @@ public class FilePeerMessageDB extends MessageDB {
 
         public IMessage next() {
             if (this.revFile == null) return null;
-            return FilePeerMessageDB.readMessage(this.revFile);
+            return FileGroupMessageDB.readMessage(this.revFile);
         }
     }
 
-    public class PeerConversationIterator implements ConversationIterator {
+
+    public class GroupConversationIterator implements ConversationIterator {
 
         private File[] files;
         private int index;
-        public PeerConversationIterator(File[] files) {
+        public GroupConversationIterator(File[] files) {
             this.files = files;
             index = -1;
         }
@@ -56,7 +51,7 @@ public class FilePeerMessageDB extends MessageDB {
         private IMessage getLastMessage(File file) {
             try {
                 RandomAccessFile f = new RandomAccessFile(file, "r");
-                MessageIterator iter = new PeerMessageIterator(f);
+                MessageIterator iter = new GroupMessageIterator(f);
 
                 IMessage msg = null;
                 while (true) {
@@ -91,8 +86,6 @@ public class FilePeerMessageDB extends MessageDB {
                     continue;
                 }
                 try {
-                    String name = file.getName();
-                    Log.i("beetle", "file name:" + name);
                     IMessage msg = getLastMessage(file);
                     if (msg == null) {
                         continue;
@@ -107,14 +100,16 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
+
+
     private File dir;
 
     public void setDir(File dir) {
         this.dir = dir;
     }
 
-    private String fileName(long uid) {
-        return ""+uid;
+    private String fileName(long gid) {
+        return ""+gid;
     }
 
     public static boolean writeMessage(RandomAccessFile f, IMessage msg) {
@@ -155,6 +150,7 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
+
     public static IMessage readMessage(ReverseFile file) {
         try {
             byte[] buf = new byte[8];
@@ -193,8 +189,7 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
-
-    public static boolean insertMessage(RandomAccessFile f, IMessage msg) throws IOException{
+    public static boolean insertMessage(RandomAccessFile f, IMessage msg) throws IOException {
         long size = f.length();
         if (size < HEADER_SIZE && size > 0) {
             f.setLength(0);
@@ -211,10 +206,9 @@ public class FilePeerMessageDB extends MessageDB {
         return true;
     }
 
-
-    public boolean insertMessage(IMessage msg, long uid) {
+    public boolean insertMessage(IMessage msg, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             boolean b = insertMessage(f, msg);
             f.close();
@@ -226,9 +220,9 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean acknowledgeMessage(int msgLocalID, long uid) {
+    public boolean acknowledgeMessage(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_ACK);
             return true;
@@ -237,9 +231,9 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean markMessageFailure(int msgLocalID, long uid) {
+    public boolean markMessageFailure(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_FAILURE);
             return true;
@@ -248,9 +242,9 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean eraseMessageFailure(int msgLocalID, long uid) {
+    public boolean eraseMessageFailure(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             eraseFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_FAILURE);
             return true;
@@ -259,9 +253,9 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean removeMessage(int msgLocalID, long uid) {
+    public boolean removeMessage(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_DELETE);
             return true;
@@ -270,9 +264,9 @@ public class FilePeerMessageDB extends MessageDB {
         }
     }
 
-    public boolean markMessageListened(int msgLocalID, long uid) {
+    public boolean markMessageListened(int msgLocalID, long gid) {
         try {
-            File file = new File(this.dir, fileName(uid));
+            File file = new File(this.dir, fileName(gid));
             RandomAccessFile f = new RandomAccessFile(file, "rw");
             addFlag(f, msgLocalID, MessageFlag.MESSAGE_FLAG_LISTENED);
             return true;
@@ -280,6 +274,7 @@ public class FilePeerMessageDB extends MessageDB {
             return false;
         }
     }
+
 
     public boolean clearCoversation(long uid) {
         try {
@@ -294,7 +289,7 @@ public class FilePeerMessageDB extends MessageDB {
         try {
             File file = new File(this.dir, fileName(uid));
             RandomAccessFile f = new RandomAccessFile(file, "r");
-            return new PeerMessageIterator(f);
+            return new GroupMessageIterator(f);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -305,7 +300,7 @@ public class FilePeerMessageDB extends MessageDB {
         try {
             File file = new File(this.dir, fileName(uid));
             RandomAccessFile f = new RandomAccessFile(file, "r");
-            return new PeerMessageIterator(f, firstMsgID);
+            return new GroupMessageIterator(f, firstMsgID);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -313,6 +308,7 @@ public class FilePeerMessageDB extends MessageDB {
     }
 
     public ConversationIterator newConversationIterator() {
-        return new PeerConversationIterator(this.dir.listFiles());
+        return new GroupConversationIterator(this.dir.listFiles());
     }
+
 }

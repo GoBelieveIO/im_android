@@ -52,26 +52,6 @@ public class PushDemoApplication extends Application {
         mIMService.setHost("imnode.gobelieve.io");
         IMHttpAPI.setAPIURL("http://api.gobelieve.io");
         initPush();
-
-        String androidID = Settings.Secure.getString(this.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
-
-        //设置设备唯一标识,用于多点登录时设备校验
-        mIMService.setDeviceID(androidID);
-
-        //监听网路状态变更
-        mIMService.registerConnectivityChangeReceiver(getApplicationContext());
-
-        //可以在登录成功后，设置每个用户不同的消息存储目录
-        FileCache fc = FileCache.getInstance();
-        fc.setDir(this.getDir("cache", MODE_PRIVATE));
-        PeerMessageDB db = PeerMessageDB.getInstance();
-        db.setDir(this.getDir("peer", MODE_PRIVATE));
-        GroupMessageDB groupDB = GroupMessageDB.getInstance();
-        groupDB.setDir(this.getDir("group", MODE_PRIVATE));
-
-        mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
-        mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
     }
 
     private void initPush() {

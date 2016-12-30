@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 23
     buildToolsVersion "23.0.2"
-    useLibrary  'org.apache.http.legacy'
+    useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
         minSdkVersion 14
@@ -54,9 +54,9 @@ def appendVersionNameVersionCode(variant, defaultConfig) {
     //check if staging variant
     if (variant.name == android.buildTypes.release.name) {
         if (variant.buildType.zipAlignEnabled) {
-            variant.outputs.each{output ->
+            variant.outputs.each { output ->
                 def outputFile = output.outputFile
-                if (outputFile != null && outputFile.name.endsWith('.apk')){
+                if (outputFile != null && outputFile.name.endsWith('.apk')) {
                     def fileName = outputFile.name.replace(".apk", "-v" + defaultConfig.versionName + ".apk")
                     output.outputFile = new File(outputFile.parent, fileName)
                 }
@@ -68,4 +68,6 @@ def appendVersionNameVersionCode(variant, defaultConfig) {
          variant.packageApplication.outputFile = new File(file.parent, fileName)*/
     }
 }
+
+android { sourceSets { main { assets.srcDirs = ['src/main/assets', 'assets/'] } } }
 

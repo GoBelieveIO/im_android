@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 23
     buildToolsVersion "23.0.2"
-    useLibrary  'org.apache.http.legacy'
+    useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
         minSdkVersion 14
@@ -48,5 +48,6 @@ android {
         exclude 'META-INF/LGPL2.1'
     }
 }
+android { sourceSets { main { assets.srcDirs = ['src/main/assets', 'assets/'] } } }
 
 

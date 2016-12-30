@@ -2,6 +2,7 @@ package io.gobelieve.im.demo;
 
 import android.app.Application;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -15,8 +16,15 @@ import com.beetle.bauhinia.db.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+
+import static android.database.sqlite.SQLiteDatabase.OPEN_READWRITE;
 
 /**
  * IMDemoApplication
@@ -47,6 +55,24 @@ public class IMDemoApplication extends Application {
         //可以在登录成功后，设置每个用户不同的消息存储目录
         FileCache fc = FileCache.getInstance();
         fc.setDir(this.getDir("cache", MODE_PRIVATE));
+
+        //sqlite
+//        try {
+//            File p = this.getDir("db", MODE_PRIVATE);
+//            File f = new File(p, "gobelieve.db");
+//            String path = f.getPath();
+//            if (!f.exists()) {
+//                copyDataBase("gobelieve.db", path);
+//            }
+//            SQLiteDatabase db = SQLiteDatabase.openDatabase(path, null, OPEN_READWRITE, null);
+//            PeerMessageDB.getInstance().setDb(db);
+//            GroupMessageDB.getInstance().setDb(db);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+
+        //file
         PeerMessageDB db = PeerMessageDB.getInstance();
         db.setDir(this.getDir("peer", MODE_PRIVATE));
         GroupMessageDB groupDB = GroupMessageDB.getInstance();
@@ -57,6 +83,20 @@ public class IMDemoApplication extends Application {
 
         //预先做dns查询
         refreshHost();
+    }
+
+    private void copyDataBase(String asset, String path) throws IOException {
+        InputStream mInput = this.getAssets().open(asset);
+        OutputStream mOutput = new FileOutputStream(path);
+        byte[] mBuffer = new byte[1024];
+        int mLength;
+        while ((mLength = mInput.read(mBuffer))>0)
+        {
+            mOutput.write(mBuffer, 0, mLength);
+        }
+        mOutput.flush();
+        mOutput.close();
+        mInput.close();
     }
 
     private void refreshHost() {

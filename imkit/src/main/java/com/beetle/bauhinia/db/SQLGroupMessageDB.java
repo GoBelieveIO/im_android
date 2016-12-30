@@ -3,26 +3,23 @@ package com.beetle.bauhinia.db;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 
 /**
- * Created by houxh on 14-7-22.
+ * Created by houxh on 15/3/21.
  */
-public class SQLPeerMessageDB {
-
-    private class PeerMessageIterator implements MessageIterator{
+public class SQLGroupMessageDB  {
+    private class GroupMessageIterator implements MessageIterator{
         private Cursor cursor;
 
-        public PeerMessageIterator(SQLiteDatabase db, long peer)  {
-            String sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE peer = ? ORDER BY id DESC";
-            this.cursor = db.rawQuery(sql, new String[]{""+peer});
+        public GroupMessageIterator(SQLiteDatabase db, long group_id)  {
+            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? ORDER BY id DESC";
+            this.cursor = db.rawQuery(sql, new String[]{""+group_id});
         }
 
-        public PeerMessageIterator(SQLiteDatabase db, long peer, int position)  {
-
-            String sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE peer = ? AND id < ? ORDER BY id DESC";
-            this.cursor = db.rawQuery(sql, new String[]{""+peer, ""+position});
+        public GroupMessageIterator(SQLiteDatabase db, long group_id, int lastMsgID) {
+            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? AND id < ? ORDER BY id DESC";
+            this.cursor = db.rawQuery(sql, new String[]{""+group_id, ""+lastMsgID});
         }
 
         public IMessage next() {
@@ -38,7 +35,7 @@ public class SQLPeerMessageDB {
             IMessage msg = new IMessage();
             msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
             msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
-            msg.receiver = cursor.getLong(cursor.getColumnIndex("receiver"));
+            msg.receiver = cursor.getLong(cursor.getColumnIndex("group_id"));
             msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
             msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
             String content = cursor.getString(cursor.getColumnIndex("content"));
@@ -47,16 +44,20 @@ public class SQLPeerMessageDB {
         }
     }
 
-    public class PeerConversationIterator implements ConversationIterator {
+
+    public class GroupConversationIterator implements ConversationIterator {
+
         private SQLiteDatabase db;
         private Cursor cursor;
-        public PeerConversationIterator(SQLiteDatabase db) {
+
+        public GroupConversationIterator(SQLiteDatabase db) {
             this.db = db;
-            this.cursor = db.rawQuery("SELECT MAX(id) as id, peer FROM peer_message GROUP BY peer", null);
+            this.cursor = db.rawQuery("SELECT MAX(id) as id, peer FROM group_message GROUP BY group_id", null);
         }
 
+
         private IMessage getMessage(long id) {
-            String sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE id=?";
+            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE id=?";
             Cursor cursor = db.rawQuery(sql, new String[]{""+id});
 
             IMessage msg = null;
@@ -64,7 +65,7 @@ public class SQLPeerMessageDB {
                 msg = new IMessage();
                 msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
                 msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
-                msg.receiver = cursor.getLong(cursor.getColumnIndex("receiver"));
+                msg.receiver = cursor.getLong(cursor.getColumnIndex("group_id"));
                 msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
                 msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
                 String content = cursor.getString(cursor.getColumnIndex("content"));
@@ -72,8 +73,8 @@ public class SQLPeerMessageDB {
             }
             cursor.close();
             return msg;
-
         }
+
 
         public IMessage next() {
             if (cursor == null) {
@@ -91,12 +92,12 @@ public class SQLPeerMessageDB {
             IMessage msg = getMessage(id);
             return msg;
         }
+
     }
 
 
-    private static final String TABLE_NAME = "peer_message";
+    private static final String TABLE_NAME = "group_message";
     private static final String TAG = "beetle";
-
 
     private SQLiteDatabase db;
 
@@ -108,11 +109,10 @@ public class SQLPeerMessageDB {
         return this.db;
     }
 
-    public boolean insertMessage(IMessage msg, long uid) {
+    public boolean insertMessage(IMessage msg, long gid) {
         ContentValues values = new ContentValues();
-        values.put("peer", uid);
         values.put("sender", msg.sender);
-        values.put("receiver", msg.receiver);
+        values.put("group_id", msg.receiver);
         values.put("timestamp", msg.timestamp);
         values.put("flags", msg.flags);
         values.put("content", msg.content.getRaw());
@@ -136,13 +136,13 @@ public class SQLPeerMessageDB {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean eraseMessageFailure(int msgLocalID, long uid) {
+    public boolean eraseMessageFailure(int msgLocalID, long gid) {
         int f = MessageFlag.MESSAGE_FLAG_FAILURE;
         return removeFlag(msgLocalID, f);
     }
 
     public boolean addFlag(int msgLocalID, int f) {
-        String sql = "SELECT flags FROM peer_message WHERE id=?";
+        String sql = "SELECT flags FROM group_message WHERE id=?";
         Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
@@ -157,12 +157,11 @@ public class SQLPeerMessageDB {
     }
 
     public boolean removeFlag(int msgLocalID, int f) {
-        String sql = "SELECT flags FROM peer_message WHERE id=?";
+        String sql = "SELECT flags FROM group_message WHERE id=?";
         Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
             flags &= ~f;
-
             ContentValues cv = new ContentValues();
             cv.put("flags", flags);
             db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
@@ -171,28 +170,26 @@ public class SQLPeerMessageDB {
         return true;
     }
 
-    public boolean removeMessage(int msgLocalID, long uid) {
+    public boolean removeMessage(int msgLocalID, long gid) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
         return true;
-
     }
 
-    public boolean clearCoversation(long uid) {
-        db.delete(TABLE_NAME, "peer = ?", new String[]{""+uid});
+    public boolean clearCoversation(long gid) {
+        db.delete(TABLE_NAME, "group_id = ?", new String[]{""+gid});
         return true;
     }
 
-    public MessageIterator newMessageIterator(long uid) {
-        return new PeerMessageIterator(db, uid);
+    public MessageIterator newMessageIterator(long gid) {
+        return new GroupMessageIterator(db, gid);
     }
 
-    public MessageIterator newMessageIterator(long uid, int firstMsgID) {
-
-        return new PeerMessageIterator(db, uid, firstMsgID);
-
+    public MessageIterator newMessageIterator(long gid, int firstMsgID) {
+        return new GroupMessageIterator(db, gid, firstMsgID);
     }
 
     public ConversationIterator newConversationIterator() {
-        return new PeerConversationIterator(db);
+        return new GroupConversationIterator(db);
     }
+
 }
