@@ -79,6 +79,8 @@ public class MessageActivity extends BaseActivity implements
     protected final String TAG = "imservice";
 
     private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 2;
+    private static final int PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 3;
+
 
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
@@ -312,19 +314,21 @@ public class MessageActivity extends BaseActivity implements
         requestPermission();
     }
 
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSIONS_REQUEST_RECORD_AUDIO) {
-            Log.i(TAG, "record audio permission:" + grantResults[0]);
+            Log.i(TAG, "record audio permission:" + grantResults);
+        } else if (requestCode == PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE) {
+            Log.i(TAG, "read external storage permission:" + grantResults);
         }
     }
 
     private void requestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             int recordPermission = (checkSelfPermission(Manifest.permission.RECORD_AUDIO));
+            int readExternalPermission = (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE));
+
             if (recordPermission != PackageManager.PERMISSION_GRANTED) {
                 try {
                     this.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSIONS_REQUEST_RECORD_AUDIO);
@@ -332,6 +336,15 @@ public class MessageActivity extends BaseActivity implements
                     e.printStackTrace();
                 }
             }
+
+            if (readExternalPermission != PackageManager.PERMISSION_GRANTED) {
+                try {
+                    this.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+                } catch (IllegalStateException e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
     }
 
