@@ -1,9 +1,11 @@
 package com.beetle.bauhinia;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -76,9 +78,10 @@ public class MessageActivity extends BaseActivity implements
 
     protected final String TAG = "imservice";
 
+    private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 2;
+
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
-
 
     protected boolean isShowUserName = false;
 
@@ -282,7 +285,6 @@ public class MessageActivity extends BaseActivity implements
 
 
         setSubtitle();
-        //setSupportActionBar(toolbar);
 
         audioUtil = new AudioUtil(this);
         audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -306,8 +308,32 @@ public class MessageActivity extends BaseActivity implements
         if (IMService.getInstance().getConnectState() != IMService.ConnectState.STATE_CONNECTED) {
             disableSend();
         }
+
+        requestPermission();
     }
 
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSIONS_REQUEST_RECORD_AUDIO) {
+            Log.i(TAG, "record audio permission:" + grantResults[0]);
+        }
+    }
+
+    private void requestPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int recordPermission = (checkSelfPermission(Manifest.permission.RECORD_AUDIO));
+            if (recordPermission != PackageManager.PERMISSION_GRANTED) {
+                try {
+                    this.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSIONS_REQUEST_RECORD_AUDIO);
+                } catch (IllegalStateException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     /**
      * 注册底部菜单扩展栏item; 覆盖此方法时如果不覆盖已有item，item的id需大于3
