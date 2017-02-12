@@ -86,6 +86,7 @@ public class MessageActivity extends BaseActivity implements
     private static final int OUT_MSG = 1;
 
     protected boolean isShowUserName = false;
+    private File captureFile;
 
     protected ArrayList<IMessage> messages = new ArrayList<IMessage>();
     protected HashMap<Integer, IMessage.Attachment> attachments = new HashMap<Integer, IMessage.Attachment>();
@@ -209,6 +210,7 @@ public class MessageActivity extends BaseActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.chat);
+        captureFile = new File(getExternalFilesDir(null), "pic.jpg");
 
         File f = new File(getCacheDir(), "bh_audio.amr");
         recordFileName = f.getAbsolutePath();
@@ -1004,6 +1006,7 @@ public class MessageActivity extends BaseActivity implements
 
     void takePicture() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(captureFile));
         startActivityForResult(takePictureIntent, TAKE_PICTURE);
     }
 
@@ -1013,10 +1016,14 @@ public class MessageActivity extends BaseActivity implements
             return;
         }
 
-        Bitmap bmp;
         if (requestCode == TAKE_PICTURE) {
-            bmp = (Bitmap) data.getExtras().get("data");
-            sendImageMessage(bmp);
+            if (captureFile.exists()) {
+                Log.i(TAG, "take picture success:" + captureFile.getAbsolutePath());
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bmp = BitmapFactory.decodeFile(captureFile.getAbsolutePath(), options);
+                sendImageMessage(bmp);
+            }
         } else if (requestCode == SELECT_PICTURE || requestCode == SELECT_PICTURE_KITKAT) {
             try {
                 Uri selectedImageUri = data.getData();
@@ -1024,7 +1031,7 @@ public class MessageActivity extends BaseActivity implements
                 InputStream is = getContentResolver().openInputStream(selectedImageUri);
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                bmp = BitmapFactory.decodeStream(is, null, options);
+                Bitmap bmp = BitmapFactory.decodeStream(is, null, options);
                 sendImageMessage(bmp);
             } catch (Exception e) {
                 e.printStackTrace();
