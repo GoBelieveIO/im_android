@@ -29,7 +29,7 @@ import rx.Observable;
  * Created by tsung on 10/10/14.
  */
 public class IMHttpAPI {
-    public static final String API_URL = "http://api.gobelieve.io";
+    public static final String API_URL = "https://api.gobelieve.io";
 
     private static IMHttp newIMHttp() {
         RestAdapter adapter = new RestAdapter.Builder()
