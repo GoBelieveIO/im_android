@@ -1003,9 +1003,7 @@ public class MessageActivity extends BaseActivity implements
                     , getResources().getString(R.string.product_fotos_get_from))
                     , SELECT_PICTURE);
         } else {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("image/*");
+            Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             startActivityForResult(intent, SELECT_PICTURE_KITKAT);
         }
     }
