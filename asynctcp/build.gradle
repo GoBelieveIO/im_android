@@ -24,12 +24,12 @@ artifacts {
 }
 
 android {
-    compileSdkVersion 21
+    compileSdkVersion 23
     buildToolsVersion '25.0.0'
 
     defaultConfig {
         minSdkVersion 9
-        targetSdkVersion 21
+        targetSdkVersion 23
     }
 
     compileOptions {
