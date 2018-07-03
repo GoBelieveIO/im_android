@@ -69,7 +69,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
 
     void openDB(long currentUID) {
         File p = this.getDir("db", MODE_PRIVATE);
-        File f = new File(p, String.format("gobelieve.db", currentUID));
+        File f = new File(p, String.format("gobelieve_%d.db", currentUID));
         String path = f.getPath();
         MessageDatabaseHelper dh = MessageDatabaseHelper.getInstance();
         dh.open(this.getApplicationContext(), path);
