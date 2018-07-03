@@ -2,7 +2,9 @@ package com.beetle.bauhinia.tools;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.db.message.*;
 import com.beetle.im.CustomerMessage;
+import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 
 
@@ -22,6 +24,35 @@ public class CustomerOutbox extends Outbox {
     }
 
     @Override
+    protected void saveMessageAttachment(IMessage msg, String url) {
+        if (CustomerMessageDB.SQL_ENGINE_DB) {
+            String content = "";
+            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+                Audio audio = (Audio)msg.content;
+                content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+            } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+                Image image = (Image) msg.content;
+                content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
+            } else {
+                return;
+            }
+
+            CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+        } else {
+            ICustomerMessage attachment = new ICustomerMessage();
+            attachment.content = Attachment.newURLAttachment(msg.msgLocalID, url);
+            attachment.sender = msg.sender;
+            attachment.receiver = msg.receiver;
+            saveMessage(attachment);
+        }
+    }
+
+    void saveMessage(IMessage imsg) {
+        ICustomerMessage m = (ICustomerMessage)imsg;
+        CustomerMessageDB.getInstance().insertMessage(imsg, m.storeID);
+    }
+
+    @Override
     protected void sendImageMessage(IMessage imsg, String url) {
 
         ICustomerMessage cm = (ICustomerMessage)imsg;
@@ -33,8 +64,8 @@ public class CustomerOutbox extends Outbox {
         msg.storeID = cm.storeID;
         msg.sellerID = cm.sellerID;
 
-        IMessage.Image image = (IMessage.Image)imsg.content;
-        msg.content = IMessage.newImage(url, image.width, image.height, image.getUUID()).getRaw();
+        Image image = (Image)imsg.content;
+        msg.content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
         im.sendCustomerMessage(msg);
@@ -43,7 +74,7 @@ public class CustomerOutbox extends Outbox {
     @Override
     protected void sendAudioMessage(IMessage imsg, String url) {
         ICustomerMessage cm = (ICustomerMessage)imsg;
-        IMessage.Audio audio = (IMessage.Audio)imsg.content;
+        Audio audio = (Audio)imsg.content;
 
         CustomerMessage msg = new CustomerMessage();
         msg.msgLocalID = imsg.msgLocalID;
@@ -52,10 +83,29 @@ public class CustomerOutbox extends Outbox {
         msg.storeID = cm.storeID;
         msg.sellerID = cm.sellerID;
 
-        msg.content = IMessage.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+        msg.content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
         im.sendCustomerMessage(msg);
+    }
+
+
+    @Override
+    protected void sendVideoMessage(IMessage imsg, String url, String thumbURL) {
+
+        ICustomerMessage cm = (ICustomerMessage)imsg;
+        Video video = (Video)imsg.content;
+
+
+
+        IMMessage msg = new IMMessage();
+        msg.sender = imsg.sender;
+        msg.receiver = imsg.receiver;
+        msg.msgLocalID = imsg.msgLocalID;
+        msg.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
+
+        IMService im = IMService.getInstance();
+        im.sendGroupMessage(msg);
     }
 
 }

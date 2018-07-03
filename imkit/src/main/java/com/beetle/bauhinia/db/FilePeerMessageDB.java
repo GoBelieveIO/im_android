@@ -2,6 +2,7 @@ package com.beetle.bauhinia.db;
 
 import android.util.Log;
 
+import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.im.BytePacket;
 
 import java.io.File;
@@ -65,7 +66,7 @@ public class FilePeerMessageDB extends MessageDB {
                         break;
                     }
 
-                    if (msg.content.getType() != IMessage.MessageType.MESSAGE_ATTACHMENT) {
+                    if (msg.content.getType() != MessageContent.MessageType.MESSAGE_ATTACHMENT) {
                         break;
                     }
                 }

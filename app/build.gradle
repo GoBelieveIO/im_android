@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion '25.0.0'
+    compileSdkVersion 25
+    buildToolsVersion '27.0.3'
     useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 23
+        minSdkVersion 18
+        targetSdkVersion 25
         versionCode 1020
         versionName "1.0.2"
     }
@@ -20,21 +20,18 @@ android {
             res.srcDirs = ['res']
             aidl.srcDirs = ['src']
             jniLibs.srcDirs = ['libs']
+            assets.srcDirs = ['src/main/assets', 'assets/']
         }
     }
-}
 
-dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:support-v4:23.+'
-    compile "com.android.support:appcompat-v7:23.0.1"
+    buildTypes {
+        release {
 
-    compile project(':imkit')
-    compile project(':imsdk')
-    compile project(':asynctcp')
-}
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
 
-android {
     packagingOptions {
         exclude 'META-INF/DEPENDENCIES.txt'
         exclude 'META-INF/LICENSE.txt'
@@ -47,27 +44,27 @@ android {
         exclude 'META-INF/dependencies.txt'
         exclude 'META-INF/LGPL2.1'
     }
-}
 
-
-def appendVersionNameVersionCode(variant, defaultConfig) {
-    //check if staging variant
-    if (variant.name == android.buildTypes.release.name) {
-        if (variant.buildType.zipAlignEnabled) {
-            variant.outputs.each { output ->
-                def outputFile = output.outputFile
-                if (outputFile != null && outputFile.name.endsWith('.apk')) {
-                    def fileName = outputFile.name.replace(".apk", "-v" + defaultConfig.versionName + ".apk")
-                    output.outputFile = new File(outputFile.parent, fileName)
-                }
-
-            }
-        }
-        /* def file = variant.buildType.packageApplication.outputFile
-         def fileName = file.name.replace(".apk", "-v" + defaultConfig.versionName + ".apk")
-         variant.packageApplication.outputFile = new File(file.parent, fileName)*/
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
     }
 }
 
-android { sourceSets { main { assets.srcDirs = ['src/main/assets', 'assets/'] } } }
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    implementation project(':imkit')
+    implementation project(':imsdk')
+    implementation project(':asynctcp')
+
+    implementation 'com.android.support:support-v4:25.0.0'
+    implementation 'com.android.support:appcompat-v7:25.0.0'
+    implementation 'com.netflix.rxjava:rxjava-core:0.17.6'
+    implementation 'com.netflix.rxjava:rxjava-android:0.17.6'
+    implementation 'com.squareup.picasso:picasso:2.4.0'
+}
+
+
 

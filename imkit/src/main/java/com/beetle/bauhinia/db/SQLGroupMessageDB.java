@@ -3,6 +3,12 @@ package com.beetle.bauhinia.db;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.text.TextUtils;
+
+import com.beetle.bauhinia.db.message.MessageContent;
+import com.beetle.bauhinia.db.message.Text;
+
+import java.util.ArrayList;
 
 
 /**
@@ -10,18 +16,7 @@ import android.database.sqlite.SQLiteDatabase;
  */
 public class SQLGroupMessageDB  {
     private class GroupMessageIterator implements MessageIterator{
-        private Cursor cursor;
-
-        public GroupMessageIterator(SQLiteDatabase db, long group_id)  {
-            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? ORDER BY id DESC";
-            this.cursor = db.rawQuery(sql, new String[]{""+group_id});
-        }
-
-        public GroupMessageIterator(SQLiteDatabase db, long group_id, int lastMsgID) {
-            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? AND id < ? ORDER BY id DESC";
-            this.cursor = db.rawQuery(sql, new String[]{""+group_id, ""+lastMsgID});
-        }
-
+        protected Cursor cursor;
         public IMessage next() {
             if (cursor == null) {
                 return null;
@@ -32,49 +27,45 @@ public class SQLGroupMessageDB  {
                 cursor = null;
                 return null;
             }
-            IMessage msg = new IMessage();
-            msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
-            msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
-            msg.receiver = cursor.getLong(cursor.getColumnIndex("group_id"));
-            msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
-            msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
-            String content = cursor.getString(cursor.getColumnIndex("content"));
-            msg.setContent(content);
+            IMessage msg = getMessage(cursor);
             return msg;
         }
     }
 
 
-    public class GroupConversationIterator implements ConversationIterator {
+    private class ForwardGroupMessageIterator extends GroupMessageIterator {
+        public ForwardGroupMessageIterator(SQLiteDatabase db, long group_id)  {
+            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? ORDER BY id DESC";
+            this.cursor = db.rawQuery(sql, new String[]{""+group_id});
+        }
 
-        private SQLiteDatabase db;
+        public ForwardGroupMessageIterator(SQLiteDatabase db, long group_id, int lastMsgID) {
+            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? AND id < ? ORDER BY id DESC";
+            this.cursor = db.rawQuery(sql, new String[]{""+group_id, ""+lastMsgID});
+        }
+    }
+
+    private class BackwarkGroupMessageIterator extends GroupMessageIterator {
+        public BackwarkGroupMessageIterator(SQLiteDatabase db, long group_id, int lastMsgID) {
+            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? AND id > ? ORDER BY id";
+            this.cursor = db.rawQuery(sql, new String[]{""+group_id, ""+lastMsgID});
+        }
+    }
+
+    private class MiddleGroupMessageIterator extends GroupMessageIterator {
+        public MiddleGroupMessageIterator(SQLiteDatabase db, long group_id, int lastMsgID) {
+            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? AND id > ? AND id < ? ORDER BY id DESC";
+            this.cursor = db.rawQuery(sql, new String[]{""+group_id, ""+(lastMsgID-10), "" + (lastMsgID+10)});
+        }
+    }
+
+
+    public class GroupConversationIterator implements ConversationIterator {
         private Cursor cursor;
 
         public GroupConversationIterator(SQLiteDatabase db) {
-            this.db = db;
-            this.cursor = db.rawQuery("SELECT MAX(id) as id, peer FROM group_message GROUP BY group_id", null);
+            this.cursor = db.rawQuery("SELECT MAX(id) as id, group_id FROM group_message GROUP BY group_id", null);
         }
-
-
-        private IMessage getMessage(long id) {
-            String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE id=?";
-            Cursor cursor = db.rawQuery(sql, new String[]{""+id});
-
-            IMessage msg = null;
-            if (cursor.moveToNext()) {
-                msg = new IMessage();
-                msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
-                msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
-                msg.receiver = cursor.getLong(cursor.getColumnIndex("group_id"));
-                msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
-                msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
-                String content = cursor.getString(cursor.getColumnIndex("content"));
-                msg.setContent(content);
-            }
-            cursor.close();
-            return msg;
-        }
-
 
         public IMessage next() {
             if (cursor == null) {
@@ -97,6 +88,7 @@ public class SQLGroupMessageDB  {
 
 
     private static final String TABLE_NAME = "group_message";
+    private static final String FTS_TABLE_NAME = "group_message_fts";
     private static final String TAG = "beetle";
 
     private SQLiteDatabase db;
@@ -109,20 +101,45 @@ public class SQLGroupMessageDB  {
         return this.db;
     }
 
+    private boolean insertFTS(int msgLocalID, String text) {
+        String t = tokenizer(text);
+        ContentValues values = new ContentValues();
+        values.put("docid", msgLocalID);
+        values.put("content", t);
+        db.insert("group_message_fts", null, values);
+        return true;
+    }
+
+
     public boolean insertMessage(IMessage msg, long gid) {
         ContentValues values = new ContentValues();
         values.put("sender", msg.sender);
         values.put("group_id", msg.receiver);
         values.put("timestamp", msg.timestamp);
         values.put("flags", msg.flags);
+        if (!TextUtils.isEmpty(msg.getUUID())) {
+            values.put("uuid", msg.getUUID());
+        }
         values.put("content", msg.content.getRaw());
         long id = db.insert(TABLE_NAME, null, values);
         if (id == -1) {
             return  false;
         }
         msg.msgLocalID = (int)id;
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+            Text text = (Text)msg.content;
+            insertFTS((int)id, text.text);
+        }
         return true;
     }
+
+    public boolean updateContent(int msgLocalID, String content) {
+        ContentValues cv = new ContentValues();
+        cv.put("content", content);
+        int rows = db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
+        return rows == 1;
+    }
+
 
     public boolean acknowledgeMessage(int msgLocalID, long uid) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
@@ -172,8 +189,15 @@ public class SQLGroupMessageDB  {
 
     public boolean removeMessage(int msgLocalID, long gid) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
+        db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
+
+    public boolean removeMessageIndex(int msgLocalID, long gid) {
+        db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
+        return true;
+    }
+
 
     public boolean clearCoversation(long gid) {
         db.delete(TABLE_NAME, "group_id = ?", new String[]{""+gid});
@@ -181,15 +205,109 @@ public class SQLGroupMessageDB  {
     }
 
     public MessageIterator newMessageIterator(long gid) {
-        return new GroupMessageIterator(db, gid);
+        return new ForwardGroupMessageIterator(db, gid);
     }
 
     public MessageIterator newMessageIterator(long gid, int firstMsgID) {
-        return new GroupMessageIterator(db, gid, firstMsgID);
+        return new ForwardGroupMessageIterator(db, gid, firstMsgID);
+    }
+
+    public MessageIterator newBackwardMessageIterator(long gid, int msgID) {
+        return new MiddleGroupMessageIterator(db, gid, msgID);
+    }
+    public MessageIterator newMiddleMessageIterator(long gid, int msgID) {
+        return new MiddleGroupMessageIterator(db, gid, msgID);
     }
 
     public ConversationIterator newConversationIterator() {
         return new GroupConversationIterator(db);
     }
 
+
+
+    private String tokenizer(String key) {
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < key.length(); i++) {
+            char c = key.charAt(i);
+            builder.append(c);
+            if (c >= 0x4e00 && c <= 0x9fff) {
+                builder.append(' ');
+            }
+        }
+        return builder.toString();
+    }
+
+    public ArrayList<IMessage> search(String key) {
+        key = key.replace("'", "\'");
+        String k = this.tokenizer(key);
+
+        Cursor cursor = db.query(FTS_TABLE_NAME, new String[]{"rowid"},
+                "content MATCH(?)",  new String[]{k},
+                null, null, null);
+        ArrayList<Long> rows = new ArrayList<Long>();
+        while(cursor.moveToNext()) {
+            long rowid = cursor.getInt(cursor.getColumnIndex("rowid"));
+            rows.add(rowid);
+        }
+        cursor.close();
+
+        ArrayList<IMessage> messages = new ArrayList<IMessage>();
+        for (int i = 0; i < rows.size(); i++) {
+            IMessage msg = getMessage(rows.get(i));
+            messages.add(msg);
+        }
+        return messages;
+    }
+
+    private IMessage getMessage(Cursor cursor) {
+        IMessage msg = new IMessage();
+        msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
+        msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
+        msg.receiver = cursor.getLong(cursor.getColumnIndex("group_id"));
+        msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
+        msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
+        String content = cursor.getString(cursor.getColumnIndex("content"));
+        msg.setContent(content);
+        return msg;
+    }
+    private IMessage getMessage(long id) {
+        String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE id=?";
+        Cursor cursor = db.rawQuery(sql, new String[]{""+id});
+
+        IMessage msg = null;
+        if (cursor.moveToNext()) {
+            msg = getMessage(cursor);
+        }
+        cursor.close();
+        return msg;
+    }
+
+    public IMessage getLastMessage(long gid) {
+        String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id=? ORDER BY id DESC";
+        Cursor cursor = db.rawQuery(sql, new String[]{""+gid});
+        boolean r = cursor.moveToNext();
+        if (!r) {
+            cursor.close();
+            return null;
+        }
+
+        IMessage msg = getMessage(cursor);
+        cursor.close();
+        return msg;
+    }
+
+    public int getMessageId(String uuid) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id"},
+                "uuid = ?", new String[]{uuid}, null,null,null);
+        boolean r = cursor.moveToNext();
+        if (!r) {
+            cursor.close();
+            return 0;
+        }
+
+        int msgLocalId = cursor.getInt(cursor.getColumnIndex("id"));
+        cursor.close();
+        return msgLocalId;
+    }
 }

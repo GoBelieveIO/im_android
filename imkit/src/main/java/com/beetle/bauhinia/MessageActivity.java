@@ -1,25 +1,21 @@
 package com.beetle.bauhinia;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
 import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.widget.Toolbar;
 import android.text.ClipboardManager;
-import android.text.TextUtils;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -29,101 +25,74 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 
-import com.amap.api.services.core.LatLonPoint;
-import com.amap.api.services.geocoder.GeocodeResult;
-import com.amap.api.services.geocoder.GeocodeSearch;
-import com.amap.api.services.geocoder.RegeocodeQuery;
-import com.amap.api.services.geocoder.RegeocodeResult;
+import java.io.File;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.beetle.bauhinia.activity.*;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.db.MessageIterator;
+import com.beetle.bauhinia.db.message.*;
+import com.beetle.bauhinia.db.message.Notification;
 import com.beetle.bauhinia.gallery.GalleryImage;
 import com.beetle.bauhinia.gallery.ui.GalleryUI;
-import com.beetle.bauhinia.tools.AudioRecorder;
-import com.beetle.bauhinia.tools.AudioUtil;
-import com.beetle.bauhinia.tools.DeviceUtil;
-import com.beetle.im.*;
-import com.beetle.bauhinia.activity.BaseActivity;
-import com.beetle.bauhinia.activity.PhotoActivity;
-
-
-import com.beetle.bauhinia.tools.AudioDownloader;
-import com.beetle.bauhinia.tools.FileCache;
-import com.beetle.bauhinia.tools.Notification;
-import com.beetle.bauhinia.tools.NotificationCenter;
+import com.beetle.bauhinia.tools.*;
+import com.beetle.bauhinia.view.*;
+import com.beetle.im.IMService;
 import com.easemob.easeui.widget.EaseChatExtendMenu;
 import com.easemob.easeui.widget.EaseChatInputMenu;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
-
-import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.tools.AudioRecorder;
-import com.beetle.bauhinia.tools.AudioUtil;
-import com.beetle.bauhinia.tools.DeviceUtil;
-import com.beetle.im.*;
-import com.beetle.bauhinia.activity.BaseActivity;
-import com.beetle.bauhinia.activity.PhotoActivity;
 import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
-import static com.beetle.bauhinia.constant.RequestCodes.*;
 import com.beetle.imkit.R;
 
 
-public class MessageActivity extends BaseActivity implements
-        SwipeRefreshLayout.OnRefreshListener {
+public class MessageActivity extends MessageAudioActivity implements
+        SwipeRefreshLayout.OnRefreshListener,
+        FileDownloader.FileDownloaderObserver,
+        Outbox.OutboxObserver {
 
-    protected final String TAG = "imservice";
+    protected static final String TAG = "imservice";
+
+
 
     private static final int PERMISSIONS_REQUEST = 2;
+
+
+    public static final int SELECT_PICTURE = 101;
+    public static final int SELECT_PICTURE_KITKAT = 102;
+    public static final int TAKE_PICTURE = 103;
+    public static final int PICK_LOCATION = 104;
+    public static final int RECORD_VIDEO = 105;
 
 
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
 
     protected boolean isShowUserName = false;
-    private File captureFile;
 
-    protected ArrayList<IMessage> messages = new ArrayList<IMessage>();
-    protected HashMap<Integer, IMessage.Attachment> attachments = new HashMap<Integer, IMessage.Attachment>();
+    private File captureFile;
+    private File recordVideoFile;
 
     BaseAdapter adapter;
-
-    IMessage playingMessage;
-
-    //录音相关
-    protected Handler mHandler = new Handler();
-    protected java.util.Timer sixtySecondsTimer;
-    protected java.util.Timer recordingTimer;
-    protected AlertDialog alertDialog;
-
-    protected ImageView recordingImageBG;
-
-    protected ImageView recordingImage;
-
-    protected TextView recordingText;
-
-    protected Date mBegin;
-
-    protected String recordFileName;
-
-    AudioRecorder audioRecorder;
-    AudioUtil audioUtil;
-
     ListView listview;
     
     static final int ITEM_TAKE_PICTURE = 1;
     static final int ITEM_PICTURE = 2;
     static final int ITEM_LOCATION = 3;
+    static final int ITEM_VIDEO_CALL = 4;
 
-    protected int[] itemStrings = { R.string.attach_take_pic, R.string.attach_picture, R.string.attach_location };
+
+    static final int ITEM_TAKE_PICTURE_ID = 0;
+    static final int ITEM_PICTURE_ID = 1;
+    static final int ITEM_LOCATION_ID = 2;
+    static final int ITEM_VIDEO_CALL_ID = 3;
+
+
+    protected int[] itemStrings = { R.string.attach_take_pic, R.string.attach_picture,
+            R.string.attach_location, R.string.attach_video_call };
     protected int[] itemdrawables = { R.drawable.ease_chat_takepic_selector, R.drawable.ease_chat_image_selector,
-            R.drawable.ease_chat_location_selector };
-    protected int[] itemIds = { ITEM_TAKE_PICTURE, ITEM_PICTURE, ITEM_LOCATION };
-
+            R.drawable.ease_chat_location_selector,  R.drawable.ease_chat_takepic_selector};
+    protected int[] itemIds = { ITEM_TAKE_PICTURE, ITEM_PICTURE, ITEM_LOCATION, ITEM_VIDEO_CALL };
+    protected boolean[] items = {true, true, true, false};
 
     protected MyItemClickListener extendMenuItemClickListener;
     protected EaseChatInputMenu inputMenu;
@@ -145,6 +114,9 @@ public class MessageActivity extends BaseActivity implements
                 case ITEM_LOCATION: // 位置
                     startActivityForResult(new Intent(MessageActivity.this, LocationPickerActivity.class), PICK_LOCATION);
                     break;
+                case ITEM_VIDEO_CALL:
+                    call();
+                    break;
                 default:
                     break;
             }
@@ -152,82 +124,38 @@ public class MessageActivity extends BaseActivity implements
     }
 
 
-    public static class User {
-        public long uid;
-        public String name;
-        public String avatarURL;
-
-        //name为nil时，界面显示identifier字段
-        public String identifier;
-    }
-
-    protected User getUser(long uid) {
-        User u = new User();
-        u.uid = uid;
-        u.name = null;
-        u.avatarURL = "";
-        u.identifier = String.format("%d", uid);
-        return u;
-    }
-
-    public interface GetUserCallback {
-        void onUser(User u);
-    }
-
-    protected void asyncGetUser(long uid, GetUserCallback cb) {
-
-    }
-
-    //加载消息发送者的名称和头像信息
-    protected void loadUserName(IMessage msg) {
-        User u = getUser(msg.sender);
-
-        msg.setSenderAvatar(u.avatarURL);
-        if (TextUtils.isEmpty(u.name)) {
-            msg.setSenderName(u.identifier);
-            final IMessage fmsg = msg;
-            asyncGetUser(msg.sender, new GetUserCallback() {
-                @Override
-                public void onUser(User u) {
-                    fmsg.setSenderName(u.name);
-                    fmsg.setSenderAvatar(u.avatarURL);
-                }
-            });
-        } else {
-            msg.setSenderName(u.name);
-        }
-    }
-
-    protected void loadUserName(ArrayList<IMessage> messages, int count) {
-        for (int i = 0; i < messages.size(); i++) {
-            IMessage msg = messages.get(i);
-            loadUserName(msg);
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.chat);
-        captureFile = new File(getExternalFilesDir(null), "pic.jpg");
+
+        captureFile = new File(getExternalCacheDir(), "pic.jpg");
+        Log.i(TAG, "capture file:" + captureFile.getAbsolutePath());
+        recordVideoFile = new File(MessageActivity.this.getExternalCacheDir(), "gobelieve.m4a");
+        Log.i(TAG, "record video file:" + recordVideoFile.getAbsolutePath());
 
         File f = new File(getCacheDir(), "bh_audio.amr");
         recordFileName = f.getAbsolutePath();
         Log.i(TAG, "record file name:" + recordFileName);
 
-        listview = (ListView)findViewById(R.id.list_view);
-
         extendMenuItemClickListener = new MyItemClickListener();
         inputMenu = (EaseChatInputMenu)findViewById(R.id.input_menu);
         registerExtendMenuItem();
-        // init input menu
         inputMenu.init();
         inputMenu.setChatInputMenuListener(new EaseChatInputMenu.ChatInputMenuListener() {
 
             @Override
-            public void onSendMessage(String content) {
+            public void onSendMessage(String content, List<Long> at, List<String> atNames) {
                 // 发送文本消息
-                sendTextMessage(content);
+                sendTextMessage(content, at, atNames);
+            }
+
+            @Override
+            public void onFocusChanged(boolean hasFocus) {
+                if (hasFocus) {
+                    onInputFocusChanged(hasFocus);
+                }
             }
 
             @Override
@@ -263,11 +191,16 @@ public class MessageActivity extends BaseActivity implements
                         return false;
                 }
             }
+            @Override
+            public void onAt() {
+                MessageActivity.this.onAt();
+            }
         });
 
         SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
         swipeLayout.setOnRefreshListener(this);
 
+        listview = (ListView)findViewById(R.id.list_view);
         adapter = new ChatAdapter();
         listview.setAdapter(adapter);
 
@@ -282,12 +215,33 @@ public class MessageActivity extends BaseActivity implements
                     }
                 }
                 inputMenu.hideExtendMenuContainer();
+                inputMenu.clearFocus();
                 return false;
             }
         });
 
+        listview.setOnScrollListener(new AbsListView.OnScrollListener() {
+            private boolean reachBottom = false;
 
-        setSubtitle();
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                if (scrollState == SCROLL_STATE_IDLE && reachBottom) {
+                    reachBottom = false;
+                    int count = loadLateData();
+                    if (count > 0) {
+                        adapter.notifyDataSetChanged();
+                    }
+                }
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                int visibleThreshold = 2;
+                if (totalItemCount <= (firstVisibleItem + visibleItemCount + visibleThreshold)) {
+                    reachBottom = true;
+                }
+            }
+        });
 
         audioUtil = new AudioUtil(this);
         audioUtil.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -316,6 +270,22 @@ public class MessageActivity extends BaseActivity implements
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        return super.onOptionsItemSelected(item);
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG, "imactivity destory");
+        audioUtil.release();
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSIONS_REQUEST) {
@@ -329,6 +299,7 @@ public class MessageActivity extends BaseActivity implements
             int readExternalPermission = (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE));
             int fineLocationPermission = (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION));
             int coarseLocationPermission = (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION));
+            int cameraPermission = (checkSelfPermission(Manifest.permission.CAMERA));
 
             ArrayList<String> permissions = new ArrayList<String>();
 
@@ -348,6 +319,10 @@ public class MessageActivity extends BaseActivity implements
                 permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
             }
 
+            if (cameraPermission != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.CAMERA);
+            }
+
             if (permissions.size() > 0) {
                 String[] array = new String[permissions.size()];
                 permissions.toArray(array);
@@ -361,11 +336,11 @@ public class MessageActivity extends BaseActivity implements
      */
     protected void registerExtendMenuItem(){
         for(int i = 0; i < itemStrings.length; i++){
-            inputMenu.registerExtendMenuItem(itemStrings[i], itemdrawables[i], itemIds[i], extendMenuItemClickListener);
+            if (items[i]) {
+                inputMenu.registerExtendMenuItem(itemStrings[i], itemdrawables[i], itemIds[i], extendMenuItemClickListener);
+            }
         }
     }
-
-    protected void loadEarlierData() {}
 
     static interface ContentTypes {
         public static int UNKNOWN = 0;
@@ -375,7 +350,11 @@ public class MessageActivity extends BaseActivity implements
         public static int TEXT = 8;
         public static int NOTIFICATION = 10;
         public static int LINK = 12;
+        public static int VOIP = 14;
+        public static int FILE = 16;
+        public static int VIDEO = 18;
     }
+    private static int VIEW_TYPE_COUNT = 20;
 
     class ChatAdapter extends BaseAdapter implements ContentTypes {
         @Override
@@ -405,20 +384,24 @@ public class MessageActivity extends BaseActivity implements
         int getMediaType(int position) {
             IMessage msg = messages.get(position);
             final int media;
-            if (msg.content instanceof IMessage.Text) {
+            if (msg.content instanceof Text) {
                 media = TEXT;
-            } else if (msg.content instanceof IMessage.Image) {
+            } else if (msg.content instanceof Image) {
                 media = IMAGE;
-            } else if (msg.content instanceof IMessage.Audio) {
+            } else if (msg.content instanceof Audio) {
                 media = AUDIO;
-            } else if (msg.content instanceof IMessage.Location) {
+            } else if (msg.content instanceof Location) {
                 media = LOCATION;
-            } else if (msg.content instanceof IMessage.GroupNotification ||
-                    msg.content instanceof IMessage.TimeBase ||
-                    msg.content instanceof IMessage.Headline) {
+            } else if (msg.content instanceof Notification) {
                 media = NOTIFICATION;
-            } else if (msg.content instanceof IMessage.Link) {
+            } else if (msg.content instanceof Link) {
                 media = LINK;
+            } else if (msg.content instanceof VOIP) {
+                media = VOIP;
+            } else if (msg.content instanceof com.beetle.bauhinia.db.message.File) {
+                media = FILE;
+            } else if (msg.content instanceof Video) {
+                media = VIDEO;
             } else {
                 media = UNKNOWN;
             }
@@ -428,7 +411,7 @@ public class MessageActivity extends BaseActivity implements
 
         @Override
         public int getViewTypeCount() {
-            return 14;
+            return VIEW_TYPE_COUNT;
         }
 
         @Override
@@ -436,35 +419,21 @@ public class MessageActivity extends BaseActivity implements
             IMessage msg = messages.get(position);
             MessageRowView rowView = (MessageRowView)convertView;
             if (rowView == null) {
-                IMessage.MessageType msgType = msg.content.getType();
-                switch (msgType) {
-                    case MESSAGE_IMAGE:
-                        rowView = new MessageImageView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
-                        break;
-                    case MESSAGE_AUDIO:
-                        rowView = new MessageAudioView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
-                        break;
-                    case MESSAGE_TEXT:
-                        rowView = new MessageTextView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
-                        break;
-                    case MESSAGE_LOCATION:
-                        rowView = new MessageLocationView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
-                        break;
-                    case MESSAGE_LINK:
-                        rowView = new MessageLinkView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
-                        break;
-                    case MESSAGE_GROUP_NOTIFICATION:
-                    case MESSAGE_TIME_BASE:
-                    case MESSAGE_HEADLINE:
-                        rowView = new MessageNotificationView(MessageActivity.this);
-                        break;
-                    default:
-                        rowView = new MessageTextView(MessageActivity.this, !msg.isOutgoing, isShowUserName);
-                        break;
+                MessageContent.MessageType msgType = msg.content.getType();
+                if (msg.content instanceof Notification) {
+                    rowView = new MiddleMessageView(MessageActivity.this, msgType);
+                } else  if (msg.isOutgoing) {
+                    rowView = new OutMessageView(MessageActivity.this, msgType);
+                } else {
+                    rowView = new InMessageView(MessageActivity.this, msgType, isShowUserName);
                 }
-
                 if (rowView != null) {
                     View contentView = rowView.getContentView();
+                    if (msgType == MessageContent.MessageType.MESSAGE_TEXT) {
+                        MessageTextView messageTextView = (MessageTextView)rowView.getContentView();
+                        contentView = messageTextView.getTextView();
+                    }
+
                     contentView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -484,8 +453,13 @@ public class MessageActivity extends BaseActivity implements
                                 actions.add(ChatQuickAction.RESEND);
                             }
 
-                            if (im.content.getType() == IMessage.MessageType.MESSAGE_TEXT) {
+                            if (im.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
                                 actions.add(ChatItemQuickAction.ChatQuickAction.COPY);
+                            }
+
+                            int now = now();
+                            if (now >= im.timestamp && (now - im.timestamp) < (REVOKE_EXPIRE-10) && im.isOutgoing) {
+                                actions.add(ChatQuickAction.REVOKE);
                             }
 
                             if (actions.size() == 0) {
@@ -503,10 +477,13 @@ public class MessageActivity extends BaseActivity implements
                                                     ClipboardManager clipboard =
                                                             (ClipboardManager)MessageActivity.this
                                                                     .getSystemService(Context.CLIPBOARD_SERVICE);
-                                                    clipboard.setText(((IMessage.Text) im.content).text);
+                                                    clipboard.setText(((Text) im.content).text);
                                                     break;
                                                 case RESEND:
                                                     MessageActivity.this.resend(im);
+                                                    break;
+                                                case REVOKE:
+                                                    MessageActivity.this.revoke(im);
                                                     break;
                                                 default:
                                                     break;
@@ -517,6 +494,21 @@ public class MessageActivity extends BaseActivity implements
                             return true;
                         }
                     });
+                    if (msgType == MessageContent.MessageType.MESSAGE_TEXT) {
+                        MessageTextView messageTextView = (MessageTextView)rowView.getContentView();
+                        messageTextView.setDoubleTapListener(new MessageTextView.DoubleTapListener() {
+                            @Override
+                            public void onDoubleTap(MessageTextView v) {
+                                Text t = (Text)v.getMessage().content;
+                                Log.i(TAG, "double click:" + t.text);
+
+                                Intent intent = new Intent();
+                                intent.setClass(MessageActivity.this, OverlayActivity.class);
+                                intent.putExtra("text", t.text);
+                                MessageActivity.this.startActivity(intent);
+                            }
+                        });
+                    }
                 }
             }
             rowView.setMessage(msg);
@@ -532,243 +524,93 @@ public class MessageActivity extends BaseActivity implements
         inputMenu.enableSend();
     }
 
-
-    private class VolumeTimerTask extends TimerTask {
-        @Override
-        public void run() {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    MessageActivity.this.refreshVolume();
-                }
-            });
-        }
-    }
-
-
-    private void showReleaseToCancelHint() {
-        recordingText.setText(getString(R.string.release_to_cancel));
-        recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
-    }
-
-    private void showMoveUpToCancelHint() {
-        recordingText.setText(getString(R.string.move_up_to_cancel));
-        recordingText.setBackgroundColor(Color.TRANSPARENT);
-    }
-
-    private void showRecordDialog() {
-        AlertDialog.Builder builder;
-
-        LayoutInflater inflater = (LayoutInflater) this
-                .getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
-        View layout = inflater.inflate(
-                R.layout.conversation_recording_dialog,
-                (ViewGroup) findViewById(R.id.conversation_recording));
-
-        recordingImage = (ImageView) layout
-                .findViewById(R.id.conversation_recording_range);
-        recordingImageBG = (ImageView) layout
-                .findViewById(R.id.conversation_recording_white);
-
-        recordingText = (TextView) layout
-                .findViewById(R.id.conversation_recording_text);
-
-        showMoveUpToCancelHint();
-
-        builder = new AlertDialog.Builder(this);
-        alertDialog = builder.create();
-        alertDialog.show();
-        alertDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        alertDialog.getWindow().setContentView(layout);
-    }
-
-    private void refreshVolume() {
-        if (!this.audioRecorder.isRecording()) {
-            return;
-        }
-
-        int max = this.audioRecorder.getMaxAmplitude();
-
-        if (max != 0) {
-            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) recordingImage
-                    .getLayoutParams();
-            float scale = max / 7000.0f;
-            if (scale < 0.3) {
-                recordingImage
-                        .setImageResource(R.drawable.record_red);
-            } else {
-                recordingImage
-                        .setImageResource(R.drawable.record_green);
-            }
-            if (scale > 1) {
-                scale = 1;
-            }
-            int height = recordingImageBG.getHeight()
-                    - (int) (scale * recordingImageBG.getHeight());
-            params.setMargins(0, 0, 0, -1 * height);
-            recordingImage.setLayoutParams(params);
-
-            ((View) recordingImage).scrollTo(0, height);
-            // Log.i(TAG, "max amplitude: " + max);
-            /**
-             * 倒计时提醒
-             */
-            Date now = new Date();
-            long between = (mBegin.getTime() + 60000)
-                    - now.getTime();
-            if (between < 10000) {
-                int second = (int) (Math.floor((between / 1000)));
-                if (second == 0) {
-                    second = 1;
-                }
-                recordingText.setText("还剩: " + second + "秒");
-            }
-        }
-    }
-
-    private void startRecord() {
-        if (DeviceUtil.isFullStorage()) {
-            Toast.makeText(this, "您没有可用的SD卡，请退出U盘模式或者插入SD卡", Toast.LENGTH_SHORT)
-                    .show();
-            return;
-        }
-        if (audioUtil.isPlaying()) {
-            audioUtil.stopPlay();
-        }
-
-        mBegin = new Date();
-        //删除上次录音生成的文件内容
-        new File(recordFileName).delete();
-        audioRecorder.startRecord();
-        sixtySecondsTimer = new java.util.Timer();
-        sixtySecondsTimer.schedule(new TimerTask() {
-
-            @Override
-            public void run() {
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.i(TAG, "recording end by timeout");
-                        MessageActivity.this.stopRecord();
-                    }
-                });
-            }
-        }, 60000);
-
-        recordingTimer = new java.util.Timer();
-        recordingTimer.schedule(new VolumeTimerTask(), 0, 100);
-
-        showRecordDialog();
-    }
-
-    private void discardRecord() {
-        // stop sixty seconds limit
-        if (sixtySecondsTimer != null) {
-            sixtySecondsTimer.cancel();
-            sixtySecondsTimer = null;
-        }
-        // stop volume task
-        if (recordingTimer != null) {
-            recordingTimer.cancel();
-            recordingTimer = null;
-        }
-        if (alertDialog != null) {
-            alertDialog.dismiss();
-        }
-
-        if (MessageActivity.this.audioRecorder.isRecording()) {
-            MessageActivity.this.audioRecorder.stopRecord();
-        }
-    }
-
-    private void stopRecord() {
-        // stop sixty seconds limit
-        if (sixtySecondsTimer != null) {
-            sixtySecondsTimer.cancel();
-            sixtySecondsTimer = null;
-        }
-        // stop volume task
-        if (recordingTimer != null) {
-            recordingTimer.cancel();
-            recordingTimer = null;
-        }
-        if (alertDialog != null) {
-            alertDialog.dismiss();
-        }
-
-        if (MessageActivity.this.audioRecorder.isRecording()) {
-            MessageActivity.this.audioRecorder.stopRecord();
-            MessageActivity.this.sendAudioMessage();
-        }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.chat, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_clear) {
-            clearConversation();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
     public void onRefresh() {
         final SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout)findViewById(R.id.swipe_container);
         swipeLayout.setRefreshing(false);
 
-        loadEarlierData();
-    }
-
-    protected void setSubtitle() {
-        IMService.ConnectState state = IMService.getInstance().getConnectState();
-        if (state == IMService.ConnectState.STATE_CONNECTING) {
-            setSubtitle("连线中");
-        } else if (state == IMService.ConnectState.STATE_CONNECTFAIL ||
-                state == IMService.ConnectState.STATE_UNCONNECTED) {
-            setSubtitle("未连接");
-        } else {
-            setSubtitle("");
+        int count = loadEarlierData();
+        if (count > 0) {
+            adapter.notifyDataSetChanged();
+            listview.setSelection(count);
         }
     }
 
-    protected void setSubtitle(String subtitle) {
 
+    @Override
+    public void onAudioUploadSuccess(IMessage imsg, String url) {
+        Log.i(TAG, "audio upload success:" + url);
+        IMessage m = findMessage(imsg.content.getUUID());
+        if (m != null) {
+            m.setUploading(false);
+        }
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.i(TAG, "imactivity destory");
-        audioUtil.release();
+    public void onAudioUploadFail(IMessage msg) {
+        Log.i(TAG, "audio upload fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setFailure(true);
+            m.setUploading(false);
+        }
     }
 
-    public static int now() {
-        Date date = new Date();
-        long t = date.getTime();
-        return (int)(t/1000);
+    @Override
+    public void onImageUploadSuccess(IMessage msg, String url) {
+        Log.i(TAG, "image upload success:" + url);
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setUploading(false);
+        }
     }
 
-    protected void markMessageListened(IMessage imsg) {
-        Log.i(TAG, "not implemented");
+    @Override
+    public void onImageUploadFail(IMessage msg) {
+        Log.i(TAG, "image upload fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setFailure(true);
+            m.setUploading(false);
+        }
     }
 
-    protected void resend(IMessage msg) {
-        Log.i(TAG, "not implemented");
+    @Override
+    public void onVideoUploadSuccess(IMessage msg, String url, String thumbURL) {
+        Log.i(TAG, "video upload success:" + url + " thumb url:" + thumbURL);
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setUploading(false);
+        }
     }
 
-    void saveMessageAttachment(IMessage msg, String address) {
-        Log.i(TAG, "not implemented");
+    @Override
+    public void onVideoUploadFail(IMessage msg) {
+        Log.i(TAG, "video upload fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setFailure(true);
+            m.setUploading(false);
+        }
     }
 
-    protected void sendMessageContent(IMessage.MessageContent content) {
-        Log.i(TAG, "not implemented");
+    @Override
+    public void onFileDownloadSuccess(IMessage msg) {
+        Log.i(TAG, "audio download success");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setDownloading(false);
+        }
     }
+
+    @Override
+    public void onFileDownloadFail(IMessage msg) {
+        Log.i(TAG, "audio download fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setDownloading(false);
+        }
+    }
+
 
     void clearConversation() {
         Log.i(TAG, "clearConversation");
@@ -776,224 +618,36 @@ public class MessageActivity extends BaseActivity implements
         adapter.notifyDataSetChanged();
     }
 
-    private String formatTimeBase(long ts) {
-        String s = "";
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis((long)(ts) * 1000);
-        int year = cal.get(Calendar.YEAR);
-        int month = cal.get(Calendar.MONTH);
-        int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH);
-        int hour = cal.get(Calendar.HOUR_OF_DAY);
-        int minute = cal.get(Calendar.MINUTE);
-        int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
-        String weeks[] = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
-        if (isToday(ts)) {
-            s = String.format("%02d:%02d", hour, minute);
-        } else if (isYesterday(ts)) {
-            s = String.format("昨天 %02d:%02d", hour, minute);
-        } else if (isInWeek(ts)) {
-            s = String.format("%s %02d:%02d", weeks[dayOfWeek - 1], hour, minute);
-        } else if (isInYear(ts)) {
-            s = String.format("%02d-%02d %02d:%02d", month+1, dayOfMonth, hour, minute);
-        } else {
-            s = String.format("%d-%02d-%02d %02d:%02d", year, month+1, dayOfMonth, hour, minute);
-        }
-        return s;
-    }
-
-    private boolean isToday(long ts) {
-        int now = now();
-        return isSameDay(now, ts);
-    }
-
-    private boolean isYesterday(long ts) {
-        int now = now();
-        int yesterday = now - 24*60*60;
-        return isSameDay(ts, yesterday);
-    }
-
-    private boolean isInWeek(long ts) {
-        int now = now();
-        //6天前
-        long day6 = now - 6*24*60*60;
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis(day6 * 1000);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        int zero = (int)(cal.getTimeInMillis()/1000);
-        return (ts >= zero);
-    }
-
-    private boolean isInYear(long ts) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis(ts*1000);
-        int year = cal.get(Calendar.YEAR);
-
-        cal.setTime(new Date());
-        int y = cal.get(Calendar.YEAR);
-
-        return (year == y);
-    }
-
-    private boolean isSameDay(long ts1, long ts2) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis(ts1 * 1000);
-        int year1 = cal.get(Calendar.YEAR);
-        int month1 = cal.get(Calendar.MONTH);
-        int day1 = cal.get(Calendar.DAY_OF_MONTH);
-
-
-        cal.setTimeInMillis(ts2 * 1000);
-        int year2 = cal.get(Calendar.YEAR);
-        int month2 = cal.get(Calendar.MONTH);
-        int day2 = cal.get(Calendar.DAY_OF_MONTH);
-
-        return ((year1==year2) && (month1==month2) && (day1==day2));
-    }
-
-    protected void resetMessageTimeBase() {
-        ArrayList<IMessage> newMessages = new ArrayList<IMessage>();
-        IMessage lastMsg = null;
-        for (int i = 0; i < messages.size(); i++) {
-            IMessage msg = messages.get(i);
-            if (msg.content.getType() == IMessage.MessageType.MESSAGE_TIME_BASE) {
-                continue;
-            }
-            //间隔10分钟，添加时间分割线
-            if (lastMsg == null || msg.timestamp - lastMsg.timestamp > 10*60) {
-                IMessage.TimeBase timeBase = IMessage.newTimeBase(msg.timestamp);
-                String s = formatTimeBase(timeBase.timestamp);
-                timeBase.description = s;
-                IMessage t = new IMessage();
-                t.content = timeBase;
-                t.timestamp = msg.timestamp;
-                newMessages.add(t);
-            }
-            newMessages.add(msg);
-
-            lastMsg = msg;
-        }
-        messages = newMessages;
-    }
-
+    @Override
     protected void insertMessage(IMessage imsg) {
-        IMessage lastMsg = null;
-        if (messages.size() > 0) {
-            lastMsg = messages.get(messages.size() - 1);
-        }
-        //间隔10分钟，添加时间分割线
-        if (lastMsg == null || imsg.timestamp - lastMsg.timestamp > 10*60) {
-            IMessage.TimeBase timeBase = IMessage.newTimeBase(imsg.timestamp);
-            String s = formatTimeBase(timeBase.timestamp);
-            timeBase.description = s;
-            IMessage t = new IMessage();
-            t.content = timeBase;
-            t.timestamp = imsg.timestamp;
-            messages.add(t);
-        }
-
-        messages.add(imsg);
-
+        super.insertMessage(imsg);
         adapter.notifyDataSetChanged();
         listview.smoothScrollToPosition(messages.size()-1);
     }
 
-
-
-    protected void sendTextMessage(String text) {
-        if (text.length() == 0) {
-            return;
-        }
-
-        sendMessageContent(IMessage.newText(text));
+    @Override
+    protected void replaceMessage(IMessage imsg, IMessage other) {
+        super.replaceMessage(imsg, other);
+        adapter.notifyDataSetChanged();
     }
 
-    protected void sendImageMessage(Bitmap bmp) {
-        double w = bmp.getWidth();
-        double h = bmp.getHeight();
-        double newHeight = 640.0;
-        double newWidth = newHeight*w/h;
-
-
-        Bitmap bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
-
-        double sw = 256.0;
-        double sh = 256.0*h/w;
-
-        Bitmap thumbnail = Bitmap.createScaledBitmap(bmp, (int)sw, (int)sh, true);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        bigBMP.compress(Bitmap.CompressFormat.JPEG, 100, os);
-        ByteArrayOutputStream os2 = new ByteArrayOutputStream();
-        thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, os2);
-
-        String originURL = localImageURL();
-        String thumbURL = localImageURL();
-        try {
-            FileCache.getInstance().storeByteArray(originURL, os);
-            FileCache.getInstance().storeByteArray(thumbURL, os2);
-
-            String path = FileCache.getInstance().getCachedFilePath(originURL);
-            String thumbPath = FileCache.getInstance().getCachedFilePath(thumbURL);
-
-            String tpath = path + "@256w_256h_0c";
-            File f = new File(thumbPath);
-            File t = new File(tpath);
-            f.renameTo(t);
-
-            sendMessageContent(IMessage.newImage("file:" + path, (int)newWidth, (int)newHeight));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    protected void sendAudioMessage() {
-        String tfile = audioRecorder.getPathName();
-
-        try {
-            long mduration = AudioUtil.getAudioDuration(tfile);
-
-            if (mduration < 1000) {
-                Toast.makeText(this, "录音时间太短了", Toast.LENGTH_SHORT).show();
-                return;
+    protected void onInputFocusChanged(boolean hasFocus) {
+        if (hasFocus) {
+            if (hasLateMore) {
+                hasLateMore = false;
+                this.messageID = 0;
+                messages = new ArrayList<IMessage>();
+                loadConversationData();
+                adapter.notifyDataSetChanged();
+                //scroll to bottom
+                if (messages.size() > 0) {
+                    listview.setSelection(messages.size() - 1);
+                }
+            } else {
+                listview.setSelection(messages.size() - 1);
             }
-            long duration = mduration/1000;
-
-            String url = localAudioURL();
-
-            IMessage.Audio audio = IMessage.newAudio(url, duration);
-            FileInputStream is = new FileInputStream(new File(tfile));
-            Log.i(TAG, "store audio url:" + audio.url);
-            FileCache.getInstance().storeFile(audio.url, is);
-
-            sendMessageContent(audio);
-        } catch (IllegalStateException e) {
-            e.printStackTrace();
-            return;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
         }
     }
-
-    protected void sendLocationMessage(float longitude, float latitude, String address) {
-        IMessage.Location loc = IMessage.newLocation(latitude, longitude);
-        loc.address = address;
-        sendMessageContent(loc);
-    }
-
-    protected String localImageURL() {
-        UUID uuid = UUID.randomUUID();
-        return "http://localhost/images/"+ uuid.toString() + ".png";
-    }
-
-    protected String localAudioURL() {
-        UUID uuid = UUID.randomUUID();
-        return "http://localhost/audios/" + uuid.toString() + ".amr";
-    }
-
-
-
     void getPicture() {
         if (Build.VERSION.SDK_INT <19){
             Intent intent = new Intent();
@@ -1009,9 +663,46 @@ public class MessageActivity extends BaseActivity implements
     }
 
     void takePicture() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(captureFile));
-        startActivityForResult(takePictureIntent, TAKE_PICTURE);
+        final CharSequence[] items = {
+                "拍照", "摄像"
+        };
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("");
+        builder.setItems(items, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int item) {
+                if (item == 0) {
+                    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    captureFile.delete();
+                    Uri fileUri;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        String authority = getPackageName() + ".fileprovider";
+                        fileUri = FileProvider.getUriForFile(MessageActivity.this, authority, captureFile);
+                    } else {
+                        fileUri = Uri.fromFile(captureFile);
+                    }
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+                    startActivityForResult(takePictureIntent, TAKE_PICTURE);
+                } else if (item == 1){
+                    Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+                    recordVideoFile.delete();
+                    Uri localVideoUri;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        String authority = getPackageName() + ".fileprovider";
+                        localVideoUri = FileProvider.getUriForFile(MessageActivity.this, authority, recordVideoFile);
+                    } else {
+                        localVideoUri = Uri.fromFile(recordVideoFile);
+                    }
+
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, localVideoUri);
+                    intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
+                    intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 6);
+                    intent.putExtra(MediaStore.EXTRA_SIZE_LIMIT, 2 * 1024 * 1024);
+                    startActivityForResult(intent, RECORD_VIDEO);
+                }
+            }
+        });
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -1048,67 +739,62 @@ public class MessageActivity extends BaseActivity implements
 
             Log.i(TAG, "address:" + address + " longitude:" + longitude + " latitude:" + latitude);
             sendLocationMessage(longitude, latitude, address);
+        } else if (requestCode == RECORD_VIDEO) {
+            if (recordVideoFile.exists()) {
+                sendVideoMessage(recordVideoFile.getAbsolutePath());
+            }
         } else {
             Log.i(TAG, "invalide request code:" + requestCode);
             return;
         }
     }
 
-    void play(IMessage message) {
-        IMessage.Audio audio = (IMessage.Audio) message.content;
-        Log.i(TAG, "url:" + audio.url);
-        if (FileCache.getInstance().isCached(audio.url)) {
-            try {
-                if (audioRecorder.isRecording()) {
-                    audioRecorder.stopRecord();
-                }
-                if (playingMessage != null && playingMessage == message) {
-                    //停止播放
-                    audioUtil.stopPlay();
-                    playingMessage.setPlaying(false);
-                    playingMessage = null;
-                } else {
-                    if (playingMessage != null) {
-                        audioUtil.stopPlay();
-                        playingMessage.setPlaying(false);
-                    }
-                    audioUtil.startPlay(FileCache.getInstance().getCachedFilePath(audio.url));
-                    playingMessage = message;
-                    message.setPlaying(true);
-                    if (!message.isListened() && !message.isOutgoing) {
-                        message.setListened(true);
-                        markMessageListened(message);
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+
 
     void onMessageClicked(IMessage message) {
-        if (message.content instanceof IMessage.Audio) {
-            IMessage.Audio audio = (IMessage.Audio) message.content;
+        if (message.content instanceof Audio) {
+            Audio audio = (Audio) message.content;
             if (FileCache.getInstance().isCached(audio.url)) {
                 play(message);
             } else {
-                try {
-                    AudioDownloader.getInstance().downloadAudio(message);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                FileDownloader.getInstance().download(message);
             }
-        } else if (message.content instanceof IMessage.Image) {
+        } else if (message.content instanceof Image) {
             navigateToViewImage(message);
-        } else if (message.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
+        } else if (message.content.getType() == MessageContent.MessageType.MESSAGE_LOCATION) {
             Log.i(TAG, "location message clicked");
-            IMessage.Location loc = (IMessage.Location)message.content;
+            Location loc = (Location)message.content;
             startActivity(MapActivity.newIntent(this, loc.longitude, loc.latitude));
-        } else if (message.content.getType() == IMessage.MessageType.MESSAGE_LINK) {
-            IMessage.Link link = (IMessage.Link)message.content;
+        } else if (message.content.getType() == MessageContent.MessageType.MESSAGE_LINK) {
+            Link link = (Link)message.content;
             Intent intent = new Intent();
             intent.putExtra("url", link.url);
             intent.setClass(this, WebActivity.class);
+            startActivity(intent);
+        } else if (message.getType() == MessageContent.MessageType.MESSAGE_VOIP) {
+            if (message.isOutgoing) {
+                VOIP voip = (VOIP)message.content;
+                if (voip.videoEnabled) {
+                    callVideo();
+                } else {
+                    callVoice();
+                }
+            }
+        } else if (message.getType() == MessageContent.MessageType.MESSAGE_FILE) {
+            com.beetle.bauhinia.db.message.File f = (com.beetle.bauhinia.db.message.File)message.content;
+            Intent intent = new Intent();
+            intent.putExtra("url", f.url);
+            intent.putExtra("size", f.size);
+            intent.putExtra("filename", f.filename);
+            intent.setClass(this, MessageFileActivity.class);
+            startActivity(intent);
+        } else if (message.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
+            Video v = (Video)message.content;
+            Intent intent = new Intent();
+            intent.putExtra("url", v.url);
+            intent.putExtra("sender", message.sender);
+            intent.putExtra("secret", message.secret);
+            intent.setClass(this, PlayerActivity.class);
             startActivity(intent);
         }
     }
@@ -1122,7 +808,7 @@ public class MessageActivity extends BaseActivity implements
         int position = 0;
         ArrayList<GalleryImage> galleryImages = new ArrayList<GalleryImage>();
         for (IMessage msg : imageMessages) {
-            IMessage.Image image = (IMessage.Image) msg.content;
+            Image image = (Image) msg.content;
             if (msg.msgLocalID == imageMessage.msgLocalID) {
                 position = galleryImages.size();
             }
@@ -1132,112 +818,18 @@ public class MessageActivity extends BaseActivity implements
         startActivity(intent);
     }
 
-    protected MessageIterator getMessageIterator() {
-        return null;
+
+
+    protected void callVoice() {
+
+    }
+    protected void callVideo() {
+
+    }
+    protected void call() {
+
     }
 
-    private ArrayList<IMessage> getImageMessages() {
-        ArrayList<IMessage> images = new ArrayList<IMessage>();
+    protected void onAt() {}
 
-        MessageIterator iter = getMessageIterator();
-        while (iter != null) {
-            IMessage msg = iter.next();
-            if (msg == null) {
-                break;
-            }
-
-            if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-                if (msg.content instanceof IMessage.Image) {
-                    images.add(msg);
-                }
-            }
-        }
-        Collections.reverse(images);
-        return images;
-    }
-
-    protected void downloadMessageContent(IMessage msg) {
-        if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-            IMessage.Audio audio = (IMessage.Audio) msg.content;
-            AudioDownloader downloader = AudioDownloader.getInstance();
-            if (!FileCache.getInstance().isCached(audio.url) && !downloader.isDownloading(msg)) {
-                try {
-                    downloader.downloadAudio(msg);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            msg.setDownloading(downloader.isDownloading(msg));
-        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-
-        } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
-            IMessage.Location loc = (IMessage.Location)msg.content;
-            IMessage.Attachment attachment = attachments.get(msg.msgLocalID);
-            if (attachment != null) {
-                loc.address = attachment.address;
-            }
-
-            if (TextUtils.isEmpty(loc.address)) {
-                queryLocation(msg);
-            }
-        }
-    }
-
-    protected void queryLocation(final IMessage msg) {
-        final IMessage.Location loc = (IMessage.Location)msg.content;
-
-        msg.setGeocoding(true);
-        // 第一个参数表示一个Latlng，第二参数表示范围多少米，第三个参数表示是火系坐标系还是GPS原生坐标系
-        RegeocodeQuery query = new RegeocodeQuery(new LatLonPoint(loc.latitude, loc.longitude), 200, GeocodeSearch.AMAP);
-
-        GeocodeSearch mGeocodeSearch = new GeocodeSearch(this);
-        mGeocodeSearch.setOnGeocodeSearchListener(new GeocodeSearch.OnGeocodeSearchListener() {
-            @Override
-            public void onRegeocodeSearched(RegeocodeResult regeocodeResult, int i) {
-                if (i == 0 && regeocodeResult != null && regeocodeResult.getRegeocodeAddress() != null
-                        && regeocodeResult.getRegeocodeAddress().getFormatAddress() != null) {
-                    String address = regeocodeResult.getRegeocodeAddress().getFormatAddress();
-                    Log.i(TAG, "address:" + address);
-                    loc.address = address;
-
-                    saveMessageAttachment(msg, address);
-                } else {
-                    // 定位失败;
-                }
-                msg.setGeocoding(false);
-            }
-
-            @Override
-            public void onGeocodeSearched(GeocodeResult geocodeResult, int i) {
-
-            }
-        });
-
-        mGeocodeSearch.getFromLocationAsyn(query);// 设置同步逆地理编码请求
-    }
-
-    protected void downloadMessageContent(ArrayList<IMessage> messages, int count) {
-        for (int i = 0; i < count; i++) {
-            IMessage msg = messages.get(i);
-            downloadMessageContent(msg);
-        }
-    }
-
-    protected IMessage findMessage(int msgLocalID) {
-        for (IMessage imsg : messages) {
-            if (imsg.msgLocalID == msgLocalID) {
-                return imsg;
-            }
-        }
-        return null;
-    }
-
-    protected IMessage findMessage(String uuid) {
-        for (IMessage imsg : messages) {
-            if (imsg.getUUID().equals(uuid)) {
-                return imsg;
-            }
-        }
-        return null;
-    }
 }

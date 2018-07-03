@@ -9,7 +9,7 @@
     <string name="button_send">发送</string>
     <string name="attach_smile">表情</string>
     <string name="attach_picture">图片</string>
-    <string name="attach_take_pic">拍照</string>
+    <string name="attach_take_pic">拍摄</string>
     <string name="attach_location">位置</string>
     <string name="attach_video">视频</string>
     <string name="attach_file">文件</string>

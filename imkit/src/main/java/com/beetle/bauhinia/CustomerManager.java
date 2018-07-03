@@ -11,8 +11,6 @@ import android.util.Base64;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.CustomerMessageHandler;
-import com.beetle.bauhinia.db.GroupMessageDB;
-import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.im.IMService;
 
 import org.json.JSONException;
@@ -321,25 +319,25 @@ public class CustomerManager {
     //顾客登录
     public void login() {
         //sqlite
-//        try {
-//            File p = context.getDir("db_" + this.clientID, context.MODE_PRIVATE);
-//            File f = new File(p, "gobelieve.db");
-//            String path = f.getPath();
-//            if (!f.exists()) {
-//                copyDataBase("gobelieve.db", path);
-//            }
-//            SQLiteDatabase db = SQLiteDatabase.openDatabase(path, null, OPEN_READWRITE, null);
-//            CustomerMessageDB.getInstance().setDb(db);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-        //file
-        CustomerMessageDB csDB = CustomerMessageDB.getInstance();
-        String path = String.format("customer_%d", this.clientID);
-        File dir = this.context.getDir(path, context.MODE_PRIVATE);
-        csDB.setDir(dir);
-
+        if (CustomerMessageDB.SQL_ENGINE_DB) {
+            try {
+                File p = context.getDir("db_" + this.clientID, context.MODE_PRIVATE);
+                File f = new File(p, "gobelieve.db");
+                String path = f.getPath();
+                if (!f.exists()) {
+                    copyDataBase("gobelieve.db", path);
+                }
+                SQLiteDatabase db = SQLiteDatabase.openDatabase(path, null, OPEN_READWRITE, null);
+                CustomerMessageDB.getInstance().setDb(db);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+//            CustomerMessageDB csDB = CustomerMessageDB.getInstance();
+//            String path = String.format("customer_%d", this.clientID);
+//            File dir = this.context.getDir(path, context.MODE_PRIVATE);
+//            csDB.setDir(dir);
+        }
         IMService.getInstance().setCustomerMessageHandler(CustomerMessageHandler.getInstance());
         IMService.getInstance().setToken(this.token);
         IMService.getInstance().setDeviceID(this.deviceID);

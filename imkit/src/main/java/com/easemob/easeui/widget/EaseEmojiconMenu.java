@@ -18,6 +18,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 
+import android.widget.LinearLayout;
 import com.beetle.imkit.R;
 import com.easemob.easeui.adapter.EaseExpressionPagerAdapter;
 import com.easemob.easeui.utils.EaseSmileUtils;
@@ -25,7 +26,7 @@ import com.easemob.easeui.utils.EaseSmileUtils;
 /**
  * 表情图片控件
  */
-public class EaseEmojiconMenu extends EaseEmojiconMenuBase{
+public class EaseEmojiconMenu extends LinearLayout {
 	
 	private float emojiconSize;
 	private List<String> reslist;
@@ -36,7 +37,29 @@ public class EaseEmojiconMenu extends EaseEmojiconMenuBase{
 	private int emojiconColumns;
 	private final int defaultRows = 3;
 	private final int defaultColumns = 7;
-	
+
+	protected EaseEmojiconMenuListener listener;
+
+	/**
+	 * 设置回调监听
+	 * @param listener
+	 */
+	public void setEmojiconMenuListener(EaseEmojiconMenuListener listener){
+		this.listener = listener;
+	}
+
+	public interface EaseEmojiconMenuListener{
+		/**
+		 * 表情被点击
+		 * @param emojiContent
+		 */
+		void onExpressionClicked(CharSequence emojiContent);
+		/**
+		 * 删除按钮被点击
+		 */
+		void onDeleteImageClicked();
+	}
+
 	
 	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 	public EaseEmojiconMenu(Context context, AttributeSet attrs, int defStyle) {

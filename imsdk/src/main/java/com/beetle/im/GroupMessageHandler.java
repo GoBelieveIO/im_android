@@ -5,7 +5,7 @@ package com.beetle.im;
  */
 public interface GroupMessageHandler {
     public boolean handleMessage(IMMessage msg);
-    public boolean handleMessageACK(int msgLocalID, long uid);
-    public boolean handleMessageFailure(int msgLocalID, long uid);
+    public boolean handleMessageACK(IMMessage msg);
+    public boolean handleMessageFailure(IMMessage msg);
     public boolean handleGroupNotification(String notification);
 }

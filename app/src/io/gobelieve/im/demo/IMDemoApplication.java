@@ -13,6 +13,7 @@ import android.util.Log;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.CustomerMessageHandler;
+import com.beetle.bauhinia.db.EPeerMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.GroupMessageHandler;
 import com.beetle.bauhinia.db.PeerMessageDB;
@@ -29,6 +30,9 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import io.gobelieve.im.demo.model.ConversationDB;
+import io.gobelieve.im.demo.model.MessageDatabaseHelper;
+
 import static android.database.sqlite.SQLiteDatabase.OPEN_READWRITE;
 
 
@@ -37,6 +41,8 @@ import static android.database.sqlite.SQLiteDatabase.OPEN_READWRITE;
  * Description:
  */
 public class IMDemoApplication extends Application {
+    private static final String TAG = "gobelieve";
+
     private static Application sApplication;
 
     private String mDeviceToken;
@@ -91,33 +97,10 @@ public class IMDemoApplication extends Application {
         FileCache fc = FileCache.getInstance();
         fc.setDir(this.getDir("cache", MODE_PRIVATE));
 
-
-//        try {
-//            File p = this.getDir("db", MODE_PRIVATE);
-//            File f = new File(p, "gobelieve.db");
-//            String path = f.getPath();
-//            if (!f.exists()) {
-//                copyDataBase("gobelieve.db", path);
-//            }
-//            SQLiteDatabase db = SQLiteDatabase.openDatabase(path, null, OPEN_READWRITE, null);
-//            PeerMessageDB.getInstance().setDb(db);
-//            GroupMessageDB.getInstance().setDb(db);
-//            CustomerMessageDB.getInstance().setDb(db);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-
-        PeerMessageDB db = PeerMessageDB.getInstance();
-        db.setDir(this.getDir("peer", MODE_PRIVATE));
-        GroupMessageDB groupDB = GroupMessageDB.getInstance();
-        groupDB.setDir(this.getDir("group", MODE_PRIVATE));
-        CustomerMessageDB csDB = CustomerMessageDB.getInstance();
-        csDB.setDir(this.getDir("customer_service", MODE_PRIVATE));
-
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
         mIMService.setCustomerMessageHandler(CustomerMessageHandler.getInstance());
+
 
         //预先做dns查询
         refreshHost();

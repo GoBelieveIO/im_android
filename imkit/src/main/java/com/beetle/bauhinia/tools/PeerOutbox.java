@@ -1,33 +1,56 @@
 package com.beetle.bauhinia.tools;
 
-import com.beetle.bauhinia.db.GroupMessageDB;
+import android.util.Log;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.api.IMHttpAPI;
-import com.beetle.bauhinia.api.types.Audio;
-import com.beetle.bauhinia.api.types.Image;
 import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.bauhinia.db.message.*;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 
-import java.io.File;
-import java.util.ArrayList;
-
-import retrofit.mime.TypedFile;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
 
 /**
  * Created by houxh on 14-12-3.
  */
 public class PeerOutbox extends Outbox {
+    private static final String TAG = "goubuli";
+
     private static PeerOutbox instance = new PeerOutbox();
     public static PeerOutbox getInstance() {
         return instance;
     }
 
+
     @Override
     protected void markMessageFailure(IMessage msg) {
         PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+    }
+
+    @Override
+    protected void saveMessageAttachment(IMessage msg, String url) {
+        if (PeerMessageDB.SQL_ENGINE_DB) {
+            String content = "";
+            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+                Audio audio = (Audio)msg.content;
+                content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+            } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+                Image image = (Image) msg.content;
+                content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
+            } else {
+                return;
+            }
+
+            PeerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+        } else {
+            IMessage attachment = new IMessage();
+            attachment.content = Attachment.newURLAttachment(msg.msgLocalID, url);
+            attachment.sender = msg.sender;
+            attachment.receiver = msg.receiver;
+            saveMessage(attachment);
+        }
+    }
+
+    void saveMessage(IMessage imsg) {
+        PeerMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
     }
 
     @Override
@@ -36,26 +59,65 @@ public class PeerOutbox extends Outbox {
         msg.sender = imsg.sender;
         msg.receiver = imsg.receiver;
 
-        IMessage.Image image = (IMessage.Image)imsg.content;
-        msg.content = IMessage.newImage(url, image.width, image.height, image.getUUID()).getRaw();
+        Image image = (Image)imsg.content;
+        msg.content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         msg.msgLocalID = imsg.msgLocalID;
 
-        IMService im = IMService.getInstance();
-        im.sendPeerMessage(msg);
+        boolean r = true;
+        if (imsg.secret) {
+            r = encrypt(msg);
+        }
+        if (r) {
+            IMService im = IMService.getInstance();
+            im.sendPeerMessage(msg);
+        }
+
     }
 
     @Override
     protected void sendAudioMessage(IMessage imsg, String url) {
-        IMessage.Audio audio = (IMessage.Audio)imsg.content;
+        Audio audio = (Audio)imsg.content;
 
         IMMessage msg = new IMMessage();
         msg.sender = imsg.sender;
         msg.receiver = imsg.receiver;
         msg.msgLocalID = imsg.msgLocalID;
-        msg.content = IMessage.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+        msg.content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
 
-        IMService im = IMService.getInstance();
-        im.sendPeerMessage(msg);
+
+        boolean r = true;
+        if (imsg.secret) {
+            r = encrypt(msg);
+
+        }
+        if (r) {
+            IMService im = IMService.getInstance();
+            im.sendPeerMessage(msg);
+        }
+
     }
+
+    @Override
+    protected void sendVideoMessage(IMessage imsg, String url, String thumbURL) {
+        Video video = (Video)imsg.content;
+
+        IMMessage msg = new IMMessage();
+        msg.sender = imsg.sender;
+        msg.receiver = imsg.receiver;
+        msg.msgLocalID = imsg.msgLocalID;
+        msg.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
+
+
+        boolean r = true;
+        if (imsg.secret) {
+            r = encrypt(msg);
+        }
+        if (r) {
+            IMService im = IMService.getInstance();
+            im.sendPeerMessage(msg);
+        }
+    }
+
+
 
 }

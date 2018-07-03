@@ -1,19 +1,33 @@
 package com.easemob.easeui.widget;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
+import android.view.*;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.beetle.imkit.R;
+import com.easemob.easeui.Contact;
 import com.easemob.easeui.widget.EaseChatExtendMenu.EaseChatExtendMenuItemClickListener;
-import com.easemob.easeui.widget.EaseChatPrimaryMenuBase.EaseChatPrimaryMenuListener;
-import com.easemob.easeui.widget.EaseEmojiconMenuBase.EaseEmojiconMenuListener;
+import com.easemob.easeui.widget.EaseEmojiconMenu.EaseEmojiconMenuListener;
+import com.linkedin.android.spyglass.mentions.MentionSpan;
+import com.linkedin.android.spyglass.mentions.MentionSpanConfig;
+import com.linkedin.android.spyglass.tokenization.QueryToken;
+import com.linkedin.android.spyglass.tokenization.impl.WordTokenizer;
+import com.linkedin.android.spyglass.tokenization.impl.WordTokenizerConfig;
+import com.linkedin.android.spyglass.tokenization.interfaces.QueryTokenReceiver;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * 聊天页面底部的聊天输入菜单栏 <br/>
@@ -21,17 +35,17 @@ import com.easemob.easeui.widget.EaseEmojiconMenuBase.EaseEmojiconMenuListener;
  * EaseChatExtendMenu(扩展栏，点击加号按钮出来的小宫格的菜单栏), <br/>
  * 以及EaseEmojiconMenu(表情栏)
  */
-public class EaseChatInputMenu extends LinearLayout {
+public class
+EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTokenReceiver {
     FrameLayout primaryMenuContainer, emojiconMenuContainer;
     protected EaseChatPrimaryMenu chatPrimaryMenu;
-    protected EaseEmojiconMenuBase emojiconMenu;
+    protected EaseEmojiconMenu emojiconMenu;
     protected EaseChatExtendMenu chatExtendMenu;
     protected FrameLayout chatExtendMenuContainer;
     protected LayoutInflater layoutInflater;
 
     private Handler handler = new Handler();
     private ChatInputMenuListener listener;
-    private Context context;
 
     public EaseChatInputMenu(Context context, AttributeSet attrs, int defStyle) {
         this(context, attrs);
@@ -48,7 +62,6 @@ public class EaseChatInputMenu extends LinearLayout {
     }
 
     private void init(Context context, AttributeSet attrs) {
-        this.context = context;
         layoutInflater = LayoutInflater.from(context);
         layoutInflater.inflate(R.layout.ease_widget_chat_input_menu, this);
         primaryMenuContainer = (FrameLayout) findViewById(R.id.primary_menu_container);
@@ -56,6 +69,81 @@ public class EaseChatInputMenu extends LinearLayout {
         chatExtendMenuContainer = (FrameLayout) findViewById(R.id.extend_menu_container);
          // 扩展按钮栏
         chatExtendMenu = (EaseChatExtendMenu) findViewById(R.id.extend_menu);
+
+        chatPrimaryMenu = (EaseChatPrimaryMenu)primaryMenuContainer.findViewById(R.id.primary_menu);
+        emojiconMenu = (EaseEmojiconMenu)emojiconMenuContainer.findViewById(R.id.emojicon);
+
+        chatPrimaryMenu.buttonSend.setOnClickListener(this);
+        chatPrimaryMenu.buttonSetModeKeyboard.setOnClickListener(this);
+        chatPrimaryMenu.buttonSetModeVoice.setOnClickListener(this);
+        chatPrimaryMenu.buttonMore.setOnClickListener(this);
+        chatPrimaryMenu.faceLayout.setOnClickListener(this);
+        chatPrimaryMenu.editText.setOnClickListener(this);
+        chatPrimaryMenu.editText.setOnFocusChangeListener(new OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    chatPrimaryMenu.edittext_layout.setBackgroundResource(R.drawable.ease_input_bar_bg_active);
+                } else {
+                    chatPrimaryMenu.edittext_layout.setBackgroundResource(R.drawable.ease_input_bar_bg_normal);
+                }
+
+                if (listener != null) {
+                    listener.onFocusChanged(hasFocus);
+                }
+            }
+        });
+
+        // 监听文字框
+        chatPrimaryMenu.editText.addTextChangedListener(new TextWatcher() {
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!TextUtils.isEmpty(s)) {
+                    chatPrimaryMenu.buttonMore.setVisibility(View.GONE);
+                    chatPrimaryMenu.buttonSend.setVisibility(View.VISIBLE);
+                } else {
+                    chatPrimaryMenu.buttonMore.setVisibility(View.VISIBLE);
+                    chatPrimaryMenu.buttonSend.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
+
+
+        WordTokenizerConfig tokenizerConfig = new WordTokenizerConfig.Builder().build();
+        WordTokenizer tokenizer = new WordTokenizer(tokenizerConfig);
+        chatPrimaryMenu.editText.setTokenizer(tokenizer);
+        MentionSpanConfig.Builder configBuilder = new MentionSpanConfig.Builder();
+        configBuilder.setMentionTextColor(Color.BLACK);
+        configBuilder.setMentionTextBackgroundColor(Color.TRANSPARENT);
+        MentionSpanConfig config = configBuilder.build();
+        chatPrimaryMenu.editText.setMentionSpanConfig(config);
+        chatPrimaryMenu.editText.setAvoidPrefixOnTap(true);
+        chatPrimaryMenu.editText.setQueryTokenReceiver(this);
+
+
+        chatPrimaryMenu.buttonPressToSpeak.setOnTouchListener(new OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(listener != null){
+                    return listener.onPressToSpeakBtnTouch(v, event);
+                }
+                return false;
+            }
+        });
+
+        processChatMenu();
     }
 
     /**
@@ -63,32 +151,91 @@ public class EaseChatInputMenu extends LinearLayout {
      * setCustomPrimaryMenu(如果需要自定义这两个menu)后面
      */
     public void init() {
-        // 主按钮菜单栏
-        if(chatPrimaryMenu == null){
-            chatPrimaryMenu = (EaseChatPrimaryMenu) layoutInflater.inflate(R.layout.ease_layout_chat_primary_menu, null);
-        }
-        primaryMenuContainer.addView(chatPrimaryMenu);
-
-        // 表情栏
-        if(emojiconMenu == null){
-            emojiconMenu = (EaseEmojiconMenu) layoutInflater.inflate(R.layout.ease_layout_emojicon_menu, null);
-        }
-        emojiconMenuContainer.addView(emojiconMenu);
-
-        processChatMenu();
-
         // 初始化extendmenu
         chatExtendMenu.init();
     }
 
-
     public void disableSend() {
-        chatPrimaryMenu.disableSend();
+        hideKeyboard();
+        chatPrimaryMenu.buttonMore.setEnabled(false);
+        chatPrimaryMenu.buttonSend.setEnabled(false);
+        chatPrimaryMenu.buttonPressToSpeak.setEnabled(false);
+        chatPrimaryMenu.buttonSetModeVoice.setEnabled(false);
+        chatPrimaryMenu.buttonSetModeKeyboard.setEnabled(false);
+        chatPrimaryMenu.faceLayout.setEnabled(false);
+        chatPrimaryMenu.editText.setEnabled(false);
     }
 
     public void enableSend() {
-        chatPrimaryMenu.enableSend();
+        chatPrimaryMenu.buttonMore.setEnabled(true);
+        chatPrimaryMenu.buttonSend.setEnabled(true);
+        chatPrimaryMenu.buttonPressToSpeak.setEnabled(true);
+        chatPrimaryMenu.buttonSetModeVoice.setEnabled(true);
+        chatPrimaryMenu.buttonSetModeKeyboard.setEnabled(true);
+        chatPrimaryMenu.faceLayout.setEnabled(true);
+        chatPrimaryMenu.editText.setEnabled(true);
     }
+
+    public void clearFocus() {
+        chatPrimaryMenu.editText.clearFocus();
+    }
+
+    public void atUser(long uid, String name) {
+        Contact c = new Contact(uid, name);
+        chatPrimaryMenu.editText.insertMention(c);
+    }
+
+    /**
+     * 点击事件
+     * @param view
+     */
+    @Override
+    public void onClick(View view){
+        int id = view.getId();
+        if (id == R.id.btn_send) {
+            if(listener != null){
+                String ss = chatPrimaryMenu.editText.getText().toString();
+                List<MentionSpan> mentions = chatPrimaryMenu.editText.getMentionsText().getMentionSpans();
+                Set<Long> atSet = new HashSet<>();
+                ArrayList<Long> atList = new ArrayList<>();
+                ArrayList<String> atNames = new ArrayList<>();
+                for(int i = 0; i < mentions.size(); i++) {
+                    Contact c = (Contact)mentions.get(i).getMention();
+                    if (!atSet.contains(c.getUid())) {
+                        atList.add(c.getUid());
+                        atNames.add(c.getName());
+                        atSet.add(c.getUid());
+                    }
+                }
+                chatPrimaryMenu.editText.setText("");
+                listener.onSendMessage(ss, atList, atNames);
+            }
+        } else if (id == R.id.btn_set_mode_voice) {
+            chatPrimaryMenu.setModeVoice();
+            chatPrimaryMenu.showNormalFaceImage();
+            hideExtendMenuContainer();
+        } else if (id == R.id.btn_set_mode_keyboard) {
+            chatPrimaryMenu.setModeKeyboard();
+            chatPrimaryMenu.showNormalFaceImage();
+            hideExtendMenuContainer();
+        } else if (id == R.id.btn_more) {
+            chatPrimaryMenu.buttonSetModeVoice.setVisibility(View.VISIBLE);
+            chatPrimaryMenu.buttonSetModeKeyboard.setVisibility(View.GONE);
+            chatPrimaryMenu.edittext_layout.setVisibility(View.VISIBLE);
+            chatPrimaryMenu.buttonPressToSpeak.setVisibility(View.GONE);
+            chatPrimaryMenu.showNormalFaceImage();
+            toggleMore();
+        } else if (id == R.id.et_sendmessage) {
+            chatPrimaryMenu.edittext_layout.setBackgroundResource(R.drawable.ease_input_bar_bg_active);
+            chatPrimaryMenu.faceNormal.setVisibility(View.VISIBLE);
+            chatPrimaryMenu.faceChecked.setVisibility(View.INVISIBLE);
+            hideExtendMenuContainer();
+        } else if (id == R.id.rl_face) {
+            chatPrimaryMenu.toggleFaceImage();
+            toggleEmojicon();
+        }
+    }
+
 
     /**
      * 注册扩展菜单的item
@@ -110,7 +257,7 @@ public class EaseChatInputMenu extends LinearLayout {
     /**
      * 注册扩展菜单的item
      * 
-     * @param name
+     * @param nameRes
      *            item名字
      * @param drawableRes
      *            item背景
@@ -126,59 +273,30 @@ public class EaseChatInputMenu extends LinearLayout {
 
 
     protected void processChatMenu() {
-        // 发送消息栏
-        chatPrimaryMenu.setChatPrimaryMenuListener(new EaseChatPrimaryMenuListener() {
-
-            @Override
-            public void onSendBtnClicked(String content) {
-                if (listener != null)
-                    listener.onSendMessage(content);
-            }
-
-            @Override
-            public void onToggleVoiceBtnClicked() {
-                hideExtendMenuContainer();
-            }
-
-            @Override
-            public void onToggleExtendClicked() {
-                toggleMore();
-            }
-
-            @Override
-            public void onToggleEmojiconClicked() {
-                toggleEmojicon();
-            }
-
-            @Override
-            public void onEditTextClicked() {
-                hideExtendMenuContainer();
-            }
-
-
-            @Override
-            public boolean onPressToSpeakBtnTouch(View v, MotionEvent event) {
-                if(listener != null){
-                    return listener.onPressToSpeakBtnTouch(v, event);
-                }
-                return false;
-            }
-        });
-
         // emojicon
         emojiconMenu.setEmojiconMenuListener(new EaseEmojiconMenuListener() {
 
             @Override
             public void onExpressionClicked(CharSequence emojiContent) {
-                chatPrimaryMenu.onEmojiconInputEvent(emojiContent);
+                chatPrimaryMenu.editText.append(emojiContent);
             }
 
             @Override
             public void onDeleteImageClicked() {
-                chatPrimaryMenu.onEmojiconDeleteEvent();
+                if (!TextUtils.isEmpty(chatPrimaryMenu.editText.getText())) {
+                    KeyEvent event = new KeyEvent(0, 0, 0, KeyEvent.KEYCODE_DEL, 0, 0, 0, 0, KeyEvent.KEYCODE_ENDCALL);
+                    chatPrimaryMenu.editText.dispatchKeyEvent(event);
+                }
             }
         });
+    }
 
+    @Override
+    public List<String> onQueryReceived(final @NonNull QueryToken queryToken) {
+        if (listener != null && queryToken.getTokenString().equals("@")) {
+            listener.onAt();
+        }
+        return null;
     }
 
     /**
@@ -203,9 +321,7 @@ public class EaseChatInputMenu extends LinearLayout {
                 chatExtendMenuContainer.setVisibility(View.GONE);
                 chatPrimaryMenu.showKeyboard();
             }
-
         }
-
     }
 
     /**
@@ -233,12 +349,15 @@ public class EaseChatInputMenu extends LinearLayout {
         }
     }
 
+
     /**
      * 隐藏软键盘
      */
-    private void hideKeyboard() {
+    public void hideKeyboard() {
         chatPrimaryMenu.hideKeyboard();
+
     }
+
 
     /**
      * 隐藏整个扩展按钮栏(包括表情栏)
@@ -247,7 +366,7 @@ public class EaseChatInputMenu extends LinearLayout {
         chatExtendMenu.setVisibility(View.GONE);
         emojiconMenu.setVisibility(View.GONE);
         chatExtendMenuContainer.setVisibility(View.GONE);
-        chatPrimaryMenu.onExtendMenuContainerHide();
+        chatPrimaryMenu.showNormalFaceImage();
     }
 
     /**
@@ -263,7 +382,6 @@ public class EaseChatInputMenu extends LinearLayout {
         } else {
             return true;
         }
-
     }
 
     public void setChatInputMenuListener(ChatInputMenuListener listener) {
@@ -277,7 +395,7 @@ public class EaseChatInputMenu extends LinearLayout {
          * @param content
          *            文本内容
          */
-        void onSendMessage(String content);
+        void onSendMessage(String content, List<Long> at, List<String> atNames);
 
         /**
          * 长按说话按钮touch事件
@@ -286,6 +404,18 @@ public class EaseChatInputMenu extends LinearLayout {
          * @return
          */
         boolean onPressToSpeakBtnTouch(View v, MotionEvent event);
+
+        /**
+         * edittext 焦点变化
+         * @param hasFocus
+         */
+        void onFocusChanged(boolean hasFocus);
+
+        /**
+         * 用户输入@
+         */
+        void onAt();
+
     }
     
 }

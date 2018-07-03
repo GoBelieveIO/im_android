@@ -12,6 +12,8 @@ import com.squareup.picasso.Picasso;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
+import io.gobelieve.im.demo.model.Conversation;
+
 public class ConversationView extends FrameLayout implements PropertyChangeListener {
     protected Context context;
     protected LayoutInflater inflater;

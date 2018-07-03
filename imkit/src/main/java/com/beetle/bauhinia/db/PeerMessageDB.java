@@ -6,12 +6,18 @@ package com.beetle.bauhinia.db;
  *
  * FilePeerMessageDB vs SQLPeerMessageDB
  */
-public class PeerMessageDB extends FilePeerMessageDB {
+public class PeerMessageDB extends SQLPeerMessageDB {
+    public static final boolean SQL_ENGINE_DB = true;
 
     private static PeerMessageDB instance = new PeerMessageDB();
 
     public static PeerMessageDB getInstance() {
         return instance;
+    }
+
+
+    PeerMessageDB() {
+        secret = 0;
     }
 
 }

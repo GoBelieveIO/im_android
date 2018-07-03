@@ -13,6 +13,7 @@ import com.beetle.AsyncTCP;
 import com.beetle.TCPConnectCallback;
 import com.beetle.TCPReadCallback;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -547,9 +548,9 @@ public class IMService {
             Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
             IMMessage im = entry.getValue();
             if (peerMessageHandler != null) {
-                peerMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+                peerMessageHandler.handleMessageFailure(im);
             }
-            publishPeerMessageFailure(im.msgLocalID, im.receiver);
+            publishPeerMessageFailure(im);
         }
         peerMessages.clear();
 
@@ -558,9 +559,9 @@ public class IMService {
             Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
             IMMessage im = entry.getValue();
             if (groupMessageHandler != null) {
-                groupMessageHandler.handleMessageFailure(im.msgLocalID, im.receiver);
+                groupMessageHandler.handleMessageFailure(im);
             }
-            publishGroupMessageFailure(im.msgLocalID, im.receiver);
+            publishGroupMessageFailure(im);
         }
         groupMessages.clear();
 
@@ -597,9 +598,15 @@ public class IMService {
 
             private String lookupHost(String host) {
                 try {
-                    InetAddress inetAddress = InetAddress.getByName(host);
-                    Log.i(TAG, "host name:" + inetAddress.getHostName() + " " + inetAddress.getHostAddress());
-                    return inetAddress.getHostAddress();
+                    InetAddress[] inetAddresses = InetAddress.getAllByName(host);
+                    for (int i = 0; i < inetAddresses.length; i++) {
+                        InetAddress inetAddress = inetAddresses[i];
+                        Log.i(TAG, "host name:" + inetAddress.getHostName() + " " + inetAddress.getHostAddress());
+                        if (inetAddress instanceof Inet4Address) {
+                            return inetAddress.getHostAddress();
+                        }
+                    }
+                    return "";
                 } catch (UnknownHostException exception) {
                     exception.printStackTrace();
                     return "";
@@ -758,7 +765,11 @@ public class IMService {
             Log.i(TAG, "handle im message fail");
             return;
         }
-        publishPeerMessage(im);
+        if (im.secret) {
+            publishPeerSecretMessage(im);
+        } else {
+            publishPeerMessage(im);
+        }
         Message ack = new Message();
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
@@ -807,23 +818,23 @@ public class IMService {
         Integer seq = (Integer)msg.body;
         IMMessage im = peerMessages.get(seq);
         if (im != null) {
-            if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+            if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im)) {
                 Log.w(TAG, "handle message ack fail");
                 return;
             }
             peerMessages.remove(seq);
-            publishPeerMessageACK(im.msgLocalID, im.receiver);
+            publishPeerMessageACK(im);
             return;
         }
         im = groupMessages.get(seq);
         if (im != null) {
 
-            if (groupMessageHandler != null && !groupMessageHandler.handleMessageACK(im.msgLocalID, im.receiver)) {
+            if (groupMessageHandler != null && !groupMessageHandler.handleMessageACK(im)) {
                 Log.i(TAG, "handle group message ack fail");
                 return;
             }
             groupMessages.remove(seq);
-            publishGroupMessageACK(im.msgLocalID, im.receiver);
+            publishGroupMessageACK(im);
         }
 
         CustomerMessage cm = customerMessages.get(seq);
@@ -834,14 +845,6 @@ public class IMService {
             }
             customerMessages.remove(seq);
             publishCustomerServiceMessageACK(cm);
-        }
-    }
-
-    private void handleInputting(Message msg) {
-        MessageInputing inputting = (MessageInputing)msg.body;
-        for (int i = 0; i < peerObservers.size(); i++ ) {
-            PeerMessageObserver ob = peerObservers.get(i);
-            ob.onPeerInputting(inputting.sender);
         }
     }
 
@@ -1035,8 +1038,6 @@ public class IMService {
             handleIMMessage(msg);
         } else if (msg.cmd == Command.MSG_ACK) {
             handleACK(msg);
-        } else if (msg.cmd == Command.MSG_INPUTTING) {
-            handleInputting(msg);
         } else if (msg.cmd == Command.MSG_PONG) {
             handlePong(msg);
         } else if (msg.cmd == Command.MSG_GROUP_IM) {
@@ -1219,18 +1220,18 @@ public class IMService {
         }
     }
 
-    private void publishGroupMessageACK(int msgLocalID, long gid) {
+    private void publishGroupMessageACK(IMMessage im) {
         for (int i = 0; i < groupObservers.size(); i++ ) {
             GroupMessageObserver ob = groupObservers.get(i);
-            ob.onGroupMessageACK(msgLocalID, gid);
+            ob.onGroupMessageACK(im);
         }
     }
 
 
-    private void publishGroupMessageFailure(int msgLocalID, long gid) {
+    private void publishGroupMessageFailure(IMMessage im) {
         for (int i = 0; i < groupObservers.size(); i++ ) {
             GroupMessageObserver ob = groupObservers.get(i);
-            ob.onGroupMessageFailure(msgLocalID, gid);
+            ob.onGroupMessageFailure(im);
         }
     }
 
@@ -1241,17 +1242,24 @@ public class IMService {
         }
     }
 
-    private void publishPeerMessageACK(int msgLocalID, long uid) {
+    private void publishPeerSecretMessage(IMMessage msg) {
         for (int i = 0; i < peerObservers.size(); i++ ) {
             PeerMessageObserver ob = peerObservers.get(i);
-            ob.onPeerMessageACK(msgLocalID, uid);
+            ob.onPeerSecretMessage(msg);
         }
     }
 
-    private void publishPeerMessageFailure(int msgLocalID, long uid) {
+    private void publishPeerMessageACK(IMMessage msg) {
         for (int i = 0; i < peerObservers.size(); i++ ) {
             PeerMessageObserver ob = peerObservers.get(i);
-            ob.onPeerMessageFailure(msgLocalID, uid);
+            ob.onPeerMessageACK(msg);
+        }
+    }
+
+    private void publishPeerMessageFailure(IMMessage msg) {
+        for (int i = 0; i < peerObservers.size(); i++ ) {
+            PeerMessageObserver ob = peerObservers.get(i);
+            ob.onPeerMessageFailure(msg);
         }
     }
 

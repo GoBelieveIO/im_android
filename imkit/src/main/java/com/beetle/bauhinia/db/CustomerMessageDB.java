@@ -13,8 +13,9 @@ import java.io.RandomAccessFile;
  * Created by houxh on 16/1/18.
  * FileCustomerMessageDB vs SQLCustomerMessageDB
  */
-public class CustomerMessageDB extends FileCustomerMessageDB {
-
+public class CustomerMessageDB extends SQLCustomerMessageDB {
+    public static final boolean SQL_ENGINE_DB = true;
+    
     private static CustomerMessageDB instance = new CustomerMessageDB();
 
     public static CustomerMessageDB getInstance() {

@@ -3,6 +3,13 @@ package com.beetle.bauhinia.db;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.text.TextUtils;
+
+import com.beetle.bauhinia.db.message.MessageContent;
+import com.beetle.bauhinia.db.message.Text;
+
+import java.util.ArrayList;
+
 /**
  * Created by houxh on 16/1/18.
  */
@@ -31,17 +38,7 @@ public class SQLCustomerMessageDB {
                 cursor = null;
                 return null;
             }
-            ICustomerMessage msg = new ICustomerMessage();
-            msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
-            msg.customerID = cursor.getLong(cursor.getColumnIndex("customer_id"));
-            msg.customerAppID = cursor.getLong(cursor.getColumnIndex("customer_appid"));
-            msg.storeID = cursor.getLong(cursor.getColumnIndex("store_id"));
-            msg.sellerID = cursor.getLong(cursor.getColumnIndex("seller_id"));
-            msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
-            msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
-            msg.isSupport = cursor.getInt(cursor.getColumnIndex("is_support")) == 1;
-            String content = cursor.getString(cursor.getColumnIndex("content"));
-            msg.setContent(content);
+            ICustomerMessage msg = getMessage(cursor);
             return msg;
         }
     }
@@ -56,27 +53,6 @@ public class SQLCustomerMessageDB {
         }
 
 
-        private IMessage getMessage(long id) {
-            String sql = "SELECT  id, customer_id, customer_appid, store_id, seller_id, timestamp, flags, is_support, content  FROM group_message WHERE id=?";
-            Cursor cursor = db.rawQuery(sql, new String[]{""+id});
-
-            ICustomerMessage msg = null;
-            if (cursor.moveToNext()) {
-                msg = new ICustomerMessage();
-                msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
-                msg.customerID = cursor.getLong(cursor.getColumnIndex("customer_id"));
-                msg.customerAppID = cursor.getLong(cursor.getColumnIndex("customer_appid"));
-                msg.storeID = cursor.getLong(cursor.getColumnIndex("store_id"));
-                msg.sellerID = cursor.getLong(cursor.getColumnIndex("seller_id"));
-                msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
-                msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
-                msg.isSupport = cursor.getInt(cursor.getColumnIndex("is_support")) == 1;
-                String content = cursor.getString(cursor.getColumnIndex("content"));
-                msg.setContent(content);
-            }
-            cursor.close();
-            return msg;
-        }
 
         public IMessage next() {
             if (cursor == null) {
@@ -98,6 +74,7 @@ public class SQLCustomerMessageDB {
 
 
     private static final String TABLE_NAME = "customer_message";
+    private static final String FTS_TABLE_NAME = "customer_message_fts";
     private static final String TAG = "beetle";
 
     private SQLiteDatabase db;
@@ -110,6 +87,16 @@ public class SQLCustomerMessageDB {
         return this.db;
     }
 
+    private boolean insertFTS(int msgLocalID, String text) {
+        String t = tokenizer(text);
+        ContentValues values = new ContentValues();
+        values.put("docid", msgLocalID);
+        values.put("content", t);
+        db.insert("customer_message_fts", null, values);
+        return true;
+    }
+
+
     public boolean insertMessage(IMessage m, long uid) {
         ICustomerMessage msg = (ICustomerMessage)m;
         ContentValues values = new ContentValues();
@@ -120,6 +107,9 @@ public class SQLCustomerMessageDB {
         values.put("timestamp", msg.timestamp);
         values.put("flags", msg.flags);
         values.put("is_support", msg.isSupport ? 1 : 0);
+        if (!TextUtils.isEmpty(msg.getUUID())) {
+            values.put("uuid", msg.getUUID());
+        }
         values.put("content", msg.content.getRaw());
         long id = db.insert(TABLE_NAME, null, values);
         if (id == -1) {
@@ -127,7 +117,19 @@ public class SQLCustomerMessageDB {
             return  false;
         }
         msg.msgLocalID = (int)id;
+
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+            Text text = (Text)msg.content;
+            insertFTS((int)id, text.text);
+        }
         return true;
+    }
+
+    public boolean updateContent(int msgLocalID, String content) {
+        ContentValues cv = new ContentValues();
+        cv.put("content", content);
+        int rows = db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
+        return rows == 1;
     }
 
 
@@ -149,7 +151,7 @@ public class SQLCustomerMessageDB {
     }
 
     public boolean addFlag(int msgLocalID, int f) {
-        String sql = "SELECT flags FROM group_message WHERE id=?";
+        String sql = "SELECT flags FROM customer_message WHERE id=?";
         Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
@@ -164,7 +166,7 @@ public class SQLCustomerMessageDB {
     }
 
     public boolean removeFlag(int msgLocalID, int f) {
-        String sql = "SELECT flags FROM group_message WHERE id=?";
+        String sql = "SELECT flags FROM customer_message WHERE id=?";
         Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
@@ -178,10 +180,17 @@ public class SQLCustomerMessageDB {
     }
 
 
-    public boolean removeMessage(int msgLocalID, long uid) {
+    public boolean removeMessage(int msgLocalID, long storeID) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
+        db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
+
+    public boolean removeMessageIndex(int msgLocalID, long storeID) {
+        db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
+        return true;
+    }
+
 
     public boolean clearCoversation(long storeID) {
         db.delete(TABLE_NAME, "store_id = ?", new String[]{""+storeID});
@@ -199,4 +208,93 @@ public class SQLCustomerMessageDB {
     public ConversationIterator newConversationIterator() {
         return new CustomerConversationIterator(db);
     }
+
+    private String tokenizer(String key) {
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < key.length(); i++) {
+            char c = key.charAt(i);
+            builder.append(c);
+            if (c >= 0x4e00 && c <= 0x9fff) {
+                builder.append(' ');
+            }
+        }
+        return builder.toString();
+    }
+
+    public ArrayList<IMessage> search(String key) {
+        key = key.replace("'", "\'");
+        String k = this.tokenizer(key);
+
+        Cursor cursor = db.query(FTS_TABLE_NAME, new String[]{"rowid"},
+                "content MATCH(?)",  new String[]{k},
+                null, null, null);
+        ArrayList<Long> rows = new ArrayList<Long>();
+        while(cursor.moveToNext()) {
+            long rowid = cursor.getInt(cursor.getColumnIndex("rowid"));
+            rows.add(rowid);
+        }
+        cursor.close();
+
+        ArrayList<IMessage> messages = new ArrayList<IMessage>();
+        for (int i = 0; i < rows.size(); i++) {
+            IMessage msg = getMessage(rows.get(i));
+            messages.add(msg);
+        }
+        return messages;
+    }
+
+
+    private ICustomerMessage getMessage(Cursor cursor) {
+        ICustomerMessage msg = new ICustomerMessage();
+        msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
+        msg.customerID = cursor.getLong(cursor.getColumnIndex("customer_id"));
+        msg.customerAppID = cursor.getLong(cursor.getColumnIndex("customer_appid"));
+        msg.storeID = cursor.getLong(cursor.getColumnIndex("store_id"));
+        msg.sellerID = cursor.getLong(cursor.getColumnIndex("seller_id"));
+        msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
+        msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
+        msg.isSupport = cursor.getInt(cursor.getColumnIndex("is_support")) == 1;
+        String content = cursor.getString(cursor.getColumnIndex("content"));
+        msg.setContent(content);
+        return msg;
+    }
+
+    public ICustomerMessage getMessage(long id) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "customer_id", "customer_appid", "store_id", "seller_id", "timestamp", "flags", "is_support", "content"},
+                "id = ?", new String[]{""+id}, null, null, null);
+        ICustomerMessage msg = null;
+        if (cursor.moveToNext()) {
+            msg = getMessage(cursor);
+        }
+        cursor.close();
+        return msg;
+    }
+
+    public int getMessageId(String uuid) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id"},
+                "uuid = ?", new String[]{uuid}, null,null,null);
+        boolean r = cursor.moveToNext();
+        if (!r) {
+            cursor.close();
+            return 0;
+        }
+
+        int msgLocalId = cursor.getInt(cursor.getColumnIndex("id"));
+        cursor.close();
+        return msgLocalId;
+    }
+
+    public ICustomerMessage getLastMessage(long storeID) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "customer_id", "customer_appid", "store_id", "seller_id", "timestamp", "flags", "is_support", "content"},
+                "store_id = ?", new String[]{""+storeID}, null, null, "id DESC");
+        ICustomerMessage msg = null;
+        if (cursor.moveToNext()) {
+            msg = getMessage(cursor);
+        }
+        cursor.close();
+        return msg;
+
+    }
+
 }

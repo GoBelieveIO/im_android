@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -40,6 +42,15 @@ public class FileCache {
         fileOutputStream.close();
     }
 
+    public void storeFile(String key, byte[] data) throws IOException {
+        File file = new File(this.dir, getFileName(key));
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        fileOutputStream.write(data);
+        fileOutputStream.flush();
+        fileOutputStream.close();
+    }
+
+
     public void removeFile(String key) {
         File file = new File(this.dir, getFileName(key));
         file.delete();
@@ -47,14 +58,12 @@ public class FileCache {
 
     public String getCachedFilePath(String key) {
         File file = new File(this.dir, getFileName(key));
-        if (file.exists()) {
-            return file.getAbsolutePath();
-        }
-        return null;
+        return file.getAbsolutePath();
     }
 
     public boolean isCached(String key) {
-        return getCachedFilePath(key) != null;
+        File file = new File(this.dir, getFileName(key));
+        return file.exists();
     }
 
     private String getFileName(String key) {
@@ -62,7 +71,23 @@ public class FileCache {
             MessageDigest md5 = MessageDigest.getInstance("MD5");
             md5.update(key.getBytes());
             byte[] m = md5.digest();
-            return BinAscii.bin2Hex(m);
+            String name = BinAscii.bin2Hex(m);
+            String ext = "";
+            int pos = -1;
+            try {
+                URL url = new URL(key);
+                pos = url.getPath().lastIndexOf(".");
+                if (pos != -1) {
+                    ext = url.getPath().substring(pos);
+                }
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+                pos = key.lastIndexOf(".");
+                if (pos != -1) {
+                    ext = key.substring(pos);
+                }
+            }
+            return name + ext;
         } catch (NoSuchAlgorithmException e) {
             //opps
             System.exit(1);

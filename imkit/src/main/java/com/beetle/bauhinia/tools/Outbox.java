@@ -1,5 +1,7 @@
 package com.beetle.bauhinia.tools;
 
+import android.util.Log;
+import android.webkit.MimeTypeMap;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.types.Audio;
 import com.beetle.bauhinia.api.types.Image;
@@ -8,6 +10,8 @@ import com.beetle.bauhinia.db.IMessage;
 import java.io.File;
 import java.util.ArrayList;
 
+import com.beetle.im.IMMessage;
+import com.google.gson.JsonObject;
 import retrofit.mime.TypedFile;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -15,12 +19,15 @@ import rx.functions.Action1;
 /**
  * Created by houxh on 16/1/18.
  */
-public class Outbox {
+public abstract class Outbox {
     public static interface OutboxObserver {
         public void onAudioUploadSuccess(IMessage msg, String url);
         public void onAudioUploadFail(IMessage msg);
         public void onImageUploadSuccess(IMessage msg, String url);
         public void onImageUploadFail(IMessage msg);
+
+        public void onVideoUploadSuccess(IMessage msg, String url, String thumbURL);
+        public void onVideoUploadFail(IMessage msg);
     }
 
     ArrayList<OutboxObserver> observers = new ArrayList<OutboxObserver>();
@@ -38,15 +45,113 @@ public class Outbox {
     }
 
 
-    public boolean isUploading(IMessage msg) {
-        for(IMessage m : messages) {
-            if (m.sender == msg.sender &&
-                    m.receiver == msg.receiver &&
-                    m.msgLocalID == msg.msgLocalID) {
-                return true;
-            }
+    public boolean uploadVideo(final IMessage msg, final String path, String thumbPath) {
+        File file;
+        try {
+            file = new File(thumbPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
-        return false;
+        messages.add(msg);
+        String type = ImageMIME.getMimeType(file);
+        TypedFile typedFile = new TypedFile(type, file);
+        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
+        imHttp.postImages(type
+                , typedFile)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Image>() {
+                    @Override
+                    public void call(Image image) {
+                        final String thumbURL = image.srcUrl;
+                        String type = "video/mp4";
+                        String extension = MimeTypeMap.getFileExtensionFromUrl(path);
+                        if (extension != null) {
+                            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+                        }
+                        TypedFile typedFile = new TypedFile(type, new File(path));
+                        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
+                        imHttp.postFile(typedFile)
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(new Action1<com.beetle.bauhinia.api.types.File>() {
+                                    @Override
+                                    public void call(com.beetle.bauhinia.api.types.File f) {
+                                        Outbox.this.sendVideoMessage(msg, f.srcUrl, thumbURL);
+                                        onUploadVideoSuccess(msg, f.srcUrl, thumbURL);
+                                        messages.remove(msg);
+                                    }
+                                }, new Action1<Throwable>() {
+                                    @Override
+                                    public void call(Throwable throwable) {
+                                        Outbox.this.markMessageFailure(msg);
+                                        onUploadVideoFail(msg);
+                                        messages.remove(msg);
+                                    }
+                                });
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Outbox.this.markMessageFailure(msg);
+                        onUploadImageFail(msg);
+                        messages.remove(msg);
+                    }
+                });
+        return true;
+    }
+
+    public boolean uploadSecretVideo(final IMessage msg, final String path, String thumbPath) {
+        try {
+            new File(thumbPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        messages.add(msg);
+        assert (msg.secret);
+        String secretFile = encryptFile(thumbPath, msg.receiver);
+        TypedFile typedFile = new TypedFile("", new File(secretFile));
+        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
+        imHttp.postFile(typedFile)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<com.beetle.bauhinia.api.types.File>() {
+                    @Override
+                    public void call(com.beetle.bauhinia.api.types.File thumbnail) {
+                        final String thumbURL = thumbnail.srcUrl;
+
+                        String secretVideoFile = encryptFile(path, msg.receiver);
+                        TypedFile typedFile = new TypedFile("", new File(secretVideoFile));
+                        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
+                        imHttp.postFile(typedFile)
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(new Action1<com.beetle.bauhinia.api.types.File>() {
+                                    @Override
+                                    public void call(com.beetle.bauhinia.api.types.File f) {
+
+                                        Outbox.this.sendVideoMessage(msg, f.srcUrl, thumbURL);
+                                        onUploadVideoSuccess(msg, f.srcUrl, thumbURL);
+                                        messages.remove(msg);
+
+
+                                    }
+                                }, new Action1<Throwable>() {
+                                    @Override
+                                    public void call(Throwable throwable) {
+                                        Outbox.this.markMessageFailure(msg);
+                                        onUploadVideoFail(msg);
+                                        messages.remove(msg);
+                                    }
+                                });
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Outbox.this.markMessageFailure(msg);
+                        onUploadVideoFail(msg);
+                        messages.remove(msg);
+                    }
+                });
+        return true;
     }
 
     public boolean uploadImage(final IMessage msg, String filePath) {
@@ -108,6 +213,64 @@ public class Outbox {
     }
 
 
+    public boolean uploadSecretImage(final IMessage msg, String filePath) {
+        try {
+            new File(filePath);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        messages.add(msg);
+        assert (msg.secret);
+        String secretFile = encryptFile(filePath, msg.receiver);
+        TypedFile typedFile = new TypedFile("", new File(secretFile));
+        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
+        imHttp.postFile(typedFile)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<com.beetle.bauhinia.api.types.File>() {
+                    @Override
+                    public void call(com.beetle.bauhinia.api.types.File f) {
+                        Outbox.this.sendImageMessage(msg, f.srcUrl);
+                        onUploadImageSuccess(msg, f.srcUrl);
+                        messages.remove(msg);
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Outbox.this.markMessageFailure(msg);
+                        onUploadImageFail(msg);
+                        messages.remove(msg);
+                    }
+                });
+        return true;
+    }
+
+    public boolean uploadSecretAudio(final IMessage msg, String file) {
+        messages.add(msg);
+        assert (msg.secret);
+        String secretFile = encryptFile(file, msg.receiver);
+        TypedFile typedFile = new TypedFile("", new File(secretFile));
+        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
+        imHttp.postFile(typedFile)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<com.beetle.bauhinia.api.types.File>() {
+                    @Override
+                    public void call(com.beetle.bauhinia.api.types.File f) {
+                        Outbox.this.sendAudioMessage(msg, f.srcUrl);
+                        onUploadAudioSuccess(msg, f.srcUrl);
+                        messages.remove(msg);
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Outbox.this.markMessageFailure(msg);
+                        onUploadAudioFail(msg);
+                        messages.remove(msg);
+                    }
+                });
+        return true;
+    }
+
 
     private void onUploadAudioSuccess(IMessage msg, String url) {
         for (OutboxObserver ob : observers) {
@@ -133,17 +296,33 @@ public class Outbox {
         }
     }
 
-
-    protected void markMessageFailure(IMessage msg) {
-
+    private void onUploadVideoSuccess(IMessage msg, String url, String thumbURL) {
+        for (OutboxObserver ob : observers) {
+            ob.onVideoUploadSuccess(msg, url, thumbURL);
+        }
     }
 
-    protected void sendImageMessage(IMessage imsg, String url) {
-
+    private void onUploadVideoFail(IMessage msg) {
+        for (OutboxObserver ob : observers) {
+            ob.onVideoUploadFail(msg);
+        }
     }
 
-    protected void sendAudioMessage(IMessage imsg, String url) {
 
+    protected boolean encrypt(IMMessage msg) {
+        assert (false);
+        return false;
     }
+
+    protected String encryptFile(String path, long peerUID) {
+        assert (false);
+        return "";
+    }
+
+    abstract protected void markMessageFailure(IMessage msg);
+    abstract protected void sendImageMessage(IMessage imsg, String url);
+    abstract protected void sendAudioMessage(IMessage imsg, String url);
+    abstract protected void sendVideoMessage(IMessage imsg, String url, String thumbURL);
+    abstract protected void saveMessageAttachment(IMessage msg, String address);
 
 }

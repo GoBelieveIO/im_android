@@ -150,7 +150,6 @@ public class AudioUtil{
                 am.setSpeakerphoneOn(true);
             }
 
-            am.setMode(AudioManager.STREAM_MUSIC);
             mPlayer.prepare();
             mPlayer.start();
 

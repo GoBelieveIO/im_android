@@ -5,7 +5,7 @@ package com.beetle.im;
  */
 public interface GroupMessageObserver {
     public void onGroupMessage(IMMessage msg);
-    public void onGroupMessageACK(int msgLocalID, long uid);
-    public void onGroupMessageFailure(int msgLocalID, long uid);
+    public void onGroupMessageACK(IMMessage msg);
+    public void onGroupMessageFailure(IMMessage msg);
     public void onGroupNotification(String notification);
 }

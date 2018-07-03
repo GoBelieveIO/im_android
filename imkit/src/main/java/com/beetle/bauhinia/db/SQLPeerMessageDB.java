@@ -3,8 +3,12 @@ package com.beetle.bauhinia.db;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
+import android.text.TextUtils;
 
+import com.beetle.bauhinia.db.message.MessageContent;
+import com.beetle.bauhinia.db.message.Text;
+
+import java.util.ArrayList;
 
 /**
  * Created by houxh on 14-7-22.
@@ -12,18 +16,7 @@ import android.util.Log;
 public class SQLPeerMessageDB {
 
     private class PeerMessageIterator implements MessageIterator{
-        private Cursor cursor;
-
-        public PeerMessageIterator(SQLiteDatabase db, long peer)  {
-            String sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE peer = ? ORDER BY id DESC";
-            this.cursor = db.rawQuery(sql, new String[]{""+peer});
-        }
-
-        public PeerMessageIterator(SQLiteDatabase db, long peer, int position)  {
-
-            String sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE peer = ? AND id < ? ORDER BY id DESC";
-            this.cursor = db.rawQuery(sql, new String[]{""+peer, ""+position});
-        }
+        protected Cursor cursor;
 
         public IMessage next() {
             if (cursor == null) {
@@ -35,68 +28,69 @@ public class SQLPeerMessageDB {
                 cursor = null;
                 return null;
             }
-            IMessage msg = new IMessage();
-            msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
-            msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
-            msg.receiver = cursor.getLong(cursor.getColumnIndex("receiver"));
-            msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
-            msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
-            String content = cursor.getString(cursor.getColumnIndex("content"));
-            msg.setContent(content);
+            IMessage msg = getMessage(cursor);
             return msg;
         }
     }
 
-    public class PeerConversationIterator implements ConversationIterator {
-        private SQLiteDatabase db;
-        private Cursor cursor;
-        public PeerConversationIterator(SQLiteDatabase db) {
-            this.db = db;
-            this.cursor = db.rawQuery("SELECT MAX(id) as id, peer FROM peer_message GROUP BY peer", null);
+    private class ForwardPeerMessageInterator extends PeerMessageIterator {
+        public ForwardPeerMessageInterator(SQLiteDatabase db, long peer)  {
+
+            this.cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
+                    "peer = ? AND secret= ?", new String[]{""+peer, ""+secret}, null, null, "id DESC");
         }
 
-        private IMessage getMessage(long id) {
-            String sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE id=?";
-            Cursor cursor = db.rawQuery(sql, new String[]{""+id});
+        public ForwardPeerMessageInterator(SQLiteDatabase db, long peer, int position)  {
+            this.cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
+                    "peer = ? AND secret = ? AND id < ?", new String[]{""+peer, ""+secret, ""+position},
+                    null, null, "id DESC");
+        }
+    }
 
-            IMessage msg = null;
-            if (cursor.moveToNext()) {
-                msg = new IMessage();
-                msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
-                msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
-                msg.receiver = cursor.getLong(cursor.getColumnIndex("receiver"));
-                msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
-                msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
-                String content = cursor.getString(cursor.getColumnIndex("content"));
-                msg.setContent(content);
-            }
-            cursor.close();
-            return msg;
+    private class BackwardPeerMessageInterator extends PeerMessageIterator {
+        public BackwardPeerMessageInterator(SQLiteDatabase db, long peer, int position)  {
+            this.cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
+                    "peer = ? AND secret=? AND id > ?", new String[]{""+peer, ""+secret, ""+position},
+                    null, null, "id");
+        }
+    }
 
+    private class MiddlePeerMessageInterator extends PeerMessageIterator {
+        public MiddlePeerMessageInterator(SQLiteDatabase db, long peer, int position)  {
+            this.cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
+                    "peer = ? AND secret=? AND id > ? AND id < ?",
+                    new String[]{""+peer, ""+secret, ""+(position - 10), "" + (position + 10)},
+                    null, null, "id DESC");
+        }
+    }
+
+    public class PeerConversationIterator implements ConversationIterator {
+        private Cursor cursor;
+        public PeerConversationIterator(SQLiteDatabase db) {
+            this.cursor = db.query(TABLE_NAME, new String[]{"MAX(id) as id", "peer"},
+                    null, null, "peer", null, null);
         }
 
         public IMessage next() {
             if (cursor == null) {
                 return null;
             }
-
             boolean r = cursor.moveToNext();
             if (!r) {
                 cursor.close();
                 cursor = null;
                 return null;
             }
-
             long id = cursor.getLong(cursor.getColumnIndex("id"));
             IMessage msg = getMessage(id);
             return msg;
         }
     }
 
+    static protected final String TABLE_NAME = "peer_message";
+    static protected final String FTS_TABLE_NAME = "peer_message_fts";
 
-    private static final String TABLE_NAME = "peer_message";
-    private static final String TAG = "beetle";
-
+    protected int secret;
 
     private SQLiteDatabase db;
 
@@ -108,20 +102,37 @@ public class SQLPeerMessageDB {
         return this.db;
     }
 
+
     public boolean insertMessage(IMessage msg, long uid) {
         ContentValues values = new ContentValues();
         values.put("peer", uid);
         values.put("sender", msg.sender);
         values.put("receiver", msg.receiver);
+        values.put("secret", secret);
         values.put("timestamp", msg.timestamp);
         values.put("flags", msg.flags);
+        if (!TextUtils.isEmpty(msg.getUUID())) {
+            values.put("uuid", msg.getUUID());
+        }
         values.put("content", msg.content.getRaw());
         long id = db.insert(TABLE_NAME, null, values);
         if (id == -1) {
             return  false;
         }
         msg.msgLocalID = (int)id;
+
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+            Text text = (Text)msg.content;
+            insertFTS((int)id, text.text);
+        }
         return true;
+    }
+
+    public boolean updateContent(int msgLocalID, String content) {
+        ContentValues cv = new ContentValues();
+        cv.put("content", content);
+        int rows = db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
+        return rows == 1;
     }
 
     public boolean acknowledgeMessage(int msgLocalID, long uid) {
@@ -142,8 +153,9 @@ public class SQLPeerMessageDB {
     }
 
     public boolean addFlag(int msgLocalID, int f) {
-        String sql = "SELECT flags FROM peer_message WHERE id=?";
-        Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"flags"},
+                "id=?", new String[]{""+msgLocalID},
+                null, null, null);
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
             flags |= f;
@@ -157,8 +169,9 @@ public class SQLPeerMessageDB {
     }
 
     public boolean removeFlag(int msgLocalID, int f) {
-        String sql = "SELECT flags FROM peer_message WHERE id=?";
-        Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"flags"},
+                "id=?", new String[]{""+msgLocalID},
+                null, null, null);
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
             flags &= ~f;
@@ -173,26 +186,137 @@ public class SQLPeerMessageDB {
 
     public boolean removeMessage(int msgLocalID, long uid) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
+        db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
+    }
 
+    public boolean removeMessageIndex(int msgLocalID, long uid) {
+        db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
+        return true;
     }
 
     public boolean clearCoversation(long uid) {
-        db.delete(TABLE_NAME, "peer = ?", new String[]{""+uid});
+        db.delete(TABLE_NAME, "peer = ? AND secret= ?", new String[]{""+uid, "" + secret});
         return true;
     }
 
     public MessageIterator newMessageIterator(long uid) {
-        return new PeerMessageIterator(db, uid);
+        return new ForwardPeerMessageInterator(db, uid);
     }
 
     public MessageIterator newMessageIterator(long uid, int firstMsgID) {
+        return new ForwardPeerMessageInterator(db, uid, firstMsgID);
+    }
 
-        return new PeerMessageIterator(db, uid, firstMsgID);
+    public MessageIterator newBackwardMessageIterator(long uid, int msgID) {
+        return new BackwardPeerMessageInterator(db, uid, msgID);
+    }
 
+    public MessageIterator newMiddleMessageIterator(long uid, int msgID) {
+        return new MiddlePeerMessageInterator(db, uid, msgID);
     }
 
     public ConversationIterator newConversationIterator() {
         return new PeerConversationIterator(db);
+    }
+
+    private String tokenizer(String key) {
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < key.length(); i++) {
+            char c = key.charAt(i);
+            builder.append(c);
+            if (c >= 0x4e00 && c <= 0x9fff) {
+                builder.append(' ');
+            }
+        }
+        return builder.toString();
+    }
+
+    public ArrayList<IMessage> search(String key) {
+        key = key.replace("'", "\'");
+        String k = this.tokenizer(key);
+        Cursor cursor = db.query(FTS_TABLE_NAME, new String[]{"rowid"},
+                "content MATCH(?)",  new String[]{k},
+                null, null, null);
+
+        ArrayList<Long> rows = new ArrayList<Long>();
+        while(cursor.moveToNext()) {
+            long rowid = cursor.getInt(cursor.getColumnIndex("rowid"));
+            rows.add(rowid);
+        }
+        cursor.close();
+
+        ArrayList<IMessage> messages = new ArrayList<IMessage>();
+        for (int i = 0; i < rows.size(); i++) {
+            IMessage msg = getMessage(rows.get(i));
+            if (msg != null) {
+                messages.add(msg);
+            }
+        }
+        return messages;
+    }
+
+    private boolean insertFTS(int msgLocalID, String text) {
+        String t = tokenizer(text);
+        ContentValues values = new ContentValues();
+        values.put("docid", msgLocalID);
+        values.put("content", t);
+        db.insert(FTS_TABLE_NAME, null, values);
+        return true;
+    }
+
+    private IMessage getMessage(Cursor cursor) {
+        IMessage msg = new IMessage();
+        msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
+        msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
+        msg.receiver = cursor.getLong(cursor.getColumnIndex("receiver"));
+        msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
+        msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
+        String content = cursor.getString(cursor.getColumnIndex("content"));
+        msg.secret = cursor.getInt(cursor.getColumnIndex("secret")) == 1;
+        msg.setContent(content);
+        return msg;
+    }
+
+    public IMessage getMessage(long id) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
+                "id = ?", new String[]{""+id}, null, null, null);
+
+        IMessage msg = null;
+        if (cursor.moveToNext()) {
+            msg = getMessage(cursor);
+        }
+        cursor.close();
+        return msg;
+    }
+
+    //获取到最新的消息
+    public IMessage getLastMessage(long peer) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
+                "peer = ? AND secret= ?", new String[]{""+peer, ""+secret}, null, null, "id DESC");
+        boolean r = cursor.moveToNext();
+        if (!r) {
+            cursor.close();
+            return null;
+        }
+
+        IMessage msg = getMessage(cursor);
+        cursor.close();
+        return msg;
+    }
+
+    public int getMessageId(String uuid) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id"},
+                "uuid = ?", new String[]{uuid}, null,null,null);
+        boolean r = cursor.moveToNext();
+        if (!r) {
+            cursor.close();
+            return 0;
+        }
+
+        int msgLocalId = cursor.getInt(cursor.getColumnIndex("id"));
+        cursor.close();
+        return msgLocalId;
     }
 }

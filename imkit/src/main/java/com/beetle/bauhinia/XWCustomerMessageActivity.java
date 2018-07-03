@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.db.message.Headline;
 import com.beetle.im.IMService;
 
 import org.json.JSONException;
@@ -70,7 +71,6 @@ public class XWCustomerMessageActivity extends CustomerMessageActivity implement
         } else {
             disableSend();
         }
-        setSubtitle();
     }
 
     public static int now() {
@@ -153,7 +153,7 @@ public class XWCustomerMessageActivity extends CustomerMessageActivity implement
                         msg.isOutgoing = false;
 
                         String t = String.format("%s为您服务", name);
-                        msg.setContent(IMessage.newHeadline(t));
+                        msg.setContent(Headline.newHeadline(t));
                         saveMessage(msg);
                         insertMessage(msg);
                     }

@@ -1,7 +1,6 @@
 package com.beetle.bauhinia;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -9,8 +8,12 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
-import com.beetle.bauhinia.tools.AudioDownloader;
-import com.beetle.bauhinia.tools.AudioUtil;
+import com.beetle.bauhinia.db.ICustomerMessageDB;
+import com.beetle.bauhinia.db.message.Audio;
+import com.beetle.bauhinia.db.message.Image;
+import com.beetle.bauhinia.db.message.MessageContent;
+import com.beetle.bauhinia.db.message.Revoke;
+import com.beetle.bauhinia.tools.FileDownloader;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.im.CustomerMessage;
@@ -22,29 +25,17 @@ import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-
 /**
  * Created by houxh on 16/1/18.
  */
 public class CustomerMessageActivity extends MessageActivity
-        implements CustomerMessageObserver, IMServiceObserver,
-        AudioDownloader.AudioDownloaderObserver,
-        CustomerOutbox.OutboxObserver {
+        implements CustomerMessageObserver, IMServiceObserver
+        {
     public static final String SEND_MESSAGE_NAME = "send_cs_message";
     public static final String CLEAR_MESSAGES = "clear_cs_messages";
     public static final String CLEAR_NEW_MESSAGES = "clear_cs_new_messages";
 
-
-    private final int PAGE_SIZE = 10;
-
     protected String title;
-    protected long currentUID;
 
     protected long appID;
     protected long storeID;
@@ -52,6 +43,8 @@ public class CustomerMessageActivity extends MessageActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        items[ITEM_VIDEO_CALL_ID] = false;
+
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
@@ -69,8 +62,17 @@ public class CustomerMessageActivity extends MessageActivity
 
         this.isShowUserName = intent.getBooleanExtra("show_name", false);
 
+        ICustomerMessageDB db = new ICustomerMessageDB();
+        db.currentUID = this.currentUID;
+        db.appID = appID;
+        db.storeID = storeID;
+        db.sellerID = sellerID;
+        this.messageDB = db;
 
+        this.hasLateMore = this.messageID > 0;
+        this.hasEarlierMore = true;
         this.loadConversationData();
+
         if (!TextUtils.isEmpty(title)) {
             getSupportActionBar().setTitle(title);
         }
@@ -82,7 +84,7 @@ public class CustomerMessageActivity extends MessageActivity
         CustomerOutbox.getInstance().addObserver(this);
         IMService.getInstance().addObserver(this);
         IMService.getInstance().addCustomerServiceObserver(this);
-        AudioDownloader.getInstance().addObserver(this);
+        FileDownloader.getInstance().addObserver(this);
     }
 
     @Override
@@ -97,135 +99,9 @@ public class CustomerMessageActivity extends MessageActivity
         CustomerOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
         IMService.getInstance().removeCustomerServiceObserver(this);
-        AudioDownloader.getInstance().removeObserver(this);
+        FileDownloader.getInstance().removeObserver(this);
     }
 
-    protected void loadConversationData() {
-        HashSet<String> uuidSet = new HashSet<String>();
-        messages = new ArrayList<IMessage>();
-
-        int count = 0;
-        MessageIterator iter = CustomerMessageDB.getInstance().newMessageIterator(storeID);
-        while (iter != null) {
-            ICustomerMessage msg = (ICustomerMessage)iter.next();
-            if (msg == null) {
-                break;
-            }
-
-            //不加载重复的消息
-            if (!TextUtils.isEmpty(msg.getUUID()) && uuidSet.contains(msg.getUUID())) {
-                continue;
-            }
-
-            if (!TextUtils.isEmpty(msg.getUUID())) {
-                uuidSet.add(msg.getUUID());
-            }
-
-            if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
-                IMessage.Attachment attachment = (IMessage.Attachment) msg.content;
-                attachments.put(attachment.msg_id, attachment);
-            } else {
-                msg.isOutgoing = !msg.isSupport;
-                messages.add(0, msg);
-                if (++count >= PAGE_SIZE) {
-                    break;
-                }
-            }
-        }
-
-        downloadMessageContent(messages, count);
-        loadUserName(messages, count);
-        checkMessageFailureFlag(messages, count);
-        resetMessageTimeBase();
-    }
-
-    void checkMessageFailureFlag(IMessage msg) {
-        if (msg.sender == this.currentUID) {
-            if (msg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
-                msg.setUploading(CustomerOutbox.getInstance().isUploading(msg));
-            } else if (msg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-                msg.setUploading(CustomerOutbox.getInstance().isUploading(msg));
-            }
-            if (!msg.isAck() &&
-                    !msg.isFailure() &&
-                    !msg.getUploading() &&
-                    !IMService.getInstance().isCustomerMessageSending(msg.receiver, msg.msgLocalID)) {
-                markMessageFailure(msg);
-                msg.setFailure(true);
-            }
-        }
-    }
-
-    void checkMessageFailureFlag(ArrayList<IMessage> messages, int count) {
-        for (int i = 0; i < count; i++) {
-            IMessage m = messages.get(i);
-            checkMessageFailureFlag(m);
-        }
-    }
-
-
-    protected void loadEarlierData() {
-        if (messages.size() == 0) {
-            return;
-        }
-
-        IMessage firstMsg = null;
-        for (int i  = 0; i < messages.size(); i++) {
-            IMessage msg = messages.get(i);
-            if (msg.msgLocalID > 0) {
-                firstMsg = msg;
-                break;
-            }
-        }
-        if (firstMsg == null) {
-            return;
-        }
-
-        HashSet<String> uuidSet = new HashSet<String>();
-        for (int i  = 0; i < messages.size(); i++) {
-            IMessage msg = messages.get(i);
-            if (!TextUtils.isEmpty(msg.getUUID())) {
-                uuidSet.add(msg.getUUID());
-            }
-        }
-
-        int count = 0;
-        MessageIterator iter = CustomerMessageDB.getInstance().newMessageIterator(storeID, firstMsg.msgLocalID);
-        while (iter != null) {
-            ICustomerMessage msg = (ICustomerMessage)iter.next();
-            if (msg == null) {
-                break;
-            }
-
-            //不加载重复的消息
-            if (!TextUtils.isEmpty(msg.getUUID()) && uuidSet.contains(msg.getUUID())) {
-                continue;
-            }
-
-            if (!TextUtils.isEmpty(msg.getUUID())) {
-                uuidSet.add(msg.getUUID());
-            }
-
-            if (msg.content.getType() == IMessage.MessageType.MESSAGE_ATTACHMENT) {
-                IMessage.Attachment attachment = (IMessage.Attachment)msg.content;
-                attachments.put(attachment.msg_id, attachment);
-            } else{
-                msg.isOutgoing = !msg.isSupport;
-                messages.add(0, msg);
-                if (++count >= PAGE_SIZE) {
-                    break;
-                }
-            }
-        }
-        if (count > 0) {
-            downloadMessageContent(messages, count);
-            loadUserName(messages, count);
-            checkMessageFailureFlag(messages, count);
-            resetMessageTimeBase();
-            adapter.notifyDataSetChanged();
-            listview.setSelection(count);
-        }
-    }
 
     @Override
     protected MessageIterator getMessageIterator() {
@@ -239,7 +115,6 @@ public class CustomerMessageActivity extends MessageActivity
         } else {
             disableSend();
         }
-        setSubtitle();
     }
 
     @Override
@@ -266,8 +141,16 @@ public class CustomerMessageActivity extends MessageActivity
 
         loadUserName(imsg);
         downloadMessageContent(imsg);
-
-        insertMessage(imsg);
+        updateNotificationDesc(imsg);
+        if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+            Revoke revoke = (Revoke)imsg.content;
+            IMessage m = findMessage(revoke.msgid);
+            if (m != null) {
+                replaceMessage(m, imsg);
+            }
+        } else {
+            insertMessage(imsg);
+        }
     }
 
     @Override
@@ -294,7 +177,14 @@ public class CustomerMessageActivity extends MessageActivity
 
         loadUserName(imsg);
         downloadMessageContent(imsg);
-
+        updateNotificationDesc(imsg);
+        if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+            Revoke revoke = (Revoke)imsg.content;
+            IMessage m = findMessage(revoke.msgid);
+            if (m != null) {
+                deleteMessage(m);
+            }
+        }
         insertMessage(imsg);
     }
 
@@ -303,80 +193,59 @@ public class CustomerMessageActivity extends MessageActivity
 
         Log.i(TAG, "customer service message ack");
 
-        IMessage imsg = findMessage(msg.msgLocalID);
-        if (imsg == null) {
-            Log.i(TAG, "can't find msg:" + msg.msgLocalID);
-            return;
+        if (msg.msgLocalID > 0) {
+            IMessage imsg = findMessage(msg.msgLocalID);
+            if (imsg == null) {
+                Log.i(TAG, "can't find msg:" + msg.msgLocalID);
+                return;
+            }
+            imsg.setAck(true);
+        } else {
+            MessageContent c = IMessage.fromRaw(msg.content);
+            if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                Revoke r = (Revoke)c;
+                IMessage imsg = findMessage(r.msgid);
+                if (imsg == null) {
+                    Log.i(TAG, "can't find msg:" + r.msgid);
+                    return;
+                }
+                imsg.setContent(r);
+                updateNotificationDesc(imsg);
+                adapter.notifyDataSetChanged();
+            }
         }
-        imsg.setAck(true);
     }
 
     @Override
     public void onCustomerMessageFailure(CustomerMessage msg) {
         Log.i(TAG, "message failure");
 
-        IMessage imsg = findMessage(msg.msgLocalID);
-        if (imsg == null) {
-            Log.i(TAG, "can't find msg:" + msg.msgLocalID);
-            return;
-        }
-        imsg.setFailure(true);
-    }
-
-    @Override
-    protected void sendMessageContent(IMessage.MessageContent content) {
-        ICustomerMessage msg = new ICustomerMessage();
-        msg.customerID = currentUID;
-        msg.customerAppID = appID;
-        msg.storeID = storeID;
-        msg.sellerID = sellerID;
-
-        msg.timestamp = now();
-        msg.sender = currentUID;
-        msg.receiver = storeID;
-
-        msg.isSupport = false;
-        msg.isOutgoing = true;
-
-        msg.setContent(content);
-
-        saveMessage(msg);
-
-        loadUserName(msg);
-
-        if (msg.content.getType() == IMessage.MessageType.MESSAGE_LOCATION) {
-            IMessage.Location loc = (IMessage.Location)msg.content;
-
-            if (TextUtils.isEmpty(loc.address)) {
-                queryLocation(msg);
-            } else {
-                saveMessageAttachment(msg, loc.address);
+        if (msg.msgLocalID > 0) {
+            IMessage imsg = findMessage(msg.msgLocalID);
+            if (imsg == null) {
+                Log.i(TAG, "can't find msg:" + msg.msgLocalID);
+                return;
+            }
+            imsg.setFailure(true);
+        } else {
+            MessageContent c = IMessage.fromRaw(msg.content);
+            if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                Toast.makeText(this, "撤回失败", Toast.LENGTH_SHORT).show();
             }
         }
-
-        sendMessage(msg);
-        insertMessage(msg);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(msg, SEND_MESSAGE_NAME);
-        nc.postNotification(notification);
     }
+
 
     @Override
-    protected void resend(IMessage msg) {
-        eraseMessageFailure(msg);
-        msg.setFailure(false);
-        this.sendMessage(msg);
-    }
-
-    void sendMessage(IMessage imsg) {
-        if (imsg.content.getType() == IMessage.MessageType.MESSAGE_AUDIO) {
+    protected boolean sendMessage(IMessage imsg) {
+        boolean r = true;
+        if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
             CustomerOutbox ob = CustomerOutbox.getInstance();
-            IMessage.Audio audio = (IMessage.Audio)imsg.content;
+            Audio audio = (Audio)imsg.content;
             imsg.setUploading(true);
             ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
-        } else if (imsg.content.getType() == IMessage.MessageType.MESSAGE_IMAGE) {
-            IMessage.Image image = (IMessage.Image)imsg.content;
+        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+            Image image = (Image)imsg.content;
             //prefix:"file:"
             String path = image.url.substring(5);
             imsg.setUploading(true);
@@ -393,32 +262,14 @@ public class CustomerMessageActivity extends MessageActivity
             msg.content = cm.content.getRaw();
 
             IMService im = IMService.getInstance();
-            im.sendCustomerMessage(msg);
+            r = im.sendCustomerMessage(msg);
         }
+        NotificationCenter nc = NotificationCenter.defaultCenter();
+        Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
+        nc.postNotification(notification);
+        return r;
     }
 
-    @Override
-    void saveMessageAttachment(IMessage msg, String address) {
-        ICustomerMessage attachment = new ICustomerMessage();
-        attachment.content = IMessage.newAttachment(msg.msgLocalID, address);
-        attachment.sender = msg.sender;
-        attachment.receiver = msg.receiver;
-        saveMessage(attachment);
-    }
-
-    void saveMessage(IMessage imsg) {
-        CustomerMessageDB.getInstance().insertMessage(imsg, storeID);
-    }
-
-
-    void markMessageFailure(IMessage imsg) {
-        CustomerMessageDB.getInstance().markMessageFailure(imsg.msgLocalID, storeID);
-    }
-
-
-    void eraseMessageFailure(IMessage imsg) {
-        CustomerMessageDB.getInstance().eraseMessageFailure(imsg.msgLocalID, storeID);
-    }
 
     @Override
     void clearConversation() {
@@ -430,73 +281,4 @@ public class CustomerMessageActivity extends MessageActivity
         Notification notification = new Notification(this.storeID, CLEAR_MESSAGES);
         nc.postNotification(notification);
     }
-
-    @Override
-    public void onAudioUploadSuccess(IMessage msg, String url) {
-        ICustomerMessage cm = (ICustomerMessage)msg;
-        if (cm.storeID != this.storeID) {
-            return;
-        }
-        Log.i(TAG, "audio upload success:" + url);
-
-        IMessage m = findMessage(msg.msgLocalID);
-        if (m != null) {
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onAudioUploadFail(IMessage msg) {
-        ICustomerMessage cm = (ICustomerMessage)msg;
-        if (cm.storeID != this.storeID) {
-            return;
-        }
-        Log.i(TAG, "audio upload fail");
-
-        IMessage m = findMessage(msg.msgLocalID);
-        if (m != null) {
-            m.setFailure(true);
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onImageUploadSuccess(IMessage msg, String url) {
-        ICustomerMessage cm = (ICustomerMessage)msg;
-        if (cm.storeID != this.storeID) {
-            return;
-        }
-        Log.i(TAG, "image upload success:" + url);
-
-        IMessage m = findMessage(msg.msgLocalID);
-        if (m != null) {
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onImageUploadFail(IMessage msg) {
-        ICustomerMessage cm = (ICustomerMessage)msg;
-        if (cm.storeID != this.storeID) {
-            return;
-        }
-        Log.i(TAG, "image upload fail");
-
-        IMessage m = findMessage(msg.msgLocalID);
-        if (m != null) {
-            m.setFailure(true);
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onAudioDownloadSuccess(IMessage msg) {
-        Log.i(TAG, "audio download success");
-    }
-    @Override
-    public void onAudioDownloadFail(IMessage msg) {
-        Log.i(TAG, "audio download fail");
-    }
-
-
 }
