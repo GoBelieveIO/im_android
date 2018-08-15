@@ -50,6 +50,11 @@ class Command{
     public static final int MSG_VOIP_CONTROL = 64;
 }
 
+class Flag {
+    public static final int MESSAGE_FLAG_TEXT = 1;
+    public static final int MESSAGE_FLAG_UNPERSISTENT = 2;
+    public static final int MESSAGE_FLAG_GROUP = 4;
+}
 
 class MessageInputing {
     public long sender;
@@ -77,6 +82,7 @@ public class Message {
     public static final int HEAD_SIZE = 8;
     public int cmd;
     public int seq;
+    public int flag;
     public Object body;
 
     public byte[] pack() {
@@ -86,7 +92,8 @@ public class Message {
         pos += 4;
         buf[pos++] = (byte)cmd;
         buf[pos++] = (byte)VERSION;
-        pos += 2;
+        buf[pos++] = (byte)flag;
+        pos += 1;
 
         if (cmd == Command.MSG_HEARTBEAT || cmd == Command.MSG_PING) {
             return Arrays.copyOf(buf, HEAD_SIZE);
@@ -238,6 +245,7 @@ public class Message {
         this.seq = BytePacket.readInt32(data, pos);
         pos += 4;
         cmd = data[pos];
+        flag = data[pos + 2];
         pos += 4;
         if (cmd == Command.MSG_PONG) {
             return true;
