@@ -3,11 +3,18 @@ package io.gobelieve.im.demo;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.beetle.bauhinia.MessageActivity;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.bauhinia.db.message.Audio;
+import com.beetle.bauhinia.db.message.Image;
+import com.beetle.bauhinia.db.message.Location;
+import com.beetle.bauhinia.db.message.MessageContent;
+import com.beetle.bauhinia.db.message.Text;
+import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
@@ -17,6 +24,8 @@ import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 import com.beetle.im.RoomMessage;
 import com.beetle.im.RoomMessageObserver;
+
+import java.util.List;
 
 public class RoomActivity extends MessageActivity implements RoomMessageObserver, IMServiceObserver {
 
@@ -85,16 +94,18 @@ public class RoomActivity extends MessageActivity implements RoomMessageObserver
         } else {
             disableSend();
         }
-        setSubtitle();
     }
 
 
 
-    void saveMessage(IMessage imsg) {
+    protected void saveMessage(IMessage imsg) {
         imsg.msgLocalID = msgLocalID++;
     }
 
-    boolean sendRoomMessage(IMessage imsg) {
+
+
+    @Override
+    protected boolean sendMessage(IMessage imsg) {
         RoomMessage rm = new RoomMessage();
         rm.sender = imsg.sender;
         rm.receiver = imsg.receiver;
@@ -103,24 +114,26 @@ public class RoomActivity extends MessageActivity implements RoomMessageObserver
         return im.sendRoomMessage(rm);
     }
 
-    protected void sendTextMessage(String text) {
-        if (text.length() == 0) {
-            return;
-        }
-
+    protected void sendTextMessage(String text, List<Long> at, List<String> atNames) {
         IMessage imsg = new IMessage();
         imsg.sender = this.currentUID;
         imsg.receiver = this.roomID;
-        imsg.setContent(IMessage.newText(text));
+        MessageContent content = Text.newText(text, at, atNames);
+        imsg.setContent(content);
         imsg.timestamp = now();
         imsg.isOutgoing = true;
         saveMessage(imsg);
-        boolean sended = sendRoomMessage(imsg);
-        if (sended) {
-            imsg.setAck(true);
-        } else {
+        loadUserName(imsg);
+
+        boolean r = sendMessage(imsg);
+        if (!r) {
             imsg.setFailure(true);
+        } else {
+            imsg.setAck(true);
         }
+
         insertMessage(imsg);
     }
+
+
 }

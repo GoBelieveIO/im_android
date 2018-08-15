@@ -1,5 +1,6 @@
 package io.gobelieve.im.demo;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -30,8 +31,6 @@ import org.json.JSONObject;
 
 import java.io.InputStream;
 
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
 
 /**
  * LoginActivity
@@ -101,11 +100,10 @@ public class LoginActivity extends FragmentActivity implements View.OnClickListe
                 return;
             }
 
-
             if (mLoginTask != null) {
                 return;
             }
-
+            final ProgressDialog dialog = ProgressDialog.show(this, null, "登录中...");
             mLoginTask = new AsyncTask<Void, Integer, String>() {
                 @Override
                 protected String doInBackground(Void... urls) {
@@ -113,6 +111,7 @@ public class LoginActivity extends FragmentActivity implements View.OnClickListe
                 }
                 @Override
                 protected void onPostExecute(String result) {
+                    dialog.dismiss();
                     mLoginTask = null;
                     if (result != null && result.length() > 0) {
                         //设置用户id,进入MainActivity

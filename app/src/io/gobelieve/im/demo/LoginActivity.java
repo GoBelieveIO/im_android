@@ -1,5 +1,6 @@
 package io.gobelieve.im.demo;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
@@ -181,6 +182,8 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                 return;
             }
 
+            final ProgressDialog dialog = ProgressDialog.show(this, null, "登录中...");
+
             mLoginTask = new AsyncTask<Void, Integer, String>() {
                 @Override
                 protected String doInBackground(Void... urls) {
@@ -188,6 +191,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                 }
                 @Override
                 protected void onPostExecute(String result) {
+                    dialog.dismiss();
                     mLoginTask = null;
                     if (result != null && result.length() > 0) {
                         //设置用户id,进入MainActivity
