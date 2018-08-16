@@ -61,7 +61,6 @@ public class IMService {
     private int port;
     private String token;
     private String deviceID;
-    private long appID;
 
     private long roomID;
 
@@ -183,8 +182,7 @@ public class IMService {
     public void setToken(String token) {
         this.token = token;
     }
-    //普通app不需要设置
-    public void setAppID(long appID) { this.appID = appID; }
+
     public void setDeviceID(String deviceID) {
         this.deviceID = deviceID;
     }
@@ -370,46 +368,6 @@ public class IMService {
 
         heartbeatTimer.setTimer(uptimeMillis(), HEARTBEAT*1000);
         heartbeatTimer.resume();
-    }
-
-    public boolean isPeerMessageSending(long peer, int msgLocalID) {
-        for(Map.Entry<Integer, IMMessage> entry : peerMessages.entrySet()) {
-            IMMessage m = entry.getValue();
-            if (m.receiver == peer && m.msgLocalID == msgLocalID) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean isGroupMessageSending(long groupID, int msgLocalID) {
-        for(Map.Entry<Integer, IMMessage> entry : groupMessages.entrySet()) {
-            IMMessage m = entry.getValue();
-            if (m.receiver == groupID && m.msgLocalID == msgLocalID) {
-                return true;
-            }
-        }
-        return false;
-    }
-    public boolean isCustomerMessageSending(long storeID, int msgLocalID) {
-        for(Map.Entry<Integer, CustomerMessage> entry : customerMessages.entrySet()) {
-            CustomerMessage m = entry.getValue();
-            if (m.storeID == storeID && m.msgLocalID == msgLocalID) {
-                return true;
-            }
-        }
-        return false;
-    }
-    public boolean isCustomerSupportMessageSending(long customerID, long customerAppID, int msgLocalID) {
-        for(Map.Entry<Integer, CustomerMessage> entry : customerMessages.entrySet()) {
-            CustomerMessage m = entry.getValue();
-            if (m.customerID == customerID &&
-                    m.customerAppID == customerAppID &&
-                    m.msgLocalID == msgLocalID) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public boolean sendPeerMessage(IMMessage im) {
