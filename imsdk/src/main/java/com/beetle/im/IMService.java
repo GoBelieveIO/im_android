@@ -504,17 +504,10 @@ public class IMService {
         msg.body = ctl;
         return sendMessage(msg);
     }
-
+    
     public boolean sendRoomMessage(RoomMessage rm) {
-        return sendRoomMessage(rm, false);
-    }
-
-    public boolean sendRoomMessage(RoomMessage rm, boolean nonpersistent) {
         Message msg = new Message();
         msg.cmd = Command.MSG_ROOM_IM;
-        if (nonpersistent) {
-            msg.flag = Flag.MESSAGE_FLAG_UNPERSISTENT;
-        }
         msg.body = rm;
         return sendMessage(msg);
     }
