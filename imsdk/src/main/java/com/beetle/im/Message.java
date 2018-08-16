@@ -56,10 +56,6 @@ class Flag {
     public static final int MESSAGE_FLAG_GROUP = 4;
 }
 
-class MessageInputing {
-    public long sender;
-    public long receiver;
-}
 
 class AuthenticationToken {
     public String token;
@@ -142,21 +138,6 @@ public class Message {
         } else if (cmd == Command.MSG_ACK) {
             BytePacket.writeInt32((Integer)body, buf, pos);
             return Arrays.copyOf(buf, HEAD_SIZE+4);
-        } else if (cmd == Command.MSG_INPUTTING) {
-            MessageInputing in = (MessageInputing)body;
-            BytePacket.writeInt64(in.sender, buf, pos);
-            pos += 8;
-            BytePacket.writeInt64(in.receiver, buf, pos);
-            return Arrays.copyOf(buf, HEAD_SIZE + 16);
-        } else if (cmd == Command.MSG_VOIP_CONTROL) {
-            VOIPControl ctl = (VOIPControl)body;
-            BytePacket.writeInt64(ctl.sender, buf, pos);
-            pos += 8;
-            BytePacket.writeInt64(ctl.receiver, buf, pos);
-            pos += 8;
-            System.arraycopy(ctl.content, 0, buf, pos, ctl.content.length);
-            pos += ctl.content.length;
-            return Arrays.copyOf(buf, HEAD_SIZE + 16 + ctl.content.length);
         } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
             CustomerMessage cs = (CustomerMessage) body;
             BytePacket.writeInt64(cs.customerAppID, buf, pos);
@@ -274,13 +255,6 @@ public class Message {
             int s = BytePacket.readInt32(data, pos);
             this.body = new Integer(s);
             return true;
-        } else if (cmd == Command.MSG_INPUTTING) {
-            MessageInputing inputing = new MessageInputing();
-            inputing.sender = BytePacket.readInt64(data, pos);
-            pos += 8;
-            inputing.receiver = BytePacket.readInt64(data, pos);
-            this.body = inputing;
-            return true;
         } else if (cmd == Command.MSG_GROUP_NOTIFICATION) {
             try {
                 this.body = new String(data, pos, data.length - HEAD_SIZE, "UTF-8");
@@ -295,15 +269,6 @@ public class Message {
             } catch (Exception e) {
                 return false;
             }
-        } else if (cmd == Command.MSG_VOIP_CONTROL) {
-            VOIPControl ctl = new VOIPControl();
-            ctl.sender = BytePacket.readInt64(data, pos);
-            pos += 8;
-            ctl.receiver = BytePacket.readInt64(data, pos);
-            pos += 8;
-            ctl.content = Arrays.copyOfRange(data, pos, data.length);
-            this.body = ctl;
-            return true;
         } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
             CustomerMessage cs = new CustomerMessage();
             cs.customerAppID = BytePacket.readInt64(data, pos);

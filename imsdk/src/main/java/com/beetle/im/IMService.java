@@ -92,7 +92,6 @@ public class IMService {
     ArrayList<PeerMessageObserver> peerObservers = new ArrayList<PeerMessageObserver>();
     ArrayList<SystemMessageObserver> systemMessageObservers = new ArrayList<SystemMessageObserver>();
     ArrayList<CustomerMessageObserver> customerServiceMessageObservers = new ArrayList<CustomerMessageObserver>();
-    ArrayList<VOIPObserver> voipObservers = new ArrayList<VOIPObserver>();
     ArrayList<RTMessageObserver> rtMessageObservers = new ArrayList<RTMessageObserver>();
     ArrayList<RoomMessageObserver> roomMessageObservers = new ArrayList<RoomMessageObserver>();
 
@@ -301,17 +300,6 @@ public class IMService {
         roomMessageObservers.remove(ob);
     }
 
-    public void pushVOIPObserver(VOIPObserver ob) {
-        if (voipObservers.contains(ob)) {
-            return;
-        }
-        voipObservers.add(ob);
-    }
-
-    public void popVOIPObserver(VOIPObserver ob) {
-        voipObservers.remove(ob);
-    }
-
     public void enterBackground() {
         Log.i(TAG, "im service enter background");
         this.isBackground = true;
@@ -498,13 +486,6 @@ public class IMService {
         return true;
     }
 
-    public boolean sendVOIPControl(VOIPControl ctl) {
-        Message msg = new Message();
-        msg.cmd = Command.MSG_VOIP_CONTROL;
-        msg.body = ctl;
-        return sendMessage(msg);
-    }
-    
     public boolean sendRoomMessage(RoomMessage rm) {
         Message msg = new Message();
         msg.cmd = Command.MSG_ROOM_IM;
@@ -899,17 +880,6 @@ public class IMService {
         }
     }
 
-    private void handleVOIPControl(Message msg) {
-        VOIPControl ctl = (VOIPControl)msg.body;
-
-        int count = voipObservers.size();
-        if (count == 0) {
-            return;
-        }
-        VOIPObserver ob = voipObservers.get(count-1);
-        ob.onVOIPControl(ctl);
-    }
-
     private void handleRoomMessage(Message msg) {
         RoomMessage rm = (RoomMessage)msg.body;
         for (int i= 0; i < roomMessageObservers.size(); i++) {
@@ -1048,8 +1018,6 @@ public class IMService {
             handleSystemMessage(msg);
         } else if (msg.cmd == Command.MSG_RT) {
             handleRTMessage(msg);
-        } else if (msg.cmd == Command.MSG_VOIP_CONTROL) {
-            handleVOIPControl(msg);
         } else if (msg.cmd == Command.MSG_CUSTOMER) {
             handleCustomerMessage(msg);
         } else if (msg.cmd == Command.MSG_CUSTOMER_SUPPORT) {
