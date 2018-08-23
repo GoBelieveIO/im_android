@@ -1,12 +1,6 @@
 package com.beetle.im;
 
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.util.Log;
 import com.beetle.AsyncTCP;
@@ -21,7 +15,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
 import static android.os.SystemClock.uptimeMillis;
 
 /**
@@ -125,57 +118,15 @@ public class IMService {
         this.port = PORT;
     }
 
-    private boolean isOnNet(Context context) {
-        if (null == context) {
-            Log.e("", "context is null");
-            return false;
-        }
-        boolean isOnNet = false;
-        ConnectivityManager connectivityManager = (ConnectivityManager) context
-                .getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
-        if (null != activeNetInfo) {
-            isOnNet = activeNetInfo.isConnected();
-            Log.i(TAG, "active net info:" + activeNetInfo);
-        }
-        return isOnNet;
-    }
 
-    class NetworkReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive (Context context, Intent intent) {
-            if (isOnNet(context)) {
-                Log.i(TAG, "connectivity status:on");
-                IMService.this.reachable = true;
-                if (!IMService.this.stopped && !IMService.this.isBackground) {
-                    //todo 优化 可以判断当前连接的socket的localip和当前网络的ip是一样的情况下
-                    //就没有必要重连socket
-                    Log.i(TAG, "reconnect im service");
-                    IMService.this.suspend();
-                    IMService.this.resume();
-                }
-            } else {
-                Log.i(TAG, "connectivity status:off");
-                IMService.this.reachable = false;
-                if (!IMService.this.stopped) {
-                    IMService.this.suspend();
-                }
-            }
-        }
-    };
-
-    public void registerConnectivityChangeReceiver(Context context) {
-        NetworkReceiver  receiver = new NetworkReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
-        context.registerReceiver(receiver, filter);
-        this.reachable = isOnNet(context);
-    }
 
     public ConnectState getConnectState() {
         return connectState;
     }
 
+    public void setReachable(boolean reachable) {
+        this.reachable = reachable;
+    }
     public void setHost(String host) {
         this.host = host;
     }
@@ -311,6 +262,25 @@ public class IMService {
         this.isBackground = false;
         if (!this.stopped) {
             resume();
+        }
+    }
+
+    public void onNetworkConnectivityChange(boolean reachable) {
+        this.reachable = reachable;
+        Log.i(TAG, "connectivity status:" + reachable);
+        if (reachable) {
+            if (!IMService.this.stopped && !IMService.this.isBackground) {
+                //todo 优化 可以判断当前连接的socket的localip和当前网络的ip是一样的情况下
+                //就没有必要重连socket
+                Log.i(TAG, "reconnect im service");
+                IMService.this.suspend();
+                IMService.this.resume();
+            }
+        } else {
+            IMService.this.reachable = false;
+            if (!IMService.this.stopped) {
+                IMService.this.suspend();
+            }
         }
     }
 
