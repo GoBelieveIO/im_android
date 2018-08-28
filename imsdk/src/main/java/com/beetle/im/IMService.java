@@ -550,6 +550,7 @@ public class IMService {
         Log.i(TAG, "tcp connected");
 
         int now = now();
+        this.data = null;
         this.connectFailCount = 0;
         this.connectState = ConnectState.STATE_CONNECTED;
         this.publishConnectState();
