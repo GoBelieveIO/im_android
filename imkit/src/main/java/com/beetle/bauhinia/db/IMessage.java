@@ -169,6 +169,12 @@ public class IMessage implements Cloneable {
         return (flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0;
     }
 
+    public void setFlags(int f) {
+        int old = flags;
+        flags = f;
+        changeSupport.firePropertyChange("flags", old, flags);
+    }
+
     public void setFailure(boolean f) {
         boolean old = isFailure();
         if (f) {

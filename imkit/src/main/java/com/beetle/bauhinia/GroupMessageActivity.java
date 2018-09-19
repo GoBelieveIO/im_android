@@ -160,8 +160,15 @@ public class GroupMessageActivity extends MessageActivity implements
             imsg.flags |= MessageFlag.MESSAGE_FLAG_ACK;
         }
 
-        if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
+        IMessage mm = findMessage(imsg.getUUID());
+        if (mm != null) {
             Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            if (imsg.isOutgoing) {
+                int flags = imsg.flags;
+                flags = flags & ~MessageFlag.MESSAGE_FLAG_FAILURE;
+                flags = flags | MessageFlag.MESSAGE_FLAG_ACK;
+                mm.setFlags(flags);
+            }
             return;
         }
 

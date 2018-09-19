@@ -783,6 +783,9 @@ public class MessageBaseActivity extends BaseActivity {
     }
 
     protected IMessage findMessage(String uuid) {
+        if (TextUtils.isEmpty(uuid)) {
+            return null;
+        }
         for (IMessage imsg : messages) {
             if (imsg.getUUID().equals(uuid)) {
                 return imsg;

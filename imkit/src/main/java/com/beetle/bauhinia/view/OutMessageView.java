@@ -61,7 +61,8 @@ public class OutMessageView extends MessageRowView {
     public void propertyChange(PropertyChangeEvent event) {
         if (event.getPropertyName().equals("failure") ||
                 event.getPropertyName().equals("ack") ||
-                event.getPropertyName().equals("uploading")) {
+                event.getPropertyName().equals("uploading")||
+                event.getPropertyName().equals("flags")) {
             if (this.message.isFailure()) {
                 ImageView flagView = (ImageView) findViewById(R.id.flag);
                 flagView.setVisibility(View.VISIBLE);
