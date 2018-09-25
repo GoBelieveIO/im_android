@@ -1,8 +1,14 @@
 package io.gobelieve.im.demo;
 
 import android.app.Application;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -31,7 +37,11 @@ import static android.database.sqlite.SQLiteDatabase.OPEN_READWRITE;
  * Description:
  */
 public class IMDemoApplication extends Application {
+    private static final String TAG = "gobelieve";
+
     private static Application sApplication;
+
+
 
     @Override
     public void onCreate() {
@@ -50,33 +60,12 @@ public class IMDemoApplication extends Application {
         mIMService.setDeviceID(androidID);
 
         //监听网路状态变更
-        mIMService.registerConnectivityChangeReceiver(getApplicationContext());
+        registerConnectivityChangeReceiver(getApplicationContext());
+        IMService.getInstance().setReachable(isOnNet(getApplicationContext()));
 
         //可以在登录成功后，设置每个用户不同的消息存储目录
         FileCache fc = FileCache.getInstance();
         fc.setDir(this.getDir("cache", MODE_PRIVATE));
-
-        //sqlite
-//        try {
-//            File p = this.getDir("db", MODE_PRIVATE);
-//            File f = new File(p, "gobelieve.db");
-//            String path = f.getPath();
-//            if (!f.exists()) {
-//                copyDataBase("gobelieve.db", path);
-//            }
-//            SQLiteDatabase db = SQLiteDatabase.openDatabase(path, null, OPEN_READWRITE, null);
-//            PeerMessageDB.getInstance().setDb(db);
-//            GroupMessageDB.getInstance().setDb(db);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-
-        //file
-        PeerMessageDB db = PeerMessageDB.getInstance();
-        db.setDir(this.getDir("peer", MODE_PRIVATE));
-        GroupMessageDB groupDB = GroupMessageDB.getInstance();
-        groupDB.setDir(this.getDir("group", MODE_PRIVATE));
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
@@ -84,6 +73,39 @@ public class IMDemoApplication extends Application {
         //预先做dns查询
         refreshHost();
     }
+
+
+    private boolean isOnNet(Context context) {
+        if (null == context) {
+            Log.e("", "context is null");
+            return false;
+        }
+        boolean isOnNet = false;
+        ConnectivityManager connectivityManager = (ConnectivityManager) context
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
+        if (null != activeNetInfo) {
+            isOnNet = activeNetInfo.isConnected();
+            Log.i(TAG, "active net info:" + activeNetInfo);
+        }
+        return isOnNet;
+    }
+
+    class NetworkReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive (Context context, Intent intent) {
+            boolean reachable = isOnNet(context);
+            IMService.getInstance().onNetworkConnectivityChange(reachable);
+        }
+    };
+
+    public void registerConnectivityChangeReceiver(Context context) {
+        NetworkReceiver  receiver = new NetworkReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
+        context.registerReceiver(receiver, filter);
+    }
+
 
     private void copyDataBase(String asset, String path) throws IOException {
         InputStream mInput = this.getAssets().open(asset);

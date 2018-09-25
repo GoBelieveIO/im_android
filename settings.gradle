@@ -1,1 +1,1 @@
-include ':androidtranscoder', ':asynctcp', ':imsdk', ':imkit',  ':app', ':room_demo'
+include ':androidtranscoder', ':asynctcp', ':imsdk', ':imkit',  ':app', ':room_demo', ':group_demo'

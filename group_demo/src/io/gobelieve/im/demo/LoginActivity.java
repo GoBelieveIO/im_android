@@ -1,6 +1,7 @@
 package io.gobelieve.im.demo;
 
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,9 +11,13 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.beetle.bauhinia.api.IMHttpAPI;
-import com.beetle.bauhinia.api.body.PostDeviceToken;
+import com.beetle.bauhinia.db.CustomerMessageDB;
+import com.beetle.bauhinia.db.EPeerMessageDB;
+import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.GroupMessageHandler;
+import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageHandler;
+import com.beetle.bauhinia.db.SyncKeyHandler;
 import com.beetle.im.IMService;
 
 import org.apache.http.Header;
@@ -26,16 +31,21 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
+import io.gobelieve.im.demo.model.MessageDatabaseHelper;
+
 
 /**
  * LoginActivity
  * Description: 登录页面,给用户指定消息发送方Id
  */
 public class LoginActivity extends BaseActivity implements View.OnClickListener {
+    private final String TAG = "demo";
+
     private EditText mEtAccount;
     private EditText mEtTargetAccount;
 
@@ -53,14 +63,49 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         btnLogin.setOnClickListener(this);
     }
 
+    void openDB(long currentUID) {
+        File p = this.getDir("db", MODE_PRIVATE);
+        File f = new File(p, String.format("gobelieve_%d.db", currentUID));
+        String path = f.getPath();
+        MessageDatabaseHelper dh = MessageDatabaseHelper.getInstance();
+        dh.open(this.getApplicationContext(), path);
+        SQLiteDatabase db = dh.getDatabase();
+        Log.i(TAG, "db version:" + db.getVersion());
+        PeerMessageDB.getInstance().setDb(db);
+        EPeerMessageDB.getInstance().setDb(db);
+        GroupMessageDB.getInstance().setDb(db);
+        CustomerMessageDB.getInstance().setDb(db);
+    }
+
     private void go2Chat(long sender, long receiver, String token) {
         IMService.getInstance().stop();
+        PeerMessageDB.getInstance().setDb(null);
+        EPeerMessageDB.getInstance().setDb(null);
+        GroupMessageDB.getInstance().setDb(null);
+        CustomerMessageDB.getInstance().setDb(null);
+
+
+        openDB(sender);
 
         PeerMessageHandler.getInstance().setUID(sender);
         GroupMessageHandler.getInstance().setUID(sender);
-
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);
+
+        SyncKeyHandler handler = new SyncKeyHandler(this.getApplicationContext(), "sync_key");
+        handler.load();
+
+        HashMap<Long, Long> groupSyncKeys = handler.getSuperGroupSyncKeys();
+        IMService.getInstance().clearSuperGroupSyncKeys();
+        for (Map.Entry<Long, Long> e : groupSyncKeys.entrySet()) {
+            IMService.getInstance().addSuperGroupSyncKey(e.getKey(), e.getValue());
+            Log.i(TAG, "group id:" + e.getKey() + "sync key:" + e.getValue());
+        }
+        IMService.getInstance().setSyncKey(handler.getSyncKey());
+        Log.i(TAG, "sync key:" + handler.getSyncKey());
+        IMService.getInstance().setSyncKeyHandler(handler);
+
+
         IMService.getInstance().start();
 
 

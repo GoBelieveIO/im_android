@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 24
+    compileSdkVersion 25
     buildToolsVersion '27.0.3'
     useLibrary 'org.apache.http.legacy'
 
 
     defaultConfig {
-        minSdkVersion 14
+        minSdkVersion 18
         targetSdkVersion 24
         versionCode 1020
         versionName "1.0.2"
@@ -26,9 +26,10 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'com.android.support:appcompat-v7:24.2.0'
+    implementation 'com.android.support:support-v4:25.0.0'
+    implementation 'com.android.support:appcompat-v7:25.0.0'
     implementation project(':imkit')
     implementation project(':imsdk')
     implementation project(':asynctcp')
