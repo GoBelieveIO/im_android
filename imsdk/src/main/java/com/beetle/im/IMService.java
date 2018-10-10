@@ -806,6 +806,8 @@ public class IMService {
     private void handleIMMessage(Message msg) {
         IMMessage im = (IMMessage)msg.body;
         Log.d(TAG, "im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
+
+        im.isSelf = (msg.flag & Flag.MESSAGE_FLAG_SELF) != 0;
         if (peerMessageHandler != null && !peerMessageHandler.handleMessage(im)) {
             Log.i(TAG, "handle im message fail");
             return;
@@ -825,6 +827,7 @@ public class IMService {
         IMMessage im = (IMMessage)msg.body;
         Log.d(TAG, "group im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
 
+        im.isSelf = (msg.flag & Flag.MESSAGE_FLAG_SELF) != 0;
         receivedGroupMessages.add(im);
 
         Message ack = new Message();
@@ -903,6 +906,8 @@ public class IMService {
 
     private void handleCustomerMessage(Message msg) {
         CustomerMessage cs = (CustomerMessage)msg.body;
+
+        cs.isSelf = (msg.flag & Flag.MESSAGE_FLAG_SELF) != 0;
         if (customerMessageHandler != null && !customerMessageHandler.handleMessage(cs)) {
             Log.i(TAG, "handle customer service message fail");
             return;

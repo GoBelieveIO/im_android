@@ -198,6 +198,9 @@ public class PeerMessageActivity extends MessageActivity implements
             }
             return;
         }
+        if (msg.isSelf) {
+            return;
+        }
 
         loadUserName(imsg);
         downloadMessageContent(imsg);
@@ -237,7 +240,6 @@ public class PeerMessageActivity extends MessageActivity implements
             imsg.flags |= MessageFlag.MESSAGE_FLAG_ACK;
         }
 
-
         if (imsg.getType() == MessageContent.MessageType.MESSAGE_P2P_SESSION) {
             handleP2PSession(imsg);
             return;
@@ -252,6 +254,10 @@ public class PeerMessageActivity extends MessageActivity implements
                 flags = flags | MessageFlag.MESSAGE_FLAG_ACK;
                 mm.setFlags(flags);
             }
+            return;
+        }
+
+        if (msg.isSelf) {
             return;
         }
 

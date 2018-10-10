@@ -222,6 +222,13 @@ public class SQLGroupMessageDB  {
         return true;
     }
 
+    public boolean updateFlag(int msgLocalID, int flags) {
+        ContentValues cv = new ContentValues();
+        cv.put("flags", flags);
+        db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
+        return true;
+    }
+
     public boolean removeMessage(int msgLocalID, long gid) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
@@ -306,9 +313,23 @@ public class SQLGroupMessageDB  {
         msg.setContent(content);
         return msg;
     }
+
     private IMessage getMessage(long id) {
-        String sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE id=?";
-        Cursor cursor = db.rawQuery(sql, new String[]{""+id});
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "group_id", "timestamp", "flags", "content"},
+                "uuid = ?", new String[]{""+id}, null, null, null);
+
+        IMessage msg = null;
+        if (cursor.moveToNext()) {
+            msg = getMessage(cursor);
+        }
+        cursor.close();
+        return msg;
+    }
+
+    public IMessage getMessage(String uuid) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "group_id", "timestamp", "flags", "content"},
+                "uuid = ?", new String[]{uuid}, null, null, null);
+
 
         IMessage msg = null;
         if (cursor.moveToNext()) {

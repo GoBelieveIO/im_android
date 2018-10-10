@@ -12,5 +12,8 @@ public class IMMessage {
     public long receiver;
     public int timestamp;
     public String content;
+
+    //是否由当前用户在当前设备所发出
+    public boolean isSelf;
 }
 

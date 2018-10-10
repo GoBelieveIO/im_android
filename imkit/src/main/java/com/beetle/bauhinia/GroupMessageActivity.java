@@ -179,6 +179,9 @@ public class GroupMessageActivity extends MessageActivity implements
             }
             return;
         }
+        if (msg.isSelf) {
+            return;
+        }
 
         loadUserName(imsg);
 

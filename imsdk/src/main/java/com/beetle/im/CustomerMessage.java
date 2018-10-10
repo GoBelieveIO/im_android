@@ -13,4 +13,7 @@ public class CustomerMessage {
     public long sellerID;
     public int timestamp;
     public String content;
+
+    //消息由本设备发出，则不需要重新入库，用于纠正消息标志位
+    public boolean isSelf;
 }

@@ -179,6 +179,12 @@ public class SQLCustomerMessageDB {
         return true;
     }
 
+    public boolean updateFlag(int msgLocalID, int flags) {
+        ContentValues cv = new ContentValues();
+        cv.put("flags", flags);
+        db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
+        return true;
+    }
 
     public boolean removeMessage(int msgLocalID, long storeID) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
@@ -283,6 +289,17 @@ public class SQLCustomerMessageDB {
         int msgLocalId = cursor.getInt(cursor.getColumnIndex("id"));
         cursor.close();
         return msgLocalId;
+    }
+
+    public ICustomerMessage getMessage(String uuid) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "customer_id", "customer_appid", "store_id", "seller_id", "timestamp", "flags", "is_support", "content"},
+                "uuid = ?", new String[]{uuid}, null, null, null);
+        ICustomerMessage msg = null;
+        if (cursor.moveToNext()) {
+            msg = getMessage(cursor);
+        }
+        cursor.close();
+        return msg;
     }
 
     public ICustomerMessage getLastMessage(long storeID) {

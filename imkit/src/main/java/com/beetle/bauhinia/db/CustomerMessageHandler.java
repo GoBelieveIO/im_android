@@ -1,4 +1,6 @@
 package com.beetle.bauhinia.db;
+import android.text.TextUtils;
+
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.message.MessageContent;
@@ -31,7 +33,22 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
         imsg.isSupport = true;
         imsg.setContent(msg.content);
 
-        if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+        if (msg.isSelf) {
+            //纠正消息标志位
+            if (!TextUtils.isEmpty(imsg.getUUID())) {
+                IMessage m = db.getMessage(imsg.getUUID());
+                if (m == null) {
+                    return true;
+                }
+
+                if ((m.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0 || (m.flags & MessageFlag.MESSAGE_FLAG_ACK) == 0) {
+                    m.flags = m.flags & (~MessageFlag.MESSAGE_FLAG_FAILURE);
+                    m.flags = m.flags | MessageFlag.MESSAGE_FLAG_ACK;
+                    db.updateFlag(m.msgLocalID, m.flags);
+                }
+            }
+            return true;
+        } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;
             int msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
@@ -61,17 +78,20 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
         imsg.isSupport = false;
         imsg.setContent(msg.content);
 
+
         if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;
             int msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
                 db.removeMessage(msgLocalID, msg.storeID);
             }
-        }
+            return true;
+        } else {
 
-        boolean r = db.insertMessage(imsg, msg.storeID);
-        msg.msgLocalID = imsg.msgLocalID;
-        return r;
+            boolean r = db.insertMessage(imsg, msg.storeID);
+            msg.msgLocalID = imsg.msgLocalID;
+            return r;
+        }
     }
 
     @Override

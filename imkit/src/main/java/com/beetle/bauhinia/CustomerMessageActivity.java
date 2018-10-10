@@ -138,6 +138,9 @@ public class CustomerMessageActivity extends MessageActivity
             Log.i(TAG, "receive repeat message:" + imsg.getUUID());
             return;
         }
+        if (msg.isSelf) {
+            return;
+        }
 
         loadUserName(imsg);
         downloadMessageContent(imsg);
@@ -172,6 +175,9 @@ public class CustomerMessageActivity extends MessageActivity
 
         if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
             Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            return;
+        }
+        if (msg.isSelf) {
             return;
         }
 

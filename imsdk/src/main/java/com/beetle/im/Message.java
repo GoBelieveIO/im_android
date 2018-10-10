@@ -54,6 +54,7 @@ class Flag {
     public static final int MESSAGE_FLAG_TEXT = 1;
     public static final int MESSAGE_FLAG_UNPERSISTENT = 2;
     public static final int MESSAGE_FLAG_GROUP = 4;
+    public static final int MESSAGE_FLAG_SELF = 8;
 }
 
 
