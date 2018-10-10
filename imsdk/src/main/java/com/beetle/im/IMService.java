@@ -1,7 +1,16 @@
 package com.beetle.im;
 
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.PowerManager;
 import android.util.Log;
 import com.beetle.AsyncTCP;
 import com.beetle.TCPConnectCallback;
@@ -11,6 +20,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,8 +42,10 @@ public class IMService {
         STATE_CONNECTFAIL,
     }
 
-    private final String TAG = "imservice";
+    private static final String TAG = "imservice";
     private final int HEARTBEAT = 60*3;
+    private static final String HEATBEAT_ACTION = "io.gobelieve.HEARTBEAT";
+
     private AsyncTCP tcp;
     private boolean stopped = true;
     private boolean suspended = true;
@@ -43,6 +55,7 @@ public class IMService {
     private Timer connectTimer;
     private Timer heartbeatTimer;
     private int pingTimestamp;
+    private int connectTimestamp;//发起socket连接的时间戳
     private int connectFailCount = 0;
     private int seq = 0;
     private ConnectState connectState = ConnectState.STATE_UNCONNECTED;
@@ -54,6 +67,10 @@ public class IMService {
     private int port;
     private String token;
     private String deviceID;
+
+    private boolean keepAlive;//应用在后台，保持socket连接
+    private PendingIntent alarmIntent;
+    private PowerManager.WakeLock wakeLock;
 
     private long roomID;
 
@@ -136,6 +153,14 @@ public class IMService {
 
     public void setDeviceID(String deviceID) {
         this.deviceID = deviceID;
+    }
+
+    public void setKeepAlive(boolean keepAlive) {
+        this.keepAlive = keepAlive;
+    }
+
+    public void setWakeLock(PowerManager.WakeLock wl) {
+        this.wakeLock = wl;
     }
 
     public void setSyncKey(long syncKey) {
@@ -265,22 +290,123 @@ public class IMService {
         }
     }
 
-    public void onNetworkConnectivityChange(boolean reachable) {
-        this.reachable = reachable;
-        Log.i(TAG, "connectivity status:" + reachable);
-        if (reachable) {
-            if (!IMService.this.stopped && !IMService.this.isBackground) {
-                //todo 优化 可以判断当前连接的socket的localip和当前网络的ip是一样的情况下
-                //就没有必要重连socket
-                Log.i(TAG, "reconnect im service");
-                IMService.this.suspend();
-                IMService.this.resume();
+    private static boolean isOnNet(Context context) {
+        if (null == context) {
+            Log.e("", "context is null");
+            return false;
+        }
+        boolean isOnNet = false;
+        ConnectivityManager connectivityManager = (ConnectivityManager) context
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
+        if (null != activeNetInfo) {
+            isOnNet = activeNetInfo.isConnected();
+            Log.i(TAG, "active net info:" + activeNetInfo);
+        }
+        return isOnNet;
+    }
+
+    static class NetworkReceiver extends BroadcastReceiver {
+        private final String TAG = "imservice";
+
+        @Override
+        public void onReceive (Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.i(TAG, "broadcast receive action:" + action);
+            if (action.equals("android.net.conn.CONNECTIVITY_CHANGE")) {
+                if (isOnNet(context)) {
+                    Log.i(TAG, "connectivity status:on");
+                    IMService.im.reachable = true;
+                    if (!IMService.im.stopped && !IMService.im.isBackground) {
+                        //todo 优化 可以判断当前连接的socket的localip和当前网络的ip是一样的情况下
+                        //就没有必要重连socket
+                        Log.i(TAG, "reconnect im service");
+                        IMService.im.suspend();
+                        IMService.im.resume();
+                    }
+                } else {
+                    Log.i(TAG, "connectivity status:off");
+                    IMService.im.reachable = false;
+                    if (!IMService.im.stopped) {
+                        IMService.im.suspend();
+                    }
+                }
+            } else if (action.equals(IMService.HEATBEAT_ACTION)) {
+                if (!IMService.im.keepAlive) {
+                    Log.w(TAG, "not keepalive, dummy alarm heatbeat action");
+                    return;
+                }
+
+                if (IMService.im.wakeLock != null) {
+                    IMService.im.wakeLock.acquire(1000);
+                }
+
+                IMService.ConnectState state = IMService.im.getConnectState();
+                Log.i(TAG, "im state:" + state);
+                if (state == IMService.ConnectState.STATE_CONNECTFAIL || state == IMService.ConnectState.STATE_UNCONNECTED) {
+                    Log.i(TAG, "connect im service");
+                    if (IMService.im.isBackground) {
+                        im.connect();
+                    }
+                } else if (state == IMService.ConnectState.STATE_CONNECTED) {
+                    Log.i(TAG, "send heartbeat");
+                    if (IMService.im.isBackground) {
+                        im.sendHeartbeat();
+                    }
+                } else if (state == IMService.ConnectState.STATE_CONNECTING) {
+                    int t = IMService.im.connectTimestamp;
+                    int n = now();
+                    //90s timeout
+                    if (n - t > 90) {
+                        Log.i(TAG, "im service connect timeout, reconnect");
+                        im.close();
+                        im.connect();
+                    }
+                }
             }
-        } else {
-            IMService.this.reachable = false;
-            if (!IMService.this.stopped) {
-                IMService.this.suspend();
-            }
+        }
+    };
+
+    public void registerConnectivityChangeReceiver(Context context) {
+        NetworkReceiver  receiver = new NetworkReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
+        filter.addAction(HEATBEAT_ACTION);
+        context.registerReceiver(receiver, filter);
+        this.reachable = isOnNet(context);
+    }
+
+    //设置了keepalive之后需要创建系统级的定时器
+    public void startAlarm(Context context) {
+        if (!keepAlive) {
+            Log.w(TAG, "keepalive false, can't start alarm");
+            return;
+        }
+
+        Log.i(TAG, "start alarm");
+        Context appContext = context;
+        final int ALARM_INTERVAL = HEARTBEAT*1000;//3 * 60 * 1000;
+        AlarmManager alarmMgr;
+        PendingIntent alarmIntent;
+        alarmMgr = (AlarmManager) appContext.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent();
+        intent.setAction(HEATBEAT_ACTION);
+        intent.setPackage(context.getPackageName());
+        alarmIntent = PendingIntent.getBroadcast(appContext, 999, intent, 0);
+        Calendar calendar = Calendar.getInstance();
+
+        alarmMgr.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+                ALARM_INTERVAL, alarmIntent);
+
+        this.alarmIntent = alarmIntent;
+    }
+
+    public void stopAlarm(Context context) {
+        if (alarmIntent != null) {
+            Log.i(TAG, "stop alarm");
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            alarmManager.cancel(alarmIntent);
+            alarmIntent = null;
         }
     }
 
@@ -603,6 +729,7 @@ public class IMService {
         }
 
         this.pingTimestamp = 0;
+        this.connectTimestamp = now();
         this.connectState = ConnectState.STATE_CONNECTING;
         IMService.this.publishConnectState();
         this.tcp = new AsyncTCP();
