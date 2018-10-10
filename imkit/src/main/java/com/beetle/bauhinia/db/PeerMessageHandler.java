@@ -24,6 +24,21 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
         this.uid = uid;
     }
 
+    private void repaireFailureMessage(String uuid) {
+        PeerMessageDB db = PeerMessageDB.getInstance();
+        if (!TextUtils.isEmpty(uuid)) {
+            IMessage m = db.getMessage(uuid);
+            if (m == null) {
+                return;
+            }
+
+            if ((m.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0 || (m.flags & MessageFlag.MESSAGE_FLAG_ACK) == 0) {
+                m.flags = m.flags & (~MessageFlag.MESSAGE_FLAG_FAILURE);
+                m.flags = m.flags | MessageFlag.MESSAGE_FLAG_ACK;
+                db.updateFlag(m.msgLocalID, m.flags);
+            }
+        }
+    }
     public boolean handleMessage(IMMessage msg) {
         IMessage imsg = new IMessage();
         imsg.timestamp = msg.timestamp;
@@ -39,23 +54,11 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
 
         long uid = this.uid == msg.sender ? msg.receiver : msg.sender;
 
-
         PeerMessageDB db = PeerMessageDB.getInstance();
         if (msg.isSelf) {
             assert (msg.sender == uid);
             //消息由本设备发出，则不需要重新入库，用于纠正消息标志位
-            if (!TextUtils.isEmpty(imsg.getUUID())) {
-                IMessage m = db.getMessage(imsg.getUUID());
-                if (m == null) {
-                    return true;
-                }
-
-                if ((m.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0 || (m.flags & MessageFlag.MESSAGE_FLAG_ACK) == 0) {
-                    m.flags = m.flags & (~MessageFlag.MESSAGE_FLAG_FAILURE);
-                    m.flags = m.flags | MessageFlag.MESSAGE_FLAG_ACK;
-                    db.updateFlag(m.msgLocalID, m.flags);
-                }
-            }
+            repaireFailureMessage(imsg.getUUID());
             return true;
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;

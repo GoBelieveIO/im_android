@@ -18,6 +18,22 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
         return instance;
     }
 
+    private void repairFailureMessage(String uuid) {
+        //纠正消息标志位
+        CustomerMessageDB db = CustomerMessageDB.getInstance();
+        if (!TextUtils.isEmpty(uuid)) {
+            IMessage m = db.getMessage(uuid);
+            if (m == null) {
+                return;
+            }
+
+            if ((m.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0 || (m.flags & MessageFlag.MESSAGE_FLAG_ACK) == 0) {
+                m.flags = m.flags & (~MessageFlag.MESSAGE_FLAG_FAILURE);
+                m.flags = m.flags | MessageFlag.MESSAGE_FLAG_ACK;
+                db.updateFlag(m.msgLocalID, m.flags);
+            }
+        }
+    }
     @Override
     public boolean handleCustomerSupportMessage(CustomerMessage msg) {
         CustomerMessageDB db = CustomerMessageDB.getInstance();
@@ -35,18 +51,7 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
 
         if (msg.isSelf) {
             //纠正消息标志位
-            if (!TextUtils.isEmpty(imsg.getUUID())) {
-                IMessage m = db.getMessage(imsg.getUUID());
-                if (m == null) {
-                    return true;
-                }
-
-                if ((m.flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0 || (m.flags & MessageFlag.MESSAGE_FLAG_ACK) == 0) {
-                    m.flags = m.flags & (~MessageFlag.MESSAGE_FLAG_FAILURE);
-                    m.flags = m.flags | MessageFlag.MESSAGE_FLAG_ACK;
-                    db.updateFlag(m.msgLocalID, m.flags);
-                }
-            }
+            repairFailureMessage(imsg.getUUID());
             return true;
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;
@@ -79,7 +84,10 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
         imsg.setContent(msg.content);
 
 
-        if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+        if (msg.isSelf) {
+            repairFailureMessage(imsg.getUUID());
+            return true;
+        } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;
             int msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
