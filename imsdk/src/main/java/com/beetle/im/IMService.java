@@ -24,6 +24,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import static android.os.SystemClock.uptimeMillis;
 
@@ -107,6 +108,8 @@ public class IMService {
     HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
     HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
     HashMap<Integer, CustomerMessage> customerMessages = new HashMap<Integer, CustomerMessage>();
+
+    ArrayList<IMMessage> receivedGroupMessages = new ArrayList<IMMessage>();
 
     private byte[] data;
 
@@ -578,6 +581,11 @@ public class IMService {
     }
 
     private void close() {
+        if (receivedGroupMessages.size() > 0) {
+            Log.i(TAG, "socket closed, received group messages:" + receivedGroupMessages);
+            receivedGroupMessages.clear();
+        }
+
         Iterator iter = peerMessages.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
@@ -817,13 +825,8 @@ public class IMService {
         IMMessage im = (IMMessage)msg.body;
         Log.d(TAG, "group im message sender:" + im.sender + " receiver:" + im.receiver + " content:" + im.content);
 
+        receivedGroupMessages.add(im);
 
-        if (groupMessageHandler != null && !groupMessageHandler.handleMessage(im)) {
-            Log.i(TAG, "handle im message fail");
-            return;
-        }
-
-        publishGroupMessage(im);
         Message ack = new Message();
         ack.cmd = Command.MSG_ACK;
         ack.body = new Integer(msg.seq);
@@ -968,8 +971,19 @@ public class IMService {
 
     private void handleSyncEnd(Message msg) {
         Log.i(TAG, "sync end...:" + msg.body);
+
+        if (receivedGroupMessages.size() > 0) {
+            if (groupMessageHandler != null && !groupMessageHandler.handleMessages(receivedGroupMessages)) {
+                Log.i(TAG, "handle group messages fail");
+                return;
+            }
+            publishGroupMessages(receivedGroupMessages);
+            receivedGroupMessages.clear();
+        }
+
+
         Long newSyncKey = (Long)msg.body;
-        if (newSyncKey > this.syncKey) {
+        if (newSyncKey != this.syncKey) {
             this.syncKey = newSyncKey;
             if (this.syncKeyHandler != null) {
                 this.syncKeyHandler.saveSyncKey(this.syncKey);
@@ -1024,6 +1038,15 @@ public class IMService {
         GroupSyncKey key = (GroupSyncKey)msg.body;
         Log.i(TAG, "sync group end...:" + key.groupID + " " + key.syncKey);
 
+        if (receivedGroupMessages.size() > 0) {
+            if (groupMessageHandler != null && !groupMessageHandler.handleMessages(receivedGroupMessages)) {
+                Log.i(TAG, "handle group messages fail");
+                return;
+            }
+            publishGroupMessages(receivedGroupMessages);
+            receivedGroupMessages.clear();
+        }
+
         GroupSync s = null;
         if (this.groupSyncKeys.containsKey(key.groupID)) {
             s = this.groupSyncKeys.get(key.groupID);
@@ -1032,7 +1055,7 @@ public class IMService {
             return;
         }
 
-        if (key.syncKey > s.syncKey) {
+        if (key.syncKey != s.syncKey) {
             s.syncKey = key.syncKey;
             if (this.syncKeyHandler != null) {
                 this.syncKeyHandler.saveGroupSyncKey(key.groupID, key.syncKey);
@@ -1237,10 +1260,10 @@ public class IMService {
         }
     }
 
-    private void publishGroupMessage(IMMessage msg) {
+    private void publishGroupMessages(List<IMMessage> msgs) {
         for (int i = 0; i < groupObservers.size(); i++ ) {
             GroupMessageObserver ob = groupObservers.get(i);
-            ob.onGroupMessage(msg);
+            ob.onGroupMessages(msgs);
         }
     }
 

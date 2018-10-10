@@ -8,7 +8,9 @@ import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.im.IMMessage;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by houxh on 15/3/21.
@@ -35,34 +37,49 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         this.uid = uid;
     }
 
-    public boolean handleMessage(IMMessage msg) {
+    @Override
+    public boolean handleMessages(List<IMMessage> msgs) {
         GroupMessageDB db = GroupMessageDB.getInstance();
-        IMessage imsg = new IMessage();
-        imsg.sender = msg.sender;
-        imsg.receiver = msg.receiver;
-        imsg.timestamp = msg.timestamp;
-        imsg.setContent(msg.content);
-        if (msg.sender == this.uid) {
-            imsg.flags = MessageFlag.MESSAGE_FLAG_ACK;
-        }
 
-        if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-            Revoke revoke = (Revoke) imsg.content;
-            int msgLocalID = db.getMessageId(revoke.msgid);
-            if (msgLocalID > 0) {
-                db.updateContent(msgLocalID, msg.content);
-                db.removeMessageIndex(msgLocalID, imsg.receiver);
+        ArrayList<IMessage> imsgs = new ArrayList<>();
+        ArrayList<IMMessage> insertedMsgs = new ArrayList<>();
+        for (IMMessage msg : msgs) {
+            IMessage imsg = new IMessage();
+            imsg.sender = msg.sender;
+            imsg.receiver = msg.receiver;
+            imsg.timestamp = msg.timestamp;
+            imsg.setContent(msg.content);
+            if (msg.sender == this.uid) {
+                imsg.flags = MessageFlag.MESSAGE_FLAG_ACK;
             }
-            return true;
-        } else {
 
-            boolean r = db.insertMessage(imsg, imsg.receiver);
-            msg.msgLocalID = imsg.msgLocalID;
-            return r;
+            if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                Revoke revoke = (Revoke) imsg.content;
+                int msgLocalID = db.getMessageId(revoke.msgid);
+                if (msgLocalID > 0) {
+                    db.updateContent(msgLocalID, msg.content);
+                    db.removeMessageIndex(msgLocalID, imsg.receiver);
+                }
+                return true;
+            } else {
+                imsgs.add(imsg);
+                insertedMsgs.add(msg);
+            }
         }
 
+        if (imsgs.size() > 0) {
+            db.insertMessages(imsgs);
+        }
 
+        for (int i = 0; i < insertedMsgs.size(); i++) {
+            IMMessage msg = insertedMsgs.get(i);
+            IMessage m = imsgs.get(i);
+            msg.msgLocalID = m.msgLocalID;
+        }
+
+        return true;
     }
+
     public boolean handleMessageACK(IMMessage im) {
         int msgLocalID = im.msgLocalID;
         long gid = im.receiver;

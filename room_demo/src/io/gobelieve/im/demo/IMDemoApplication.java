@@ -37,41 +37,6 @@ public class IMDemoApplication extends Application {
         mIMService.setDeviceID(androidID);
 
         //监听网路状态变更
-        registerConnectivityChangeReceiver(getApplicationContext());
-        IMService.getInstance().setReachable(isOnNet(getApplicationContext()));
+        IMService.getInstance().registerConnectivityChangeReceiver(getApplicationContext());
     }
-
-
-    private boolean isOnNet(Context context) {
-        if (null == context) {
-            Log.e("", "context is null");
-            return false;
-        }
-        boolean isOnNet = false;
-        ConnectivityManager connectivityManager = (ConnectivityManager) context
-                .getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
-        if (null != activeNetInfo) {
-            isOnNet = activeNetInfo.isConnected();
-            Log.i(TAG, "active net info:" + activeNetInfo);
-        }
-        return isOnNet;
-    }
-
-    class NetworkReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive (Context context, Intent intent) {
-            boolean reachable = isOnNet(context);
-            IMService.getInstance().onNetworkConnectivityChange(reachable);
-        }
-    };
-
-    public void registerConnectivityChangeReceiver(Context context) {
-        NetworkReceiver  receiver = new NetworkReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
-        context.registerReceiver(receiver, filter);
-    }
-
-
 }

@@ -502,6 +502,12 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     }
 
     @Override
+    public void onGroupMessages(List<IMMessage> msgs) {
+        for (IMMessage msg : msgs) {
+            onGroupMessage(msg);
+        }
+    }
+
     public void onGroupMessage(IMMessage msg) {
         Log.i(TAG, "on group message");
         IMessage imsg = new IMessage();

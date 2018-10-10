@@ -26,6 +26,7 @@ import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 
+import java.util.List;
 
 
 /**
@@ -144,6 +145,13 @@ public class GroupMessageActivity extends MessageActivity implements
     }
 
     @Override
+    public void onGroupMessages(List<IMMessage> msgs) {
+        for (IMMessage msg : msgs) {
+            onGroupMessage(msg);
+        }
+
+    }
+
     public void onGroupMessage(IMMessage msg) {
         if (msg.receiver != groupID) {
             return;

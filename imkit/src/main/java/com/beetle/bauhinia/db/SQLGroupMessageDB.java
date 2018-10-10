@@ -2,6 +2,8 @@ package com.beetle.bauhinia.db;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 
@@ -9,6 +11,7 @@ import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Text;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -131,6 +134,38 @@ public class SQLGroupMessageDB  {
             insertFTS((int)id, text.text);
         }
         return true;
+    }
+
+    public boolean insertMessages(List<IMessage> msgs) {
+        db.beginTransaction();
+        try {
+            for (IMessage msg : msgs) {
+                ContentValues values = new ContentValues();
+                values.put("sender", msg.sender);
+                values.put("group_id", msg.receiver);
+                values.put("timestamp", msg.timestamp);
+                values.put("flags", msg.flags);
+                if (!TextUtils.isEmpty(msg.getUUID())) {
+                    values.put("uuid", msg.getUUID());
+                }
+                values.put("content", msg.content.getRaw());
+
+
+                long id = db.insert(TABLE_NAME, null, values);
+                if (id == -1) {
+                    return false;
+                }
+                msg.msgLocalID = (int) id;
+                if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+                    Text text = (Text) msg.content;
+                    insertFTS((int) id, text.text);
+                }
+            }
+            db.setTransactionSuccessful();
+            return true;
+        } finally {
+            db.endTransaction();
+        }
     }
 
     public boolean updateContent(int msgLocalID, String content) {
