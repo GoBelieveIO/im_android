@@ -9,6 +9,7 @@ import android.widget.Toast;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.ICustomerMessageDB;
+import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.message.Audio;
 import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.MessageContent;
@@ -134,8 +135,15 @@ public class CustomerMessageActivity extends MessageActivity
         imsg.receiver = msg.customerID;
         imsg.setContent(msg.content);
 
-        if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
+        IMessage mm = findMessage(imsg.getUUID());
+        if (mm != null) {
             Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            if (imsg.isOutgoing) {
+                int flags = imsg.flags;
+                flags = flags & ~MessageFlag.MESSAGE_FLAG_FAILURE;
+                flags = flags | MessageFlag.MESSAGE_FLAG_ACK;
+                mm.setFlags(flags);
+            }
             return;
         }
         if (msg.isSelf) {
@@ -173,10 +181,18 @@ public class CustomerMessageActivity extends MessageActivity
         imsg.receiver = msg.storeID;
         imsg.setContent(msg.content);
 
-        if (!TextUtils.isEmpty(imsg.getUUID()) && findMessage(imsg.getUUID()) != null) {
+        IMessage mm = findMessage(imsg.getUUID());
+        if (mm != null) {
             Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            if (imsg.isOutgoing) {
+                int flags = imsg.flags;
+                flags = flags & ~MessageFlag.MESSAGE_FLAG_FAILURE;
+                flags = flags | MessageFlag.MESSAGE_FLAG_ACK;
+                mm.setFlags(flags);
+            }
             return;
         }
+
         if (msg.isSelf) {
             return;
         }
