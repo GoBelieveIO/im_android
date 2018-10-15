@@ -33,8 +33,11 @@ import static android.os.SystemClock.uptimeMillis;
  */
 public class IMService {
 
-    private final String HOST = "imnode2.gobelieve.io";
-    private final int PORT = 23000;
+    private static final String HOST = "imnode2.gobelieve.io";
+    private static final int PORT = 23000;
+    private static final String TAG = "imservice";
+    private static final int HEARTBEAT = 60*3;
+    private static final String HEATBEAT_ACTION = "io.gobelieve.HEARTBEAT";
 
     public enum ConnectState {
         STATE_UNCONNECTED,
@@ -42,10 +45,6 @@ public class IMService {
         STATE_CONNECTED,
         STATE_CONNECTFAIL,
     }
-
-    private static final String TAG = "imservice";
-    private final int HEARTBEAT = 60*3;
-    private static final String HEATBEAT_ACTION = "io.gobelieve.HEARTBEAT";
 
     private AsyncTCP tcp;
     private boolean stopped = true;
@@ -144,9 +143,6 @@ public class IMService {
         return connectState;
     }
 
-    public void setReachable(boolean reachable) {
-        this.reachable = reachable;
-    }
     public void setHost(String host) {
         this.host = host;
     }
@@ -175,6 +171,7 @@ public class IMService {
         s.groupID = groupID;
         s.syncKey = syncKey;
         this.groupSyncKeys.put(groupID, s);
+        this.sendGroupSync(groupID, syncKey);
     }
 
     public void removeSuperGroupSyncKey(long groupID) {
@@ -282,6 +279,9 @@ public class IMService {
         this.isBackground = true;
         if (!this.stopped) {
             suspend();
+            if (!keepAlive) {
+                this.close();
+            }
         }
     }
 
@@ -339,6 +339,10 @@ public class IMService {
                     Log.w(TAG, "not keepalive, dummy alarm heatbeat action");
                     return;
                 }
+                if (!IMService.im.isBackground) {
+                    Log.w(TAG, "not in background, dummy alarm heatbeat action");
+                    return;
+                }
 
                 if (IMService.im.wakeLock != null) {
                     IMService.im.wakeLock.acquire(1000);
@@ -348,14 +352,10 @@ public class IMService {
                 Log.i(TAG, "im state:" + state);
                 if (state == IMService.ConnectState.STATE_CONNECTFAIL || state == IMService.ConnectState.STATE_UNCONNECTED) {
                     Log.i(TAG, "connect im service");
-                    if (IMService.im.isBackground) {
-                        im.connect();
-                    }
+                    im.connect();
                 } else if (state == IMService.ConnectState.STATE_CONNECTED) {
                     Log.i(TAG, "send heartbeat");
-                    if (IMService.im.isBackground) {
-                        im.sendHeartbeat();
-                    }
+                    im.sendHeartbeat();
                 } else if (state == IMService.ConnectState.STATE_CONNECTING) {
                     int t = IMService.im.connectTimestamp;
                     int n = now();
@@ -440,6 +440,10 @@ public class IMService {
         Log.i(TAG, "stop im service");
         stopped = true;
         suspend();
+        this.close();
+        if (this.isBackground) {
+            Log.w(TAG, "stop im service when app is background");
+        }
     }
 
     private void suspend() {
@@ -447,7 +451,7 @@ public class IMService {
             Log.i(TAG, "suspended");
             return;
         }
-        this.close();
+
         heartbeatTimer.suspend();
         connectTimer.suspend();
         this.suspended = true;
