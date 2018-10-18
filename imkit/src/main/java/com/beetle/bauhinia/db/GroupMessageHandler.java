@@ -74,7 +74,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
             if (msg.isSelf) {
                 assert(msg.sender == uid);
                 repairFailureMessage(imsg.getUUID());
-                return true;
+                continue;
             } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
                 Revoke revoke = (Revoke) imsg.content;
                 int msgLocalID = db.getMessageId(revoke.msgid);
@@ -82,7 +82,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
                     db.updateContent(msgLocalID, msg.content);
                     db.removeMessageIndex(msgLocalID, imsg.receiver);
                 }
-                return true;
+                continue;
             } else {
                 imsgs.add(imsg);
                 insertedMsgs.add(msg);
