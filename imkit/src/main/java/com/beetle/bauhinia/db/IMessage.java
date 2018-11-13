@@ -37,6 +37,7 @@ public class IMessage implements Cloneable {
         IMessage stu = null;
         try{
             stu = (IMessage)super.clone();
+            stu.content = (MessageContent)content.clone();
         }catch(CloneNotSupportedException e) {
             e.printStackTrace();
         }
@@ -165,14 +166,14 @@ public class IMessage implements Cloneable {
         return this.downloading;
     }
 
-    public boolean isFailure() {
-        return (flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0;
-    }
-
     public void setFlags(int f) {
         int old = flags;
         flags = f;
         changeSupport.firePropertyChange("flags", old, flags);
+    }
+
+    public boolean isFailure() {
+        return (flags & MessageFlag.MESSAGE_FLAG_FAILURE) != 0;
     }
 
     public void setFailure(boolean f) {

@@ -1,6 +1,9 @@
 package com.beetle.bauhinia.db.message;
 
-public abstract class MessageContent {
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public abstract class MessageContent implements Cloneable {
     public static final String TEXT = "text";
     public static final String IMAGE = "image";
     public static final String IMAGE2 = "image2";
@@ -19,7 +22,7 @@ public abstract class MessageContent {
     public static final String FILE = "file";
     public static final String REVOKE = "revoke";
 
-    public static enum MessageType {
+    public enum MessageType {
         MESSAGE_UNKNOWN,
         MESSAGE_TEXT,
         MESSAGE_AUDIO,
@@ -42,8 +45,16 @@ public abstract class MessageContent {
         MESSAGE_TIME_BASE, //虚拟的消息，不会存入磁盘
     }
 
-
-
+    @Override
+    public Object clone() {
+        MessageContent stu = null;
+        try{
+            stu = (MessageContent)super.clone();
+        }catch(CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return stu;
+    }
 
     public String raw;
     protected String uuid;
@@ -65,6 +76,20 @@ public abstract class MessageContent {
 
     public void setUUID(String uuid) {
         this.uuid = uuid;
+    }
+
+    public void generateRaw(String uuid) {
+        if (uuid == null || raw == null) {
+            return;
+        }
+        try {
+            JSONObject obj = new JSONObject(raw);
+            obj.put("uuid", uuid);
+            this.raw = obj.toString();
+            this.uuid = uuid;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 }
 
