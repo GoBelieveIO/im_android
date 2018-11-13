@@ -7,7 +7,7 @@ public class Secret extends MessageContent {
     public int type;
 
 
-    public static Secret newSecret(String ciphertext, int type) {
+    public static Secret newSecret(String ciphertext, int type, String uuid) {
         Secret s = new Secret();
 
         JsonObject content = new JsonObject();
@@ -15,10 +15,12 @@ public class Secret extends MessageContent {
         audioJson.addProperty("ciphertext", ciphertext);
         audioJson.addProperty("type", type);
         content.add(SECRET, audioJson);
+        content.addProperty("uuid", uuid);
         s.raw = content.toString();
 
         s.ciphertext = ciphertext;
         s.type = type;
+        s.uuid = uuid;
         return s;
     }
 
