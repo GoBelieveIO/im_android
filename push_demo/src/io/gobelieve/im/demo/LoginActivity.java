@@ -12,18 +12,18 @@ import com.beetle.bauhinia.PeerMessageActivity;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.im.IMService;
 
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.HTTP;
+import java.nio.charset.StandardCharsets;
+
+
 import org.json.JSONObject;
 
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 /**
  * LoginActivity
@@ -53,17 +53,8 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);
         IMService.getInstance().setUID(sender);
-        IMService.getInstance().start();
 
         PushDemoApplication.getApplication().bindDeviceTokenToIM();
-
-        Intent intent = new Intent(this, PeerMessageActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("peer_uid", receiver);
-        intent.putExtra("peer_name", "测试");
-        intent.putExtra("current_uid", sender);
-        startActivity(intent);
-        finish();
     }
 
 
@@ -119,51 +110,59 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         }
     }
 
-    private String login(long uid) {
-        //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务,此URL为新游提供的Demo授权接口
-        //sandbox地址: "http://sandbox.demo.gobelieve.io"
-        String URL = "http://demo.gobelieve.io";
 
+
+    private String login(long uid) {
+        //调用app自身的登陆接口获取im服务必须的access token
+        String URL = "http://demo.gobelieve.io";
         String uri = String.format("%s/auth/token", URL);
+
         try {
-            HttpClient getClient = new DefaultHttpClient();
-            HttpPost request = new HttpPost(uri);
+            java.net.URL url = new URL(uri);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setDoInput(true);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("Content-type", "application/json");
+            connection.connect();
+
             JSONObject json = new JSONObject();
             json.put("uid", uid);
-            StringEntity s = new StringEntity(json.toString());
-            s.setContentEncoding((Header) new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
-            request.setEntity(s);
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), "UTF-8"));
+            writer.write(json.toString());
+            writer.close();
 
-            HttpResponse response = getClient.execute(request);
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK){
-                System.out.println("login failure code is:"+statusCode);
+            int responseCode = connection.getResponseCode();
+            if(responseCode != HttpURLConnection.HTTP_OK) {
+                System.out.println("login failure code is:" + responseCode);
                 return null;
             }
-            int len = (int)response.getEntity().getContentLength();
-            byte[] buf = new byte[len];
-            InputStream inStream = response.getEntity().getContent();
-            int pos = 0;
-            while (pos < len) {
-                int n = inStream.read(buf, pos, len - pos);
-                if (n == -1) {
-                    break;
-                }
-                pos += n;
+
+            InputStream inputStream = connection.getInputStream();
+
+            //inputstream -> string
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) != -1) {
+                result.write(buffer, 0, length);
             }
-            inStream.close();
-            if (pos != len) {
-                return null;
-            }
-            String txt = new String(buf, "UTF-8");
-            JSONObject jsonObject = new JSONObject(txt);
+            String str = result.toString(StandardCharsets.UTF_8.name());
+
+
+            JSONObject jsonObject = new JSONObject(str);
             String accessToken = jsonObject.getString("token");
             return accessToken;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         }
+
+        return "";
     }
+
+
+
 
     private static final char HEX_DIGITS[] = {
             '0',

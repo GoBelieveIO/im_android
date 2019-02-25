@@ -19,6 +19,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
 
+
     <!--高德地图所需权限-->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!--<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />-->
@@ -106,90 +107,6 @@
         </activity>
 
 
-        <!-- 华为推送相关 begin -->
-        <!-- 第三方相关 :接收Push消息（注册、Push消息、Push连接状态、标签，LBS上报结果）广播 -->
-        <receiver android:name="io.gobelieve.im.demo.HuaweiPushReceiver" >
-            <intent-filter>
-                <!-- 必须,用于接收token-->
-                <action android:name="com.huawei.android.push.intent.REGISTRATION" />
-                <!-- 必须，用于接收消息-->
-                <action android:name="com.huawei.android.push.intent.RECEIVE" />
-                <!-- 可选，用于点击通知栏或通知栏上的按钮后触发onEvent回调-->
-                <action android:name="com.huawei.android.push.intent.CLICK" />
-                <!-- 可选，查看push通道是否连接，不查看则不需要-->
-                <action android:name="com.huawei.intent.action.PUSH_STATE" />
-                <!-- 可选，标签、地理位置上报回应，不上报则不需要 -->
-                <action android:name="com.huawei.android.push.plugin.RESPONSE" />
-            </intent-filter>
-        </receiver>
-
-        <!-- 备注：Push相关的android组件需要添加到业务的AndroidManifest.xml,
-        	 Push相关android组件运行在另外一个进程是为了防止Push服务异常而影响主业务 -->
-
-        <!-- PushSDK:PushSDK接收外部请求事件入口 -->
-        <receiver
-            android:name="com.huawei.android.pushagent.PushEventReceiver"
-            android:process=":pushservice" >
-            <intent-filter>
-                <action android:name="com.huawei.android.push.intent.REFRESH_PUSH_CHANNEL" />
-                <action android:name="com.huawei.intent.action.PUSH" />
-                <action android:name="com.huawei.intent.action.PUSH_ON" />
-                <action android:name="com.huawei.android.push.PLUGIN" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.PACKAGE_ADDED" />
-                <action android:name="android.intent.action.PACKAGE_REMOVED" />
-
-                <data android:scheme="package" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name="com.huawei.android.pushagent.PushBootReceiver"
-            android:process=":pushservice" >
-            <intent-filter>
-                <action android:name="com.huawei.android.push.intent.REGISTER" />
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-            </intent-filter>
-            <meta-data
-                android:name="CS_cloud_version"
-                android:value="\u0032\u0035\u0035\u0039" />
-        </receiver>
-
-        <!-- PushSDK:Push服务 -->
-        <service
-            android:name="com.huawei.android.pushagent.PushService"
-            android:process=":pushservice" >
-        </service>
-
-        <!-- PushSDK:富媒体呈现页面，用于呈现服务器下发的富媒体消息 -->
-        <activity
-            android:name="com.huawei.android.pushselfshow.richpush.RichPushActivity"
-            android:process=":pushservice"
-            android:theme="@style/hwpush_NoActionBar"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|locale|layoutDirection">
-            <meta-data android:name="hwc-theme"
-                android:value="androidhwext:style/Theme.Emui"/>
-            <intent-filter>
-                <action android:name="com.huawei.android.push.intent.RICHPUSH" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <!-- PushSDK:用于标识Appid信息 -->
-        <meta-data
-            android:name="APPKEY"
-            android:value="10417737" >
-        </meta-data>
-
-        <!-- PushSDK:用于标识渠道信息 -->
-        <meta-data
-            android:name="CHANNEL"
-            android:value="push" >
-        </meta-data>
-        <!-- 华为推送相关 end -->
 
 
         <!-- 小米推送相关 begin -->
@@ -235,6 +152,50 @@
             </intent-filter>
         </receiver>
         <!-- 小米推送相关 end -->
+
+
+
+
+        <!-- 华为推送相关 begin -->
+
+        <!-- APPID 华为移动服务配置 请将value替换成实际的appid -->
+        <meta-data
+            android:name="com.huawei.hms.client.appid"
+            android:value="10417737" />
+
+
+
+        <!-- 华为移动服务配置,将xxx替换为实际包名 -->
+        <provider
+            android:name="com.huawei.hms.update.provider.UpdateProvider"
+            android:authorities="io.gobelieve.im.demo.hms.update.provider"
+            android:exported="false"
+            android:grantUriPermissions="true" >
+        </provider>
+
+
+        <!-- 第三方相关 :接收Push消息（注册、Push消息、Push连接状态）广播 -->
+        <receiver android:name=".HuaweiPushRevicer" >
+            <intent-filter>
+                <!-- 必须,用于接收token -->
+                <action android:name="com.huawei.android.push.intent.REGISTRATION" />
+                <!-- 必须，用于接收消息 -->
+                <action android:name="com.huawei.android.push.intent.RECEIVE" />
+                <!-- 可选，用于点击通知栏或通知栏上的按钮后触发onEvent回调 -->
+                <action android:name="com.huawei.android.push.intent.CLICK" />
+                <!-- 可选，查看push通道是否连接，不查看则不需要 -->
+                <action android:name="com.huawei.intent.action.PUSH_STATE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name="com.huawei.hms.support.api.push.PushEventReceiver" >
+            <intent-filter>
+                <!-- 接收通道发来的通知栏消息 -->
+                <action android:name="com.huawei.intent.action.PUSH" />
+            </intent-filter>
+        </receiver>
+
+
     </application>
 
 </manifest>
