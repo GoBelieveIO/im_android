@@ -69,6 +69,8 @@ public class MessageBaseActivity extends BaseActivity {
     //消息撤回的时限
     public static final int REVOKE_EXPIRE = 120;
 
+    public static final int PAGE_SIZE = 10;
+
     //app 启动时间戳，app启动时初始化
     public static int uptime;
     static {
@@ -83,6 +85,7 @@ public class MessageBaseActivity extends BaseActivity {
     }
 
 
+    protected long conversationID;//uid or groupid or storeid
     protected long currentUID;
     protected int messageID;
     protected boolean hasLateMore;
@@ -102,9 +105,9 @@ public class MessageBaseActivity extends BaseActivity {
         messages = new ArrayList<IMessage>();
         List<IMessage> newMessages;
         if (messageID > 0) {
-            newMessages = this.messageDB.loadConversationData(messageID);
+            newMessages = this.loadConversationData(conversationID, messageID);
         } else {
-            newMessages = this.messageDB.loadConversationData();
+            newMessages = this.loadConversationData(conversationID);
         }
 
         //删除重复的消息,过滤掉不显示的消息
@@ -162,7 +165,7 @@ public class MessageBaseActivity extends BaseActivity {
             }
         }
 
-        List<IMessage> newMessages = this.messageDB.loadEarlierData(firstMsg.msgLocalID);
+        List<IMessage> newMessages = this.loadEarlierData(conversationID, firstMsg.msgLocalID);
         int count = newMessages.size();
 
         if (count == 0) {
@@ -215,7 +218,7 @@ public class MessageBaseActivity extends BaseActivity {
         }
 
         IMessage msg = messages.get(messages.size() - 1);
-        List<IMessage> newMessages = this.messageDB.loadLateData(msg.msgLocalID);
+        List<IMessage> newMessages = this.loadLateData(conversationID, msg.msgLocalID);
         int count = newMessages.size();
 
         if (count == 0) {
@@ -248,6 +251,122 @@ public class MessageBaseActivity extends BaseActivity {
         resetMessageTimeBase();
         return newCount;
     }
+
+
+    protected ArrayList<IMessage> loadConversationData(long conversationID) {
+        ArrayList<IMessage> messages = new ArrayList<IMessage>();
+        int count = 0;
+        MessageIterator iter = messageDB.newMessageIterator(conversationID);
+        while (iter != null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
+                break;
+            }
+            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
+                Attachment attachment = (Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else {
+                msg.isOutgoing = (msg.sender == currentUID);
+                messages.add(0, msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
+            }
+        }
+
+        return messages;
+    }
+
+    protected List<IMessage> loadConversationData(long conversationID, int messageID) {
+        HashSet<String> uuidSet = new HashSet<String>();
+        ArrayList<IMessage> messages = new ArrayList<IMessage>();
+
+        int pageSize;
+        int count = 0;
+        MessageIterator iter;
+
+        iter = messageDB.newMiddleMessageIterator(conversationID, messageID);
+        pageSize = 2*PAGE_SIZE;
+
+        while (iter != null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
+                break;
+            }
+
+            //不加载重复的消息
+            if (!TextUtils.isEmpty(msg.getUUID()) && uuidSet.contains(msg.getUUID())) {
+                continue;
+            }
+
+            if (!TextUtils.isEmpty(msg.getUUID())) {
+                uuidSet.add(msg.getUUID());
+            }
+
+            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
+                Attachment attachment = (Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else {
+                msg.isOutgoing = (msg.sender == currentUID);
+                messages.add(0, msg);
+                if (++count >= pageSize) {
+                    break;
+                }
+            }
+        }
+
+        return messages;
+    }
+
+    protected List<IMessage> loadEarlierData(long conversationID, int messageID) {
+        ArrayList<IMessage> messages = new ArrayList<IMessage>();
+        int count = 0;
+        MessageIterator iter = messageDB.newForwardMessageIterator(conversationID, messageID);
+        while (iter != null) {
+            IMessage msg = iter.next();
+            if (msg == null) {
+                break;
+            }
+
+            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
+                Attachment attachment = (Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else{
+                msg.isOutgoing = (msg.sender == currentUID);
+                messages.add(0, msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
+            }
+        }
+        return messages;
+    }
+
+
+    protected List<IMessage> loadLateData(long conversationID, int messageID) {
+        ArrayList<IMessage> messages = new ArrayList<IMessage>();
+        int count = 0;
+        MessageIterator iter = messageDB.newBackwardMessageIterator(conversationID, messageID);
+        while (true) {
+            IMessage msg = iter.next();
+            if (msg == null) {
+                break;
+            }
+
+            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
+                Attachment attachment = (Attachment)msg.content;
+                attachments.put(attachment.msg_id, attachment);
+            } else{
+                msg.isOutgoing = (msg.sender == currentUID);
+                messages.add(msg);
+                if (++count >= PAGE_SIZE) {
+                    break;
+                }
+            }
+        }
+        return messages;
+    }
+
 
 
 
@@ -712,7 +831,7 @@ public class MessageBaseActivity extends BaseActivity {
     }
 
     protected void sendMessageContent(MessageContent content) {
-        IMessage imsg = this.messageDB.newOutMessage();
+        IMessage imsg = this.newOutMessage();
 
         imsg.setContent(content);
         imsg.timestamp = now();
@@ -753,7 +872,7 @@ public class MessageBaseActivity extends BaseActivity {
             return;
         }
 
-        IMessage imsg = this.messageDB.newOutMessage();
+        IMessage imsg = this.newOutMessage();
         Revoke revoke = Revoke.newRevoke(msg.getUUID());
         imsg.setContent(revoke);
         imsg.timestamp = now();
@@ -767,11 +886,15 @@ public class MessageBaseActivity extends BaseActivity {
         this.sendMessage(msg);
     }
 
+    protected IMessage newOutMessage() {
+        assert(false);
+        return null;
+    }
+
     protected boolean sendMessage(IMessage imsg) {
         assert(false);
         return false;
     }
-
 
     protected IMessage findMessage(int msgLocalID) {
         for (IMessage imsg : messages) {

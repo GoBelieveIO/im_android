@@ -2,12 +2,10 @@ package com.beetle.bauhinia;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.beetle.bauhinia.db.GroupMessageDB;
-import com.beetle.bauhinia.db.IGroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.MessageIterator;
@@ -16,6 +14,7 @@ import com.beetle.bauhinia.db.message.GroupNotification;
 import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
+import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileDownloader;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.GroupOutbox;
@@ -38,9 +37,6 @@ public class GroupMessageActivity extends MessageActivity implements
     public static final String SEND_MESSAGE_NAME = "send_group_message";
     public static final String CLEAR_MESSAGES = "clear_group_messages";
     public static final String CLEAR_NEW_MESSAGES = "clear_group_new_messages";
-
-    protected long sender;
-    protected long receiver;
 
     protected long groupID;
     protected String groupName;
@@ -74,16 +70,11 @@ public class GroupMessageActivity extends MessageActivity implements
         }
 
         messageID = intent.getIntExtra("message_id", 0);
-
-        this.sender = currentUID;
-        this.receiver = groupID;
+        this.conversationID = groupID;
 
         getSupportActionBar().setTitle(groupName);
 
-        IGroupMessageDB db = new IGroupMessageDB();
-        db.currentUID = this.currentUID;
-        db.groupID = this.groupID;
-        this.messageDB = db;
+        this.messageDB = GroupMessageDB.getInstance();
 
         this.hasLateMore = this.messageID > 0;
         this.hasEarlierMore = true;
@@ -147,7 +138,7 @@ public class GroupMessageActivity extends MessageActivity implements
     @Override
     public void onGroupMessages(List<IMMessage> msgs) {
         for (IMMessage msg : msgs) {
-            onGroupMessage(msg);
+            this.onGroupMessage(msg);
         }
 
     }
@@ -179,6 +170,7 @@ public class GroupMessageActivity extends MessageActivity implements
             }
             return;
         }
+
         if (msg.isSelf) {
             return;
         }
@@ -270,6 +262,10 @@ public class GroupMessageActivity extends MessageActivity implements
 
         updateNotificationDesc(imsg);
 
+        if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_NAME_UPDATED) {
+            this.groupName = notification.groupName;
+            getSupportActionBar().setTitle(groupName);
+        }
         insertMessage(imsg);
     }
 
@@ -283,11 +279,18 @@ public class GroupMessageActivity extends MessageActivity implements
             imsg.setUploading(true);
             ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
         } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-            Image image = (Image)imsg.content;
+            Image image = (Image) imsg.content;
             //prefix:"file:"
             String path = image.url.substring(5);
             imsg.setUploading(true);
             GroupOutbox.getInstance().uploadImage(imsg, path);
+        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
+            Video video = (Video)imsg.content;
+            imsg.setUploading(true);
+            //prefix: "file:"
+            String path = video.thumbnail.substring(5);
+            String videoPath = FileCache.getInstance().getCachedFilePath(video.url);
+            GroupOutbox.getInstance().uploadVideo(imsg, videoPath, path);
         } else {
             IMMessage msg = new IMMessage();
             msg.sender = imsg.sender;
@@ -310,15 +313,21 @@ public class GroupMessageActivity extends MessageActivity implements
     protected void clearConversation() {
         super.clearConversation();
         GroupMessageDB db = GroupMessageDB.getInstance();
-        db.clearCoversation(this.groupID);
+        db.clearConversation(this.groupID);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(this.receiver, CLEAR_MESSAGES);
+        Notification notification = new Notification(this.groupID, CLEAR_MESSAGES);
         nc.postNotification(notification);
     }
 
 
-
+    @Override
+    protected IMessage newOutMessage() {
+        IMessage msg = new IMessage();
+        msg.sender = currentUID;
+        msg.receiver = groupID;
+        return msg;
+    }
 
 
 }

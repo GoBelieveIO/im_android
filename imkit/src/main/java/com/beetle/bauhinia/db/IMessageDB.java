@@ -1,21 +1,25 @@
 package com.beetle.bauhinia.db;
-import java.util.List;
 
 /**
  * Created by houxh on 2017/11/13.
  */
 
 public interface IMessageDB {
-    List<IMessage> loadConversationData();
-    List<IMessage> loadConversationData(int messageID);
-    List<IMessage> loadEarlierData(int messageID);
-    List<IMessage> loadLateData(int messageID);
+
+    //获取最近的消息
+    MessageIterator newMessageIterator(long conversationID);
+    //获取之前的消息
+    MessageIterator newForwardMessageIterator(long conversationID, int firstMsgID);
+    //获取之后的消息
+    MessageIterator newBackwardMessageIterator(long conversationID, int msgID);
+    //获取前后的消息
+    MessageIterator newMiddleMessageIterator(long conversationID, int msgID);
+
+    boolean clearConversation(long conversationID);
     void saveMessageAttachment(IMessage msg, String address);
     void saveMessage(IMessage imsg);
     void removeMessage(IMessage imsg);
     void markMessageListened(IMessage imsg);
     void markMessageFailure(IMessage imsg);
     void eraseMessageFailure(IMessage imsg);
-    void clearConversation();
-    IMessage newOutMessage();
 }

@@ -97,7 +97,7 @@ public class SQLCustomerMessageDB {
     }
 
 
-    public boolean insertMessage(IMessage m, long uid) {
+    public boolean insertMessage(IMessage m) {
         ICustomerMessage msg = (ICustomerMessage)m;
         ContentValues values = new ContentValues();
         values.put("customer_id", msg.customerID);
@@ -133,19 +133,19 @@ public class SQLCustomerMessageDB {
     }
 
 
-    public boolean acknowledgeMessage(int msgLocalID, long uid) {
+    public boolean acknowledgeMessage(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
     }
 
-    public boolean markMessageFailure(int msgLocalID, long uid) {
+    public boolean markMessageFailure(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_FAILURE);
     }
 
-    public boolean markMessageListened(int msgLocalID, long uid) {
+    public boolean markMessageListened(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean eraseMessageFailure(int msgLocalID, long gid) {
+    public boolean eraseMessageFailure(int msgLocalID) {
         int f = MessageFlag.MESSAGE_FLAG_FAILURE;
         return removeFlag(msgLocalID, f);
     }
@@ -186,19 +186,19 @@ public class SQLCustomerMessageDB {
         return true;
     }
 
-    public boolean removeMessage(int msgLocalID, long storeID) {
+    public boolean removeMessage(int msgLocalID) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
 
-    public boolean removeMessageIndex(int msgLocalID, long storeID) {
+    public boolean removeMessageIndex(int msgLocalID) {
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
 
 
-    public boolean clearCoversation(long storeID) {
+    public boolean clearConversation(long storeID) {
         db.delete(TABLE_NAME, "store_id = ?", new String[]{""+storeID});
         return true;
     }
@@ -207,8 +207,16 @@ public class SQLCustomerMessageDB {
         return new CustomerMessageIterator(db, storeID);
     }
 
-    public MessageIterator newMessageIterator(long storeID, int firstMsgID) {
+    public MessageIterator newForwardMessageIterator(long storeID, int firstMsgID) {
         return new CustomerMessageIterator(db, storeID, firstMsgID);
+    }
+
+    public MessageIterator newBackwardMessageIterator(long storeID, int msgID) {
+        return null;
+    }
+
+    public MessageIterator newMiddleMessageIterator(long storeID, int msgID) {
+        return null;
     }
 
     public ConversationIterator newConversationIterator() {

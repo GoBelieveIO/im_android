@@ -118,7 +118,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
             }
             return true;
         } else {
-            return db.acknowledgeMessage(msgLocalID, gid);
+            return db.acknowledgeMessage(msgLocalID);
         }
     }
 
@@ -127,7 +127,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         long gid = im.receiver;
         if (msgLocalID > 0) {
             GroupMessageDB db = GroupMessageDB.getInstance();
-            return db.markMessageFailure(msgLocalID, gid);
+            return db.markMessageFailure(msgLocalID);
         }
         return true;
     }

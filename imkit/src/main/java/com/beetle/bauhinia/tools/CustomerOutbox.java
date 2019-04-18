@@ -20,7 +20,7 @@ public class CustomerOutbox extends Outbox {
 
     @Override
     protected void markMessageFailure(IMessage msg) {
-        CustomerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+        CustomerMessageDB.getInstance().markMessageFailure(msg.msgLocalID);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class CustomerOutbox extends Outbox {
 
     void saveMessage(IMessage imsg) {
         ICustomerMessage m = (ICustomerMessage)imsg;
-        CustomerMessageDB.getInstance().insertMessage(imsg, m.storeID);
+        CustomerMessageDB.getInstance().insertMessage(imsg);
     }
 
     @Override

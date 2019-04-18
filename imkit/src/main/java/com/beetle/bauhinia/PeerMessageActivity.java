@@ -36,11 +36,6 @@ public class PeerMessageActivity extends MessageActivity implements
     public static final String CLEAR_SECRET_MESSAGES = "clear_secret_messages";
     public static final String CLEAR_SECRET_NEW_MESSAGES = "clear_secret_new_messages";
 
-
-    protected long sender;
-    protected long receiver;
-
-    protected long currentUID;
     protected long peerUID;
     protected String peerName;
     protected String peerAvatar;
@@ -84,8 +79,7 @@ public class PeerMessageActivity extends MessageActivity implements
 
         Log.i(TAG, "local id:" + currentUID +  "peer id:" + peerUID);
 
-        this.sender = currentUID;
-        this.receiver = peerUID;
+        this.conversationID = peerUID;
 
         if (secret) {
             getSupportActionBar().setTitle(peerName + "(密)");
@@ -93,10 +87,11 @@ public class PeerMessageActivity extends MessageActivity implements
             getSupportActionBar().setTitle(peerName);
         }
 
-        IPeerMessageDB db = new IPeerMessageDB(secret);
-        db.currentUID = this.currentUID;
-        db.peerUID = this.peerUID;
-        this.messageDB = db;
+        if (secret) {
+            messageDB = EPeerMessageDB.getInstance();
+        } else {
+            messageDB = PeerMessageDB.getInstance();
+        }
 
         this.hasLateMore = this.messageID > 0;
         this.hasEarlierMore = true;
@@ -133,11 +128,11 @@ public class PeerMessageActivity extends MessageActivity implements
 
         if (secret) {
             NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.receiver, CLEAR_SECRET_NEW_MESSAGES);
+            Notification notification = new Notification(this.peerUID, CLEAR_SECRET_NEW_MESSAGES);
             nc.postNotification(notification);
         } else {
             NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.receiver, CLEAR_NEW_MESSAGES);
+            Notification notification = new Notification(this.peerUID, CLEAR_NEW_MESSAGES);
             nc.postNotification(notification);
         }
         PeerOutbox.getInstance().removeObserver(this);
@@ -198,6 +193,7 @@ public class PeerMessageActivity extends MessageActivity implements
             }
             return;
         }
+
         if (msg.isSelf) {
             return;
         }
@@ -248,6 +244,7 @@ public class PeerMessageActivity extends MessageActivity implements
         IMessage mm = findMessage(imsg.getUUID());
         if (mm != null) {
             Log.i(TAG, "receive repeat message:" + imsg.getUUID());
+            //清空消息失败标志位
             if (imsg.isOutgoing) {
                 int flags = imsg.flags;
                 flags = flags & ~MessageFlag.MESSAGE_FLAG_FAILURE;
@@ -256,7 +253,6 @@ public class PeerMessageActivity extends MessageActivity implements
             }
             return;
         }
-
         if (msg.isSelf) {
             return;
         }
@@ -332,7 +328,7 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
-    protected boolean encrypt(IMMessage im) {
+    protected boolean encrypt(IMMessage im, String uuid) {
         return false;
     }
 
@@ -380,7 +376,7 @@ public class PeerMessageActivity extends MessageActivity implements
             msg.content = imsg.content.getRaw();
             msg.plainContent = msg.content;
             if (secret) {
-                r = encrypt(msg);
+                r = encrypt(msg, imsg.getUUID());
             }
 
             if (r) {
@@ -406,18 +402,26 @@ public class PeerMessageActivity extends MessageActivity implements
     void clearConversation() {
         super.clearConversation();
 
-        this.messageDB.clearConversation();
+        this.messageDB.clearConversation(this.conversationID);
 
         if (secret) {
             NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.receiver, CLEAR_SECRET_MESSAGES);
+            Notification notification = new Notification(this.peerUID, CLEAR_SECRET_MESSAGES);
             nc.postNotification(notification);
         } else {
             NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.receiver, CLEAR_MESSAGES);
+            Notification notification = new Notification(this.peerUID, CLEAR_MESSAGES);
             nc.postNotification(notification);
         }
     }
 
+    @Override
+    protected IMessage newOutMessage() {
+        IMessage msg = new IMessage();
+        msg.sender = this.currentUID;
+        msg.receiver = this.peerUID;
+        msg.secret = secret;
+        return msg;
+    }
 
 }

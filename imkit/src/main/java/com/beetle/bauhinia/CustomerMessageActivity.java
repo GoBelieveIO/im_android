@@ -8,12 +8,12 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
-import com.beetle.bauhinia.db.ICustomerMessageDB;
 import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.message.Audio;
 import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
+import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileDownloader;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
@@ -63,12 +63,9 @@ public class CustomerMessageActivity extends MessageActivity
 
         this.isShowUserName = intent.getBooleanExtra("show_name", false);
 
-        ICustomerMessageDB db = new ICustomerMessageDB();
-        db.currentUID = this.currentUID;
-        db.appID = appID;
-        db.storeID = storeID;
-        db.sellerID = sellerID;
-        this.messageDB = db;
+
+        this.conversationID = storeID;
+        this.messageDB = CustomerMessageDB.getInstance();
 
         this.hasLateMore = this.messageID > 0;
         this.hasEarlierMore = true;
@@ -192,7 +189,6 @@ public class CustomerMessageActivity extends MessageActivity
             }
             return;
         }
-
         if (msg.isSelf) {
             return;
         }
@@ -267,11 +263,18 @@ public class CustomerMessageActivity extends MessageActivity
             imsg.setUploading(true);
             ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
         } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-            Image image = (Image)imsg.content;
+            Image image = (Image) imsg.content;
             //prefix:"file:"
             String path = image.url.substring(5);
             imsg.setUploading(true);
             CustomerOutbox.getInstance().uploadImage(imsg, path);
+        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
+            Video video = (Video)imsg.content;
+            imsg.setUploading(true);
+            //prefix: "file:"
+            String path = video.thumbnail.substring(5);
+            String videoPath = FileCache.getInstance().getCachedFilePath(video.url);
+            CustomerOutbox.getInstance().uploadVideo(imsg, videoPath, path);
         } else {
             ICustomerMessage cm = (ICustomerMessage)imsg;
             CustomerMessage msg = new CustomerMessage();
@@ -297,10 +300,21 @@ public class CustomerMessageActivity extends MessageActivity
     void clearConversation() {
         super.clearConversation();
         CustomerMessageDB db = CustomerMessageDB.getInstance();
-        db.clearCoversation(this.storeID);
+        db.clearConversation(this.storeID);
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
         Notification notification = new Notification(this.storeID, CLEAR_MESSAGES);
         nc.postNotification(notification);
     }
+
+    @Override
+    protected IMessage newOutMessage() {
+        ICustomerMessage msg = new ICustomerMessage();
+        msg.customerAppID = appID;
+        msg.customerID = currentUID;
+        msg.storeID = storeID;
+        msg.sellerID = sellerID;
+        return msg;
+    }
+
 }

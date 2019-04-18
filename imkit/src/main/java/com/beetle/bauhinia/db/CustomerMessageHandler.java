@@ -58,11 +58,11 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
             int msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
                 db.updateContent(msgLocalID, msg.content);
-                db.removeMessageIndex(msgLocalID, msg.storeID);
+                db.removeMessageIndex(msgLocalID);
             }
             return true;
         } else {
-            boolean r = db.insertMessage(imsg, msg.storeID);
+            boolean r = db.insertMessage(imsg);
             msg.msgLocalID = imsg.msgLocalID;
             return r;
         }
@@ -91,12 +91,12 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
             Revoke revoke = (Revoke) imsg.content;
             int msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
-                db.removeMessage(msgLocalID, msg.storeID);
+                db.removeMessage(msgLocalID);
             }
             return true;
         } else {
 
-            boolean r = db.insertMessage(imsg, msg.storeID);
+            boolean r = db.insertMessage(imsg);
             msg.msgLocalID = imsg.msgLocalID;
             return r;
         }
@@ -113,18 +113,18 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
                 int revokedMsgId = db.getMessageId(r.msgid);
                 if (revokedMsgId > 0) {
                     db.updateContent(revokedMsgId, msg.content);
-                    db.removeMessageIndex(revokedMsgId, msg.storeID);
+                    db.removeMessageIndex(revokedMsgId);
                 }
             }
             return true;
         } else {
-            return db.acknowledgeMessage(msg.msgLocalID, msg.storeID);
+            return db.acknowledgeMessage(msg.msgLocalID);
         }
     }
 
     @Override
     public boolean handleMessageFailure(CustomerMessage msg) {
         CustomerMessageDB db = CustomerMessageDB.getInstance();
-        return db.markMessageFailure(msg.msgLocalID, msg.storeID);
+        return db.markMessageFailure(msg.msgLocalID);
     }
 }

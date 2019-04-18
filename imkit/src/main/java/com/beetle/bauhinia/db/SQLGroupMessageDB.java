@@ -176,19 +176,19 @@ public class SQLGroupMessageDB  {
     }
 
 
-    public boolean acknowledgeMessage(int msgLocalID, long uid) {
+    public boolean acknowledgeMessage(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
     }
 
-    public boolean markMessageFailure(int msgLocalID, long uid) {
+    public boolean markMessageFailure(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_FAILURE);
     }
 
-    public boolean markMessageListened(int msgLocalID, long uid) {
+    public boolean markMessageListened(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean eraseMessageFailure(int msgLocalID, long gid) {
+    public boolean eraseMessageFailure(int msgLocalID) {
         int f = MessageFlag.MESSAGE_FLAG_FAILURE;
         return removeFlag(msgLocalID, f);
     }
@@ -229,7 +229,7 @@ public class SQLGroupMessageDB  {
         return true;
     }
 
-    public boolean removeMessage(int msgLocalID, long gid) {
+    public boolean removeMessage(int msgLocalID) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
@@ -241,7 +241,7 @@ public class SQLGroupMessageDB  {
     }
 
 
-    public boolean clearCoversation(long gid) {
+    public boolean clearConversation(long gid) {
         db.delete(TABLE_NAME, "group_id = ?", new String[]{""+gid});
         return true;
     }
@@ -250,13 +250,14 @@ public class SQLGroupMessageDB  {
         return new ForwardGroupMessageIterator(db, gid);
     }
 
-    public MessageIterator newMessageIterator(long gid, int firstMsgID) {
+    public MessageIterator newForwardMessageIterator(long gid, int firstMsgID) {
         return new ForwardGroupMessageIterator(db, gid, firstMsgID);
     }
 
     public MessageIterator newBackwardMessageIterator(long gid, int msgID) {
-        return new MiddleGroupMessageIterator(db, gid, msgID);
+        return new BackwarkGroupMessageIterator(db, gid, msgID);
     }
+
     public MessageIterator newMiddleMessageIterator(long gid, int msgID) {
         return new MiddleGroupMessageIterator(db, gid, msgID);
     }

@@ -62,7 +62,7 @@ public class GroupOutbox extends Outbox{
 
     @Override
     protected void markMessageFailure(IMessage msg) {
-        GroupMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+        GroupMessageDB.getInstance().markMessageFailure(msg.msgLocalID);
     }
 
     @Override

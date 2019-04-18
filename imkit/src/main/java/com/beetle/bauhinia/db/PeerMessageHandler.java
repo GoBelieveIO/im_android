@@ -66,7 +66,7 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
             int msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
                 db.updateContent(msgLocalID, msg.content);
-                db.removeMessageIndex(msgLocalID, uid);
+                db.removeMessageIndex(msgLocalID);
             }
             return true;
         } else {
@@ -88,12 +88,12 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
                 int revokedMsgId = db.getMessageId(r.msgid);
                 if (revokedMsgId > 0) {
                     db.updateContent(revokedMsgId, im.content);
-                    db.removeMessageIndex(revokedMsgId, uid);
+                    db.removeMessageIndex(revokedMsgId);
                 }
             }
             return true;
         } else {
-            return db.acknowledgeMessage(msgLocalID, uid);
+            return db.acknowledgeMessage(msgLocalID);
         }
     }
 
@@ -102,7 +102,7 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
         int msgLocalID = im.msgLocalID;
         if (msgLocalID > 0) {
             PeerMessageDB db = PeerMessageDB.getInstance();
-            return db.markMessageFailure(msgLocalID, uid);
+            return db.markMessageFailure(msgLocalID);
         }
         return true;
     }

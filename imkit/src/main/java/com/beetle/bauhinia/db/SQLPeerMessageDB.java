@@ -135,19 +135,19 @@ public class SQLPeerMessageDB {
         return rows == 1;
     }
 
-    public boolean acknowledgeMessage(int msgLocalID, long uid) {
+    public boolean acknowledgeMessage(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
     }
 
-    public boolean markMessageFailure(int msgLocalID, long uid) {
+    public boolean markMessageFailure(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_FAILURE);
     }
 
-    public boolean markMessageListened(int msgLocalID, long uid) {
+    public boolean markMessageListened(int msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean eraseMessageFailure(int msgLocalID, long uid) {
+    public boolean eraseMessageFailure(int msgLocalID) {
         int f = MessageFlag.MESSAGE_FLAG_FAILURE;
         return removeFlag(msgLocalID, f);
     }
@@ -192,34 +192,38 @@ public class SQLPeerMessageDB {
     }
 
 
-    public boolean removeMessage(int msgLocalID, long uid) {
+    public boolean removeMessage(int msgLocalID) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
 
-    public boolean removeMessageIndex(int msgLocalID, long uid) {
+    public boolean removeMessageIndex(int msgLocalID) {
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
 
-    public boolean clearCoversation(long uid) {
+    public boolean clearConversation(long uid) {
         db.delete(TABLE_NAME, "peer = ? AND secret= ?", new String[]{""+uid, "" + secret});
         return true;
     }
 
+    //获取最近的消息
     public MessageIterator newMessageIterator(long uid) {
         return new ForwardPeerMessageInterator(db, uid);
     }
 
-    public MessageIterator newMessageIterator(long uid, int firstMsgID) {
+    //获取之前的消息
+    public MessageIterator newForwardMessageIterator(long uid, int firstMsgID) {
         return new ForwardPeerMessageInterator(db, uid, firstMsgID);
     }
 
+    //获取之后的消息
     public MessageIterator newBackwardMessageIterator(long uid, int msgID) {
         return new BackwardPeerMessageInterator(db, uid, msgID);
     }
 
+    //获取前后的消息
     public MessageIterator newMiddleMessageIterator(long uid, int msgID) {
         return new MiddlePeerMessageInterator(db, uid, msgID);
     }

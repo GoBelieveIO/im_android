@@ -22,7 +22,7 @@ public class PeerOutbox extends Outbox {
 
     @Override
     protected void markMessageFailure(IMessage msg) {
-        PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID, msg.receiver);
+        PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID);
     }
 
     @Override
