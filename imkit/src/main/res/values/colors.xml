@@ -11,4 +11,8 @@
     <color name="theme_primary">#18b000</color>
     <color name="theme_primary_dark">#138d00</color>
     <color name="accent">#18b000</color>
+
+    <color name="text_friend_customer">#757575</color>
+    <color name="text_conversation_time">#BDBDBD</color>
+
 </resources>

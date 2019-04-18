@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="EmoticonPanel">
+        <attr name="emoticonColumns" format="integer" />
+    </declare-styleable>
+
+</resources>

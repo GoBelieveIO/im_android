@@ -193,7 +193,7 @@ public class EaseSmileUtils {
         return ((((0x808080F0 | (x & 0x3F000) >> 4) | (x & 0xFC0) << 10) | (x & 0x1C0000) << 18) | (x & 0x3F) << 24);
     }
 
-    private static String EmojiCodeToString(int x) {
+    public static String EmojiCodeToString(int x) {
         int sym = EMOJI_CODE_TO_SYMBOL(x);
         byte data[] = {(byte)(sym&0x00ff), (byte)(sym>>8&0x00ff), (byte)(sym>>16&0x00ff), (byte)(sym>>24)};
         try {

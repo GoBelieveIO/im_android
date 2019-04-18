@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:easemob="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/chat_menu_container"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_alignParentBottom="true"
-    android:orientation="vertical" >
+    android:orientation="vertical">
 
-
-    
-    <FrameLayout 
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/primary_menu_container">
@@ -34,15 +33,13 @@
             android:layout_marginTop="9dp"
             easemob:numColumns="4" />
 
-        <FrameLayout 
+        <RelativeLayout
+            android:id="@+id/menu_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/emojicon_menu_container">
-            <com.easemob.easeui.widget.EaseEmojiconMenu
-                android:id="@+id/emojicon"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </FrameLayout>
+            android:layout_height="300dp"
+            android:background="@color/white">
+
+        </RelativeLayout>
 
     </FrameLayout>
 

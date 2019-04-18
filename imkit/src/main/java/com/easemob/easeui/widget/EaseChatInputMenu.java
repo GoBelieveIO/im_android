@@ -5,17 +5,21 @@ import android.graphics.Color;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.text.Editable;
+import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.*;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 
 import com.beetle.imkit.R;
 import com.easemob.easeui.Contact;
 import com.easemob.easeui.widget.EaseChatExtendMenu.EaseChatExtendMenuItemClickListener;
 import com.easemob.easeui.widget.EaseEmojiconMenu.EaseEmojiconMenuListener;
+import com.easemob.easeui.widget.emoticon.EmoticonPanel;
 import com.linkedin.android.spyglass.mentions.MentionSpan;
 import com.linkedin.android.spyglass.mentions.MentionSpanConfig;
 import com.linkedin.android.spyglass.tokenization.QueryToken;
@@ -23,7 +27,6 @@ import com.linkedin.android.spyglass.tokenization.impl.WordTokenizer;
 import com.linkedin.android.spyglass.tokenization.impl.WordTokenizerConfig;
 import com.linkedin.android.spyglass.tokenization.interfaces.QueryTokenReceiver;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,12 +40,16 @@ import java.util.Set;
  */
 public class
 EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTokenReceiver {
-    FrameLayout primaryMenuContainer, emojiconMenuContainer;
+    FrameLayout primaryMenuContainer;
+    protected RelativeLayout emojiconMenuContainer;
     protected EaseChatPrimaryMenu chatPrimaryMenu;
     protected EaseEmojiconMenu emojiconMenu;
+    private EmoticonPanel mEmoticonPanel;
     protected EaseChatExtendMenu chatExtendMenu;
     protected FrameLayout chatExtendMenuContainer;
     protected LayoutInflater layoutInflater;
+
+    private EditText mEtSend;
 
     private Handler handler = new Handler();
     private ChatInputMenuListener listener;
@@ -65,13 +72,15 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
         layoutInflater = LayoutInflater.from(context);
         layoutInflater.inflate(R.layout.ease_widget_chat_input_menu, this);
         primaryMenuContainer = (FrameLayout) findViewById(R.id.primary_menu_container);
-        emojiconMenuContainer = (FrameLayout) findViewById(R.id.emojicon_menu_container);
+        emojiconMenuContainer = (RelativeLayout) findViewById(R.id.menu_container);
         chatExtendMenuContainer = (FrameLayout) findViewById(R.id.extend_menu_container);
          // 扩展按钮栏
         chatExtendMenu = (EaseChatExtendMenu) findViewById(R.id.extend_menu);
 
-        chatPrimaryMenu = (EaseChatPrimaryMenu)primaryMenuContainer.findViewById(R.id.primary_menu);
-        emojiconMenu = (EaseEmojiconMenu)emojiconMenuContainer.findViewById(R.id.emojicon);
+        chatPrimaryMenu = (EaseChatPrimaryMenu) primaryMenuContainer.findViewById(R.id.primary_menu);
+        mEtSend = chatPrimaryMenu.editText;
+        mEmoticonPanel = new EmoticonPanel(context);
+        emojiconMenuContainer.addView(mEmoticonPanel);
 
         chatPrimaryMenu.buttonSend.setOnClickListener(this);
         chatPrimaryMenu.buttonSetModeKeyboard.setOnClickListener(this);
@@ -143,7 +152,7 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
             }
         });
 
-        processChatMenu();
+        processEmoticon();
     }
 
     /**
@@ -291,6 +300,27 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
         });
     }
 
+    protected void processEmoticon() {
+        mEmoticonPanel.setOnItemEmoticonClickListener(new EmoticonPanel.OnItemEmoticonClickListener() {
+            @Override
+            public void onEmoticonClick(SpannableString spannableString) {
+                int index = mEtSend.getSelectionStart();
+                Editable editable = mEtSend.getEditableText();
+                editable.insert(index, spannableString);
+                mEtSend.requestFocus();
+            }
+
+            @Override
+            public void onEmoticonDeleted() {
+                if (!TextUtils.isEmpty(mEtSend.getText())) {
+                    KeyEvent event = new KeyEvent(0, 0, 0, KeyEvent.KEYCODE_DEL,
+                            0, 0, 0, 0, KeyEvent.KEYCODE_ENDCALL);
+                    mEtSend.dispatchKeyEvent(event);
+                }
+            }
+        });
+    }
+
     @Override
     public List<String> onQueryReceived(final @NonNull QueryToken queryToken) {
         if (listener != null && queryToken.getTokenString().equals("@")) {
@@ -310,12 +340,12 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
                 public void run() {
                     chatExtendMenuContainer.setVisibility(View.VISIBLE);
                     chatExtendMenu.setVisibility(View.VISIBLE);
-                    emojiconMenu.setVisibility(View.GONE);
+                    emojiconMenuContainer.setVisibility(View.GONE);
                 }
             }, 50);
         } else {
-            if (emojiconMenu.getVisibility() == View.VISIBLE) {
-                emojiconMenu.setVisibility(View.GONE);
+            if (emojiconMenuContainer.getVisibility() == View.VISIBLE) {
+                emojiconMenuContainer.setVisibility(View.GONE);
                 chatExtendMenu.setVisibility(View.VISIBLE);
             } else {
                 chatExtendMenuContainer.setVisibility(View.GONE);
@@ -334,17 +364,17 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
                 public void run() {
                     chatExtendMenuContainer.setVisibility(View.VISIBLE);
                     chatExtendMenu.setVisibility(View.GONE);
-                    emojiconMenu.setVisibility(View.VISIBLE);
+                    emojiconMenuContainer.setVisibility(View.VISIBLE);
                 }
             }, 50);
         } else {
-            if (emojiconMenu.getVisibility() == View.VISIBLE) {
+            if (emojiconMenuContainer.getVisibility() == View.VISIBLE) {
                 chatExtendMenuContainer.setVisibility(View.GONE);
-                emojiconMenu.setVisibility(View.GONE);
+                emojiconMenuContainer.setVisibility(View.GONE);
                 chatPrimaryMenu.showKeyboard();
             } else {
                 chatExtendMenu.setVisibility(View.GONE);
-                emojiconMenu.setVisibility(View.VISIBLE);
+                emojiconMenuContainer.setVisibility(View.VISIBLE);
             }
         }
     }
@@ -364,7 +394,7 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
      */
     public void hideExtendMenuContainer() {
         chatExtendMenu.setVisibility(View.GONE);
-        emojiconMenu.setVisibility(View.GONE);
+        emojiconMenuContainer.setVisibility(View.GONE);
         chatExtendMenuContainer.setVisibility(View.GONE);
         chatPrimaryMenu.showNormalFaceImage();
     }

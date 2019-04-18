@@ -25,6 +25,7 @@ import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
+import com.easemob.easeui.widget.emoticon.EmoticonManager;
 
 
 import java.io.File;
@@ -109,6 +110,9 @@ public class IMDemoApplication extends Application {
 
         //预先做dns查询
         refreshHost();
+
+        //表情资源初始化
+        EmoticonManager.getInstance().init(this);
     }
 
     private void copyDataBase(String asset, String path) throws IOException
