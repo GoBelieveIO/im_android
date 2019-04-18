@@ -46,7 +46,7 @@ public class EmoticonAdapter extends RecyclerView.Adapter<EmoticonAdapter.BaseVi
         if (emoticon.getId() == R.drawable.emoji_item_delete) {
             holder.ivEmoticon.setImageDrawable(mContext.getResources().getDrawable(R.drawable.emoji_item_delete));
         } else {
-            holder.ivEmoticon.setImageDrawable(mContext.getResources().getDrawable(emoticon.getId()));
+            holder.ivEmoticon.setImageBitmap(emoticon.getBitmap());
         }
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override

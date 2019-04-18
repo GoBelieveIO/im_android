@@ -1,13 +1,14 @@
 package com.beetle.bauhinia.activity;
 
 import android.os.Bundle;
+import android.text.SpannableString;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
-import com.beetle.bauhinia.activity.BaseActivity;
 import com.beetle.imkit.R;
+import com.easemob.easeui.widget.emoticon.EmoticonManager;
 
 public class OverlayActivity extends BaseActivity {
 
@@ -36,7 +37,8 @@ public class OverlayActivity extends BaseActivity {
         });
 
         if (!TextUtils.isEmpty(text)) {
-            v.setText(text);
+            SpannableString s = EmoticonManager.getInstance().getEmoticonStr(text);
+            v.setText(s);
         }
     }
 }

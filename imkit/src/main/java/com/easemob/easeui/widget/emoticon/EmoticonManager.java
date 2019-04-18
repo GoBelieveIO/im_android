@@ -8,7 +8,6 @@ import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ImageSpan;
-import android.util.Log;
 
 import com.beetle.imkit.R;
 import com.easemob.easeui.utils.EaseSmileUtils;
@@ -16,7 +15,7 @@ import com.easemob.easeui.utils.EaseSmileUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,14 +66,9 @@ public class EmoticonManager {
     private List<Emoticon> mEmoticonList = new ArrayList<>();
     private Context mContext;
 
-    private HashMap<String, String> mReverseEncodeMap;
+    private Set<String> mEmojiSet;
 
     private int mEmoticonSize;
-
-    /**
-     * 跟表情大小有强关联性的表情缓存map
-     */
-    private Map<Integer, Map<String, SpannableString>> mSizeCohesiveCacheMap = new HashMap<>();
 
     public static EmoticonManager getInstance() {
         return InstanceContainer.ISNATNCE;
@@ -88,7 +82,7 @@ public class EmoticonManager {
      */
     public void init(Context context) {
         mContext = context;
-        mReverseEncodeMap = EmoticonUtils.getReverseEmojiEncodeMap(context);
+        mEmojiSet = EmoticonUtils.getEmojiEncodeSet();
         mEmoticonSize = EmoticonUtils.getNormalSize(context);
         try {
             parseEmoticonData(context);
@@ -169,7 +163,7 @@ public class EmoticonManager {
         if (TextUtils.isEmpty(text)) {
             return null;
         }
-        if (mReverseEncodeMap != null && mReverseEncodeMap.containsKey(text)) {
+        if (mEmojiSet != null && mEmojiSet.contains(text)) {
             text = EaseSmileUtils.EmojiCodeToString(Integer.parseInt(text, 16));
         }
         Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), imgId);
@@ -183,9 +177,7 @@ public class EmoticonManager {
     /**
      * 获取包含表情的文本，表情采用自定义大小
      *
-     * @param context
      * @param text
-     * @param emoticonSize
      * @return
      */
     public SpannableString getEmoticonStr(CharSequence text) {

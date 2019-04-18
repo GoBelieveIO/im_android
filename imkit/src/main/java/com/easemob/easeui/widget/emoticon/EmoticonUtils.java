@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +28,6 @@ public class EmoticonUtils {
     /**
      * 表情配置文件名
      */
-    public final static String FILE_EMOJI_ENCODE = "emoji_encode";
     public final static String FILE_EMOTICON = "emoticon";
     public final static String FILE_EMOJI_AND_EMOTICON = "emoji_and_emoticon";
     public final static String FILE_EMOJI = "emoji";
@@ -50,7 +50,7 @@ public class EmoticonUtils {
             0x1f381
     };
 
-    static String emojisHex[] = {
+    public static String emojisHex[] = {
             "1f604",
             "1f637",
             "1F602",
@@ -68,20 +68,6 @@ public class EmoticonUtils {
 
 
 
-    /**
-     * 读取assets目录下配置文件的配置数据
-     *
-     * @param context
-     * @return
-     */
-    public static List<String> readEmoticonFile(Context context) {
-        return readFile(context, FILE_EMOTICON);
-    }
-
-    public static List<String> readEmojiFile(Context context) {
-        return readFile(context, FILE_EMOJI);
-    }
-
     public static List<String> readFile(Context context, String fileName) {
         List<String> lineList = new ArrayList<>();
         try {
@@ -97,41 +83,7 @@ public class EmoticonUtils {
         return lineList;
     }
 
-    /**
-     * 替换表情的旧unicode编码为新编码对应的十六进制
-     *
-     * @param context
-     * @param text
-     * @return
-     */
-    public static String replaceOldEncodeToHex(Context context, String text) {
-        //以旧编码的unicode为key
-        HashMap<String, String> oldNewMap = getEmojiEncodeMap(context);
-        Set<String> keySet = oldNewMap.keySet();
-        char[] charArr = text.toCharArray();
-        StringBuffer unicodeStrBuffer = new StringBuffer();
-        boolean contains;
-        for (int i = 0; i < charArr.length; i++) {
-            contains = false;
-            int code = charArr[i];
-            String encodeStr = Integer.toHexString(code);
-            Iterator iterator = keySet.iterator();
-            while (iterator.hasNext()) {
-                String key = (String) iterator.next();
-                if (key.equalsIgnoreCase(encodeStr)) {
-                    contains = true;
-                    break;
-                }
-            }
-            if (!contains) {
-                encodeStr = String.valueOf(charArr[i]);
-            } else {
-                encodeStr = oldNewMap.get(encodeStr.toUpperCase());
-            }
-            unicodeStrBuffer.append(encodeStr);
-        }
-        return unicodeStrBuffer.toString();
-    }
+
 
     /**
      * 将emoji替换成十六进制编码字符串
@@ -151,30 +103,14 @@ public class EmoticonUtils {
         return text;
     }
 
-    private static HashMap<String, String> getEmojiEncodeMap(Context context) {
-        List<String> lineStrList = readFile(context, FILE_EMOJI_ENCODE);
-        HashMap<String, String> oldNewMap = new HashMap<>();
-        String[] oldNewLine;
-        for (String line : lineStrList) {
-            oldNewLine = line.split(",");
-            if (oldNewLine.length == 2) {
-                oldNewMap.put(oldNewLine[0], oldNewLine[1]);
-            }
-        }
-        return oldNewMap;
-    }
 
-    public static HashMap<String, String> getReverseEmojiEncodeMap(Context context) {
-        List<String> lineStrList = readFile(context, FILE_EMOJI_ENCODE);
-        HashMap<String, String> newOldMap = new HashMap<>();
-        String[] oldNewLine;
-        for (String line : lineStrList) {
-            oldNewLine = line.split(",");
-            if (oldNewLine.length == 2) {
-                newOldMap.put(oldNewLine[1], oldNewLine[0]);
-            }
+
+    public static Set<String> getEmojiEncodeSet() {
+        Set<String> emojiSet = new HashSet<>();
+        for (int i = 0; i < emojisHex.length; i++) {
+            emojiSet.add(emojisHex[i]);
         }
-        return newOldMap;
+        return emojiSet;
     }
 
     private static int getEmoticonSize(Context context) {
