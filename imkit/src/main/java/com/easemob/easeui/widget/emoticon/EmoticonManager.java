@@ -8,6 +8,7 @@ import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ImageSpan;
+import android.util.Log;
 
 import com.beetle.imkit.R;
 import com.easemob.easeui.utils.EaseSmileUtils;
@@ -57,6 +58,9 @@ public class EmoticonManager {
      * 保存于内存中的表情HashMap
      */
     private HashMap<String, String> mEmoticonMap = new HashMap<>();
+
+    private HashMap<String, Emoticon> mEmoticons = new HashMap<>();
+
     /**
      * 保存于内存中的表情列表
      */
@@ -76,26 +80,6 @@ public class EmoticonManager {
         return InstanceContainer.ISNATNCE;
     }
 
-    /**
-     * 文本预处理，新旧编码与十六进制之间的替换
-     *
-     * @param context
-     * @param text
-     * @return
-     */
-    private static String textPreprocessing(Context context, String text) {
-        /**
-         * 替换文本中的emoji的旧编码为新编码对应的十六进制，替换时匹配十六进制数据进行替换
-         * @see {@link EmoticonManager#getEmoticonStr(Context, String)}
-         */
-        String unicodeStr = EmoticonUtils.replaceOldEncodeToHex(context, text);
-        /**
-         * 替换文本中的emoji的新编码为对应的十六进制，替换时匹配十六进制数据进行替换
-         * @see {@link EmoticonManager#getEmoticonStr(Context, String)}
-         */
-        unicodeStr = EmoticonUtils.replaceEmojiToHex(context, unicodeStr);
-        return unicodeStr;
-    }
 
     /**
      * 初始化
@@ -135,7 +119,12 @@ public class EmoticonManager {
                 emoticon.setId(resId);
                 emoticon.setName(fileName);
                 emoticon.setDesc(desc);
+                Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resId);
+                bitmap = Bitmap.createScaledBitmap(bitmap, mEmoticonSize, mEmoticonSize, true);
+                emoticon.setBitmap(bitmap);
                 mEmoticonList.add(emoticon);
+
+                mEmoticons.put(desc, emoticon);
             }
         }
         int pageCount = (int) Math.ceil((double) mEmoticonList.size() / PAGE_EMOTICON_SIZE);
@@ -192,17 +181,6 @@ public class EmoticonManager {
     }
 
     /**
-     * 获取包含表情的文本，表情采用默认大小
-     *
-     * @param context
-     * @param text
-     * @return
-     */
-    public SpannableString getEmoticonStr(Context context, CharSequence text) {
-        return getEmoticonStr(context, text, mEmoticonSize);
-    }
-
-    /**
      * 获取包含表情的文本，表情采用自定义大小
      *
      * @param context
@@ -210,58 +188,42 @@ public class EmoticonManager {
      * @param emoticonSize
      * @return
      */
-    public SpannableString getEmoticonStr(Context context, CharSequence text, int emoticonSize) {
+    public SpannableString getEmoticonStr(CharSequence text) {
         if (TextUtils.isEmpty(text)) {
             return new SpannableString("");
         }
-        //有缓存就取缓存数据
-        Map<String, SpannableString> cacheMap = mSizeCohesiveCacheMap.get(emoticonSize);
-        if (cacheMap != null) {
-            SpannableString spannableString = cacheMap.get(text);
-            if (spannableString != null) {
-                return spannableString;
-            }
-        } else {
-            cacheMap = new HashMap<>();
-        }
+
         //预处理
-        text = textPreprocessing(context, text.toString());
+        text = EmoticonUtils.replaceEmojiToHex(text.toString());
         String[] regexes = new String[]{REGEX_CONTAIN_EMOTION, REGEX_DIVERSE_EMOJI};
         SpannableString spannableString = new SpannableString(text);
         for (String regex : regexes) {
-            dealEmoticon(context, spannableString, 0, regex, emoticonSize);
+            dealEmoticon( spannableString, regex);
         }
-        cacheMap.put(text.toString(), spannableString);
-        mSizeCohesiveCacheMap.put(emoticonSize, cacheMap);
+
         return spannableString;
     }
 
-    private void dealEmoticon(Context context, SpannableString spannableString, int start,
-                              String regex, int emoticonSize) {
+    private void dealEmoticon(SpannableString spannableString,  String regex) {
         Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(spannableString);
         while (matcher.find()) {
-            if (matcher.start() < start) {
-                continue;
-            }
             String key = matcher.group();
             String value = mEmoticonMap.get(key);
             if (TextUtils.isEmpty(value)) {
                 continue;
             }
-            int resId = context.getResources().getIdentifier(value, "drawable", context.getPackageName());
-            if (resId != 0) {
-                Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resId);
-                bitmap = Bitmap.createScaledBitmap(bitmap, emoticonSize, emoticonSize, true);
-                @SuppressWarnings("deprecation")
-                ImageSpan imageSpan = new ImageSpan(bitmap);
-                int end = matcher.start() + key.length();
-                spannableString.setSpan(imageSpan, matcher.start(), end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                if (end < spannableString.length()) {
-                    dealEmoticon(context, spannableString, end, regex, emoticonSize);
-                }
-                break;
+
+            Emoticon emoticon = mEmoticons.get(key);
+
+            if (emoticon == null) {
+                continue;
             }
+
+            @SuppressWarnings("deprecation")
+            ImageSpan imageSpan = new ImageSpan(emoticon.getBitmap());
+            int end = matcher.start() + key.length();
+            spannableString.setSpan(imageSpan, matcher.start(), end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
     }
 

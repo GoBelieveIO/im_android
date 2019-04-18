@@ -1,5 +1,8 @@
 package com.easemob.easeui.widget.emoticon;
 
+import android.graphics.Bitmap;
+import android.text.style.ImageSpan;
+
 /**
  * Desc.
  *
@@ -13,6 +16,8 @@ public class Emoticon {
     private String desc;
 
     private String name;
+
+    private Bitmap bitmap;
 
     public int getId() {
         return id;
@@ -36,5 +41,11 @@ public class Emoticon {
 
     public void setName(String name) {
         this.name = name;
+    }
+    public void setBitmap(Bitmap bitmap) {
+        this.bitmap = bitmap;
+    }
+    public Bitmap getBitmap() {
+        return bitmap;
     }
 }

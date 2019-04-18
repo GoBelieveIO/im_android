@@ -33,6 +33,41 @@ public class EmoticonUtils {
     public final static String FILE_EMOJI = "emoji";
     private static final String TAG = "EmoticonUtils";
 
+
+    static int emojis[] = {
+            0x1f604,
+            0x1f637,
+            0x1F602,
+            0x1F61D,
+            0x1f633,
+            0x1f631,
+            0x1F614,
+            0x1f612,
+            0x1f47b,
+            0x1f64f,
+            0x1f4aa,
+            0x1f389,
+            0x1f381
+    };
+
+    static String emojisHex[] = {
+            "1f604",
+            "1f637",
+            "1F602",
+            "1F61D",
+            "1f633",
+            "1f631",
+            "1F614",
+            "1f612",
+            "1f47b",
+            "1f64f",
+            "1f4aa",
+            "1f389",
+            "1f381" 
+    };
+
+
+
     /**
      * 读取assets目录下配置文件的配置数据
      *
@@ -105,16 +140,12 @@ public class EmoticonUtils {
      * @param text
      * @see {@link EmoticonManager#getEmoticonStr(Context, String)} 方法中是根据十六进制的正则匹配来替换成图片资源的
      */
-    public static String replaceEmojiToHex(Context context, String text) {
+    public static String replaceEmojiToHex(String text) {
         //以新编码的十六进制为key
-        HashMap<String, String> newOldMap = getReverseEmojiEncodeMap(context);
-        Set<String> keySet = newOldMap.keySet();
-        Iterator iterator = keySet.iterator();
-        while (iterator.hasNext()) {
-            String key = (String) iterator.next();
-            String keyHexStr = EaseSmileUtils.EmojiCodeToString(Integer.parseInt(key, 16));
+        for (int i = 0; i < emojis.length; i++) {
+            String keyHexStr = EaseSmileUtils.EmojiCodeToString(emojis[i]);
             if (text.contains(keyHexStr)) {
-                text = text.replace(keyHexStr, key);
+                text = text.replace(keyHexStr, emojisHex[i]);
             }
         }
         return text;

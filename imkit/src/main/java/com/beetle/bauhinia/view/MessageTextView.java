@@ -18,7 +18,6 @@ public class MessageTextView extends MessageContentView {
 
     private long time;
 
-    private Context mContext;
 
     public interface DoubleTapListener {
         void onDoubleTap(MessageTextView v);
@@ -43,7 +42,6 @@ public class MessageTextView extends MessageContentView {
         super(context);
         inflater.inflate(R.layout.chat_content_text, this);
 
-        mContext = context;
         mGestureDetector = new GestureDetector(context, new GestureListener());
         textView = (TextView)findViewById(R.id.text);
         textView.setOnTouchListener(new OnTouchListener() {
@@ -78,7 +76,7 @@ public class MessageTextView extends MessageContentView {
         if (mediaType == MessageContent.MessageType.MESSAGE_TEXT) {
             TextView content = (TextView) findViewById(R.id.text);
             String text = ((Text) msg.content).text;
-            content.setText(EmoticonManager.getInstance().getEmoticonStr(mContext, text));
+            content.setText(EmoticonManager.getInstance().getEmoticonStr(text));
         }
 
         if (msg.isOutgoing) {
