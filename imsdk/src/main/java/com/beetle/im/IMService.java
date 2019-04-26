@@ -38,6 +38,7 @@ public class IMService {
     private static final String TAG = "imservice";
     private static final int HEARTBEAT = 60*3;
     private static final String HEATBEAT_ACTION = "io.gobelieve.HEARTBEAT";
+    private static final int CONNECT_TIMEOUT = 60;
 
     public enum ConnectState {
         STATE_UNCONNECTED,
@@ -63,10 +64,12 @@ public class IMService {
     private String hostIP;
     private int timestamp;
 
+    //set before call start
     private String host;
     private int port;
     private String token;
     private String deviceID;
+    private int connectTimeout;
 
     private boolean keepAlive;//应用在后台，保持socket连接
     private PendingIntent alarmIntent;
@@ -135,14 +138,17 @@ public class IMService {
 
         this.host = HOST;
         this.port = PORT;
+        this.connectTimeout = CONNECT_TIMEOUT;
     }
-
 
 
     public ConnectState getConnectState() {
         return connectState;
     }
 
+    public void setConnectTimeout(int connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
     public void setHost(String host) {
         this.host = host;
     }
@@ -280,6 +286,8 @@ public class IMService {
         if (!this.stopped) {
             suspend();
             if (!keepAlive) {
+                IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
+                IMService.this.publishConnectState();
                 this.close();
             }
         }
@@ -440,6 +448,8 @@ public class IMService {
         Log.i(TAG, "stop im service");
         stopped = true;
         suspend();
+        IMService.this.connectState = ConnectState.STATE_UNCONNECTED;
+        IMService.this.publishConnectState();
         this.close();
         if (this.isBackground) {
             Log.w(TAG, "stop im service when app is background");
@@ -791,6 +801,26 @@ public class IMService {
             IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;
             publishConnectState();
             startConnectTimer();
+        } else if (connectTimeout > 0){
+            Timer t = new Timer() {
+                @Override
+                protected void fire() {
+                    int now = now();
+                    if (IMService.this.connectState == ConnectState.STATE_CONNECTING &&
+                            now - IMService.this.connectTimestamp >= connectTimeout) {
+                        //connect timeout
+                        Log.i(TAG, "connect timeout");
+                        IMService.this.connectFailCount++;
+                        IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;
+                        IMService.this.publishConnectState();
+                        IMService.this.close();
+                        IMService.this.startConnectTimer();
+                    }
+                }
+            };
+
+            t.setTimer(uptimeMillis()+1000*connectTimeout+100);
+            t.resume();
         }
     }
 
