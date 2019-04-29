@@ -327,7 +327,7 @@ public class SQLGroupMessageDB  {
 
     private IMessage getMessage(long id) {
         Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "group_id", "timestamp", "flags", "content"},
-                "uuid = ?", new String[]{""+id}, null, null, null);
+                "id = ?", new String[]{""+id}, null, null, null);
 
         IMessage msg = null;
         if (cursor.moveToNext()) {
