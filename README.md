@@ -57,15 +57,31 @@ asynctcp, imsdk, imkit是library模块
 
         IMService.getInstance().start();
 
-6. 应用进入后台，断开socket链接
+6. 添加消息observer，处理相应类型的消息
+
+        //连接状态
+        IMService.getInstance().addObserver(ob);
+
+        //点对点消息
+        IMService.getInstance().addPeerObserver(ob);
+        //群组消息
+        IMService.getInstance().addGroupObserver(ob);
+        //直播的聊天室消息
+        IMService.getInstance().addRoomObserver(ob);
+        //实时消息,用于voip的信令
+        IMService.getInstance().addRTObserver(ob);
+        //系统消息
+        IMService.getInstance().addSystemObserver(ob);    
+
+7. 应用进入后台，断开socket链接
 
         IMService.getInstance().enterBackground();
 
-7. 应用返回前台,重现链接socket
+8. 应用返回前台,重现链接socket
  
         IMService.getInstance().enterForeground();
 
-8. 发送点对点消息
+9.  发送点对点消息
 
         Intent intent = new Intent(this, PeerMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -74,7 +90,7 @@ asynctcp, imsdk, imkit是library模块
         intent.putExtra("current_uid", uid);
         startActivity(intent);
 
-9. 发送群组消息
+10. 发送群组消息
 
         Intent intent = new Intent(this, GroupMessageActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -83,6 +99,6 @@ asynctcp, imsdk, imkit是library模块
         intent.putExtra("current_uid", uid);
         startActivity(intent);
 
-10. 用户注销
+11. 用户注销
 
         IMService.getInstance().stop()
