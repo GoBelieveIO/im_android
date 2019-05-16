@@ -265,8 +265,7 @@ public class CustomerMessageActivity extends MessageActivity
 
 
     @Override
-    protected boolean sendMessage(IMessage imsg) {
-        boolean r = true;
+    protected void sendMessage(IMessage imsg) {
         if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
             CustomerOutbox ob = CustomerOutbox.getInstance();
             Audio audio = (Audio)imsg.content;
@@ -297,12 +296,11 @@ public class CustomerMessageActivity extends MessageActivity
             msg.content = cm.content.getRaw();
 
             IMService im = IMService.getInstance();
-            r = im.sendCustomerMessage(msg);
+            im.sendCustomerMessageAsync(msg);
         }
         NotificationCenter nc = NotificationCenter.defaultCenter();
         Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
         nc.postNotification(notification);
-        return r;
     }
 
 

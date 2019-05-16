@@ -11,6 +11,7 @@
 package com.beetle.im;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import static android.os.SystemClock.uptimeMillis;
@@ -38,8 +39,20 @@ public abstract class Timer {
                 boolean b = this.sendEmptyMessageAtTime(WHAT, t);
             }
         }
+
+        public TimerHandler(Looper loop) {
+            super(loop);
+        }
     }
-    private Handler handler = new TimerHandler();
+    private Handler handler;
+
+    public Timer(Looper looper) {
+        handler = new TimerHandler(looper);
+    }
+
+    public Timer() {
+        handler = new TimerHandler(Looper.myLooper());
+    }
 
     public void setTimer(long start, long interval) {
         this.start = start;

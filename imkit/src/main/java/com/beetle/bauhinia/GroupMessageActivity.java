@@ -281,7 +281,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
 
     @Override
-    protected boolean sendMessage(IMessage imsg) {
+    protected void sendMessage(IMessage imsg) {
         boolean r = true;
         if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
             GroupOutbox ob = GroupOutbox.getInstance();
@@ -308,14 +308,12 @@ public class GroupMessageActivity extends MessageActivity implements
             msg.content = imsg.content.getRaw();
             msg.msgLocalID = imsg.msgLocalID;
             IMService im = IMService.getInstance();
-            r = im.sendGroupMessage(msg);
+            im.sendGroupMessageAsync(msg);
         }
-
 
         NotificationCenter nc = NotificationCenter.defaultCenter();
         Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
         nc.postNotification(notification);
-        return r;
     }
 
 

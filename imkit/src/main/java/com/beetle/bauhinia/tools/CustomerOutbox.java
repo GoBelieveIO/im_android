@@ -14,7 +14,6 @@ import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.message.*;
 import com.beetle.im.CustomerMessage;
-import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 
 
@@ -35,31 +34,18 @@ public class CustomerOutbox extends Outbox {
 
     @Override
     protected void saveMessageAttachment(IMessage msg, String url) {
-        if (CustomerMessageDB.SQL_ENGINE_DB) {
-            String content = "";
-            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-                Audio audio = (Audio)msg.content;
-                content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-            } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-                Image image = (Image) msg.content;
-                content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
-            } else {
-                return;
-            }
-
-            CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+            Audio audio = (Audio)msg.content;
+            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+        } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+            Image image = (Image) msg.content;
+            content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         } else {
-            ICustomerMessage attachment = new ICustomerMessage();
-            attachment.content = Attachment.newURLAttachment(msg.msgLocalID, url);
-            attachment.sender = msg.sender;
-            attachment.receiver = msg.receiver;
-            saveMessage(attachment);
+            return;
         }
-    }
 
-    void saveMessage(IMessage imsg) {
-        ICustomerMessage m = (ICustomerMessage)imsg;
-        CustomerMessageDB.getInstance().insertMessage(imsg);
+        CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
     }
 
     @Override
@@ -78,7 +64,7 @@ public class CustomerOutbox extends Outbox {
         msg.content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
-        im.sendCustomerMessage(msg);
+        im.sendCustomerMessageAsync(msg);
     }
 
     @Override
@@ -96,7 +82,7 @@ public class CustomerOutbox extends Outbox {
         msg.content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
-        im.sendCustomerMessage(msg);
+        im.sendCustomerMessageAsync(msg);
     }
 
 
@@ -105,17 +91,16 @@ public class CustomerOutbox extends Outbox {
 
         ICustomerMessage cm = (ICustomerMessage)imsg;
         Video video = (Video)imsg.content;
-
-
-
-        IMMessage msg = new IMMessage();
-        msg.sender = imsg.sender;
-        msg.receiver = imsg.receiver;
+        CustomerMessage msg = new CustomerMessage();
         msg.msgLocalID = imsg.msgLocalID;
+        msg.customerAppID = cm.customerAppID;
+        msg.customerID = cm.customerID;
+        msg.storeID = cm.storeID;
+        msg.sellerID = cm.sellerID;
         msg.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
-        im.sendGroupMessage(msg);
+        im.sendCustomerMessageAsync(msg);
     }
 
 }

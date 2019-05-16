@@ -347,7 +347,7 @@ public class PeerMessageActivity extends MessageActivity implements
     }
 
     @Override
-    protected boolean sendMessage(IMessage imsg) {
+    protected void sendMessage(IMessage imsg) {
         boolean r = true;
         if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
             Audio audio = (Audio)imsg.content;
@@ -391,7 +391,7 @@ public class PeerMessageActivity extends MessageActivity implements
 
             if (r) {
                 IMService im = IMService.getInstance();
-                r = im.sendPeerMessage(msg);
+                im.sendPeerMessageAsync(msg);
             }
         }
 
@@ -404,7 +404,6 @@ public class PeerMessageActivity extends MessageActivity implements
             Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
             nc.postNotification(notification);
         }
-        return r;
     }
 
 
