@@ -157,7 +157,11 @@ public class IMService {
         return looper;
     }
 
-    private void initTimer() {
+    private void createTimer() {
+        if (connectTimer != null && heartbeatTimer != null) {
+            return;
+        }
+
         connectTimer = new Timer(looper) {
             @Override
             protected void fire() {
@@ -487,7 +491,7 @@ public class IMService {
         }
         Log.i(TAG, "start im service");
         this.stopped = false;
-        initTimer();
+        createTimer();
         this.resume();
 
         //应用在后台的情况下基本不太可能调用start
