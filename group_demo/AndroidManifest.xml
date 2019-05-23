@@ -50,6 +50,17 @@
 
 
         <activity
+            android:name="io.gobelieve.im.demo.AppGroupMessageActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize|stateHidden"
+            android:theme="@style/imkit.ActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
+
+
+        <activity
             android:name="com.beetle.bauhinia.PeerMessageActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize|stateHidden"
@@ -66,26 +77,61 @@
         </activity>
 
         <activity
-            android:name="com.beetle.bauhinia.MapActivity"
+            android:name="com.beetle.bauhinia.activity.MapActivity"
             android:label="位置"
             android:theme="@style/imkit.ActionBar">
         </activity>
         <activity
-            android:name="com.beetle.bauhinia.LocationPickerActivity"
+            android:name="com.beetle.bauhinia.activity.LocationPickerActivity"
             android:label="位置"
             android:theme="@style/imkit.ActionBar">
         </activity>
 
+        <activity
+            android:name="com.beetle.bauhinia.activity.WebActivity"
+            android:label=""
+            android:theme="@style/imkit.ActionBar">
+        </activity>
 
         <activity
-            android:name="io.gobelieve.im.demo.AppGroupMessageActivity"
-            android:exported="true"
-            android:windowSoftInputMode="adjustResize|stateHidden"
+            android:name="com.beetle.bauhinia.gallery.ui.GalleryGridUI"
+            android:label="@string/gallery_chat_files"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
             android:theme="@style/imkit.ActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-            </intent-filter>
         </activity>
+
+        <activity
+            android:name="com.beetle.bauhinia.gallery.ui.GalleryUI"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:theme="@style/imkit.NoActionBar">
+        </activity>
+
+
+        <activity android:name="com.beetle.bauhinia.activity.OverlayActivity"
+            android:theme="@style/imkit.NoActionBar">
+        </activity>
+
+        <activity android:name="com.beetle.bauhinia.activity.MessageFileActivity"
+            android:label="文件预览"
+            android:theme="@style/imkit.ActionBar">
+        </activity>
+        <activity android:name="com.beetle.bauhinia.activity.PlayerActivity"
+            android:theme="@style/imkit.NoActionBar">
+        </activity>
+
+
+        <!-- authorities 当前包名+'.fileprovider' -->
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="io.gobelieve.im.demo.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
