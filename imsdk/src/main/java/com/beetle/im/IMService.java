@@ -122,6 +122,8 @@ public class IMService {
     HashMap<Integer, CustomerMessage> customerMessages = new HashMap<Integer, CustomerMessage>();
 
     ArrayList<IMMessage> receivedGroupMessages = new ArrayList<IMMessage>();
+    //服务器主动下发的消息
+    Message pushMessage;
 
     private byte[] data;
 
@@ -610,6 +612,11 @@ public class IMService {
             receivedGroupMessages.clear();
         }
 
+        if (pushMessage != null) {
+            Log.i(TAG, "socket closed, push message:" + pushMessage);
+            pushMessage = null;
+        }
+
         Iterator iter = peerMessages.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
@@ -861,10 +868,7 @@ public class IMService {
         } else {
             publishPeerMessage(im);
         }
-        Message ack = new Message();
-        ack.cmd = Command.MSG_ACK;
-        ack.body = new Integer(msg.seq);
-        sendMessage(ack);
+        sendACK(msg.seq);
     }
 
     private void handleGroupIMMessage(Message msg) {
@@ -874,10 +878,7 @@ public class IMService {
         im.isSelf = (msg.flag & Flag.MESSAGE_FLAG_SELF) != 0;
         receivedGroupMessages.add(im);
 
-        Message ack = new Message();
-        ack.cmd = Command.MSG_ACK;
-        ack.body = new Integer(msg.seq);
-        sendMessage(ack);
+        sendACK(msg.seq);
     }
 
     private void handleGroupNotification(Message msg) {
@@ -889,11 +890,7 @@ public class IMService {
         }
         publishGroupNotification(notification);
 
-        Message ack = new Message();
-        ack.cmd = Command.MSG_ACK;
-        ack.body = new Integer(msg.seq);
-        sendMessage(ack);
-
+        sendACK(msg.seq);
     }
 
     private void handleClose() {
@@ -902,7 +899,8 @@ public class IMService {
     }
 
     private void handleACK(Message msg) {
-        Integer seq = (Integer)msg.body;
+        MessageACK ack = (MessageACK)msg.body;
+        Integer seq = ack.seq;
         IMMessage im = peerMessages.get(seq);
         if (im != null) {
             if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im)) {
@@ -942,10 +940,7 @@ public class IMService {
             ob.onSystemMessage(sys);
         }
 
-        Message ack = new Message();
-        ack.cmd = Command.MSG_ACK;
-        ack.body = new Integer(msg.seq);
-        sendMessage(ack);
+        sendACK(msg.seq);
     }
 
     private void handleCustomerMessage(Message msg) {
@@ -959,10 +954,7 @@ public class IMService {
 
         publishCustomerMessage(cs);
 
-        Message ack = new Message();
-        ack.cmd = Command.MSG_ACK;
-        ack.body = new Integer(msg.seq);
-        sendMessage(ack);
+        sendACK(msg.seq);
     }
 
     private void handleCustomerSupportMessage(Message msg) {
@@ -974,10 +966,7 @@ public class IMService {
 
         publishCustomerSupportMessage(cs);
 
-        Message ack = new Message();
-        ack.cmd = Command.MSG_ACK;
-        ack.body = new Integer(msg.seq);
-        sendMessage(ack);
+        sendACK(msg.seq);
     }
 
     private void handleRTMessage(Message msg) {
@@ -998,7 +987,36 @@ public class IMService {
 
     private void handleSyncNotify(Message msg) {
         Log.i(TAG, "sync notify:" + msg.body);
-        Long newSyncKey = (Long)msg.body;
+        SyncNotify notify = (SyncNotify)msg.body;
+        Long newSyncKey = notify.syncKey;
+
+        //处理服务器推到客户端的消息, pushMessage和notify消息必须是连续的
+        if (notify.prevSyncKey > 0 && notify.prevSyncKey == this.syncKey && this.pushMessage != null && this.pushMessage.seq + 1 == msg.seq) {
+            assert(this.pushMessage.cmd != Command.MSG_SYNC_NOTIFY);
+
+            this.pushMessage.flag = this.pushMessage.flag & ~Flag.MESSAGE_FLAG_PUSH;
+            handleMessage(this.pushMessage);
+            this.pushMessage = null;
+
+            if (receivedGroupMessages.size() > 0) {
+                if (groupMessageHandler != null && !groupMessageHandler.handleMessages(receivedGroupMessages)) {
+                    Log.i(TAG, "handle group messages fail");
+                    return;
+                }
+                publishGroupMessages(receivedGroupMessages);
+                receivedGroupMessages.clear();
+            }
+
+            if (newSyncKey != this.syncKey) {
+                this.syncKey = newSyncKey;
+                if (this.syncKeyHandler != null) {
+                    this.syncKeyHandler.saveSyncKey(this.syncKey);
+                    this.sendSyncKey(this.syncKey);
+                }
+            }
+            return;
+        }
+
         int now = now();
 
         //4s同步超时
@@ -1052,8 +1070,8 @@ public class IMService {
     }
 
     private void handleSyncGroupNotify(Message msg) {
-        GroupSyncKey key = (GroupSyncKey)msg.body;
-        Log.i(TAG, "group sync notify:" + key.groupID + " " + key.syncKey);
+        GroupSyncNotify key = (GroupSyncNotify)msg.body;
+        Log.i(TAG, "group sync notify:" + key.groupID + " " + key.syncKey + " " + key.prevSyncKey);
 
         GroupSync s = null;
         if (this.groupSyncKeys.containsKey(key.groupID)) {
@@ -1064,6 +1082,35 @@ public class IMService {
             s.groupID = key.groupID;
             s.syncKey = 0;
             this.groupSyncKeys.put(new Long(key.groupID), s);
+        }
+
+
+        //处理服务器推到客户端的消息, pushMessage和notify消息必须是连续的
+        if (key.prevSyncKey > 0 & key.prevSyncKey == s.syncKey && this.pushMessage != null && this.pushMessage.seq + 1 == msg.seq) {
+            assert(this.pushMessage.cmd != Command.MSG_SYNC_GROUP_NOTIFY);
+
+            this.pushMessage.flag = this.pushMessage.flag & ~Flag.MESSAGE_FLAG_PUSH;
+            handleMessage(this.pushMessage);
+            this.pushMessage = null;
+
+            if (receivedGroupMessages.size() > 0) {
+                if (groupMessageHandler != null && !groupMessageHandler.handleMessages(receivedGroupMessages)) {
+                    Log.i(TAG, "handle group messages fail");
+                    return;
+                }
+                publishGroupMessages(receivedGroupMessages);
+                receivedGroupMessages.clear();
+            }
+
+            if (key.syncKey != s.syncKey) {
+                s.syncKey = key.syncKey;
+                if (this.syncKeyHandler != null) {
+                    this.syncKeyHandler.saveGroupSyncKey(key.groupID, key.syncKey);
+                    this.sendGroupSyncKey(key.groupID, key.syncKey);
+                }
+            }
+
+            return;
         }
 
         int now = now();
@@ -1130,6 +1177,11 @@ public class IMService {
 
     private void handleMessage(Message msg) {
         Log.i(TAG, "message cmd:" + msg.cmd);
+        if ((msg.flag & Flag.MESSAGE_FLAG_PUSH) != 0) {
+            this.pushMessage = msg;
+            return;
+        }
+
         if (msg.cmd == Command.MSG_AUTH_STATUS) {
             handleAuthStatus(msg);
         } else if (msg.cmd == Command.MSG_IM) {
@@ -1256,6 +1308,15 @@ public class IMService {
         key.syncKey = syncKey;
         msg.body = key;
         sendMessage(msg);
+    }
+
+    private void sendACK(int seq) {
+        MessageACK a = new MessageACK();
+        a.seq = seq;
+        Message ack = new Message();
+        ack.cmd = Command.MSG_ACK;
+        ack.body = a;
+        sendMessage(ack);
     }
 
     private void sendHeartbeat() {

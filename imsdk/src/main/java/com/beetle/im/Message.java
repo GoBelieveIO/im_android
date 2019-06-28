@@ -62,6 +62,9 @@ class Flag {
     public static final int MESSAGE_FLAG_UNPERSISTENT = 2;
     public static final int MESSAGE_FLAG_GROUP = 4;
     public static final int MESSAGE_FLAG_SELF = 8;
+
+    //服务器主动下发的消息
+    public static final int MESSAGE_FLAG_PUSH = 0x10;
 }
 
 
@@ -69,6 +72,17 @@ class AuthenticationToken {
     public String token;
     public int platformID;
     public String deviceID;
+}
+
+class MessageACK {
+    public int seq;
+    public int status;
+
+    public static final int MESSAGE_ACK_SUCCESS  = 0;
+    public static final int MESSAGE_ACK_NOT_MY_FRIEND = 1;
+    public static final int MESSAGE_ACK_NOT_YOUR_FRIEND = 2;
+    public static final int MESSAGE_ACK_IN_YOUR_BLACKLIST = 3;
+    public static final int MESSAGE_ACK_NOT_GROUP_MEMBER = 64;
 }
 
 //个人消息：typedef long SyncKey
@@ -79,9 +93,20 @@ class GroupSyncKey {
     public long syncKey;
 }
 
+class SyncNotify {
+    public long syncKey;
+    public long prevSyncKey;
+}
+
+class GroupSyncNotify {
+    public long groupID;
+    public long syncKey;
+    public long prevSyncKey;
+}
+
 public class Message {
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     public static final int HEAD_SIZE = 8;
     public int cmd;
@@ -144,8 +169,11 @@ public class Message {
                 return null;
             }
         } else if (cmd == Command.MSG_ACK) {
-            BytePacket.writeInt32((Integer)body, buf, pos);
-            return Arrays.copyOf(buf, HEAD_SIZE+4);
+            MessageACK ack = (MessageACK)body;
+            BytePacket.writeInt32(ack.seq, buf, pos);
+            pos += 4;
+            buf[pos++] = (byte)ack.status;
+            return Arrays.copyOf(buf, HEAD_SIZE+5);
         } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
             CustomerMessage cs = (CustomerMessage) body;
             BytePacket.writeInt64(cs.customerAppID, buf, pos);
@@ -260,8 +288,11 @@ public class Message {
                 return false;
             }
         } else if (cmd == Command.MSG_ACK) {
-            int s = BytePacket.readInt32(data, pos);
-            this.body = new Integer(s);
+            MessageACK ack = new MessageACK();
+            ack.seq = BytePacket.readInt32(data, pos);
+            pos += 4;
+            ack.status = data[pos];
+            this.body = ack;
             return true;
         } else if (cmd == Command.MSG_GROUP_NOTIFICATION) {
             try {
@@ -327,19 +358,33 @@ public class Message {
             this.body = new Long(roomID);
             return true;
         } else if (cmd == Command.MSG_SYNC_BEGIN ||
-                cmd == Command.MSG_SYNC_END ||
-                cmd == Command.MSG_SYNC_NOTIFY) {
+                cmd == Command.MSG_SYNC_END) {
             long key = BytePacket.readInt64(data, pos);
             this.body = new Long(key);
             return true;
         } else if (cmd == Command.MSG_SYNC_GROUP_BEGIN ||
-                cmd == Command.MSG_SYNC_GROUP_END ||
-                cmd == Command.MSG_SYNC_GROUP_NOTIFY) {
+                cmd == Command.MSG_SYNC_GROUP_END) {
             GroupSyncKey key = new GroupSyncKey();
             key.groupID = BytePacket.readInt64(data, pos);
             pos += 8;
             key.syncKey = BytePacket.readInt64(data, pos);
             pos += 8;
+            this.body = key;
+            return true;
+        } else if (cmd == Command.MSG_SYNC_NOTIFY) {
+            SyncNotify notify = new SyncNotify();
+            notify.syncKey = BytePacket.readInt64(data, pos);
+            pos += 8;
+            notify.prevSyncKey = BytePacket.readInt64(data, pos);
+            this.body = notify;
+            return true;
+        } else if (cmd == Command.MSG_SYNC_GROUP_NOTIFY) {
+            GroupSyncNotify key = new GroupSyncNotify();
+            key.groupID = BytePacket.readInt64(data, pos);
+            pos += 8;
+            key.syncKey = BytePacket.readInt64(data, pos);
+            pos += 8;
+            key.prevSyncKey = BytePacket.readInt64(data, pos);
             this.body = key;
             return true;
         } else {
