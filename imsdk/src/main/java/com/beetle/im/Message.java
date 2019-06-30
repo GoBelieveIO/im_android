@@ -55,6 +55,8 @@ class Command{
 
     public static final int MSG_SYNC_KEY = 34;
     public static final int MSG_GROUP_SYNC_KEY = 35;
+
+    public static final int MSG_METADATA = 37;
 }
 
 class Flag {
@@ -65,6 +67,8 @@ class Flag {
 
     //服务器主动下发的消息
     public static final int MESSAGE_FLAG_PUSH = 0x10;
+
+    public static final int MESSAGE_FLAG_SUPER_GROUP = 0x20;
 }
 
 
@@ -95,11 +99,14 @@ class GroupSyncKey {
 
 class SyncNotify {
     public long syncKey;
-    public long prevSyncKey;
 }
 
 class GroupSyncNotify {
     public long groupID;
+    public long syncKey;
+}
+
+class Metadata {
     public long syncKey;
     public long prevSyncKey;
 }
@@ -375,13 +382,18 @@ public class Message {
             SyncNotify notify = new SyncNotify();
             notify.syncKey = BytePacket.readInt64(data, pos);
             pos += 8;
-            notify.prevSyncKey = BytePacket.readInt64(data, pos);
             this.body = notify;
             return true;
         } else if (cmd == Command.MSG_SYNC_GROUP_NOTIFY) {
             GroupSyncNotify key = new GroupSyncNotify();
             key.groupID = BytePacket.readInt64(data, pos);
             pos += 8;
+            key.syncKey = BytePacket.readInt64(data, pos);
+            pos += 8;
+            this.body = key;
+            return true;
+        } else if (cmd == Command.MSG_METADATA) {
+            Metadata key = new Metadata();
             key.syncKey = BytePacket.readInt64(data, pos);
             pos += 8;
             key.prevSyncKey = BytePacket.readInt64(data, pos);
