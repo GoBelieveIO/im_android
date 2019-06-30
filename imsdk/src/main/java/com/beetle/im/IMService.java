@@ -996,9 +996,10 @@ public class IMService {
     }
 
     private void handleSyncNotify(Message msg) {
-        Log.i(TAG, "sync notify:" + msg.body);
         SyncNotify notify = (SyncNotify)msg.body;
         Long newSyncKey = notify.syncKey;
+        Log.i(TAG, "sync notify:" + newSyncKey);
+
         int now = now();
 
         //4s同步超时
