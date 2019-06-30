@@ -37,7 +37,7 @@ public class GroupOutbox extends Outbox{
         msg.msgLocalID = imsg.msgLocalID;
 
         IMService im = IMService.getInstance();
-        im.sendGroupMessage(msg);
+        im.sendGroupMessageAsync(msg);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class GroupOutbox extends Outbox{
         msg.content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
-        im.sendGroupMessage(msg);
+        im.sendGroupMessageAsync(msg);
     }
 
     @Override
@@ -65,9 +65,8 @@ public class GroupOutbox extends Outbox{
         msg.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
 
         IMService im = IMService.getInstance();
-        im.sendGroupMessage(msg);
+        im.sendGroupMessageAsync(msg);
     }
-
 
 
     @Override
@@ -77,30 +76,20 @@ public class GroupOutbox extends Outbox{
 
     @Override
     protected void saveMessageAttachment(IMessage msg, String url) {
-        if (GroupMessageDB.SQL_ENGINE_DB) {
-            String content = "";
-            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-                Audio audio = (Audio)msg.content;
-                content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-            } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-                Image image = (Image) msg.content;
-                content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
-            } else {
-                return;
-            }
-            GroupMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+            Audio audio = (Audio)msg.content;
+            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+        } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+            Image image = (Image) msg.content;
+            content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         } else {
-            IMessage attachment = new IMessage();
-            attachment.content = Attachment.newURLAttachment(msg.msgLocalID, url);
-            attachment.sender = msg.sender;
-            attachment.receiver = msg.receiver;
-            saveMessage(attachment);
+            return;
         }
+        GroupMessageDB.getInstance().updateContent(msg.msgLocalID, content);
     }
 
-    void saveMessage(IMessage imsg) {
-        GroupMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
-    }
+
 
 
 }

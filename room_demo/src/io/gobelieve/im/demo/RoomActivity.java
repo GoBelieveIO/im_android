@@ -11,25 +11,12 @@
 package io.gobelieve.im.demo;
 
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
-
 import com.beetle.bauhinia.MessageActivity;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.db.PeerMessageDB;
-import com.beetle.bauhinia.db.message.Audio;
-import com.beetle.bauhinia.db.message.Image;
-import com.beetle.bauhinia.db.message.Location;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Text;
-import com.beetle.bauhinia.db.message.Video;
-import com.beetle.bauhinia.tools.FileCache;
-import com.beetle.bauhinia.tools.Notification;
-import com.beetle.bauhinia.tools.NotificationCenter;
-import com.beetle.bauhinia.tools.PeerOutbox;
-import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 import com.beetle.im.RoomMessage;
@@ -115,13 +102,13 @@ public class RoomActivity extends MessageActivity implements RoomMessageObserver
 
 
     @Override
-    protected boolean sendMessage(IMessage imsg) {
+    protected void sendMessage(IMessage imsg) {
         RoomMessage rm = new RoomMessage();
         rm.sender = imsg.sender;
         rm.receiver = imsg.receiver;
         rm.content = imsg.content.getRaw();
         IMService im = IMService.getInstance();
-        return im.sendRoomMessage(rm);
+        im.sendRoomMessageAsync(rm);
     }
 
     protected void sendTextMessage(String text, List<Long> at, List<String> atNames) {
@@ -135,13 +122,8 @@ public class RoomActivity extends MessageActivity implements RoomMessageObserver
         saveMessage(imsg);
         loadUserName(imsg);
 
-        boolean r = sendMessage(imsg);
-        if (!r) {
-            imsg.setFailure(true);
-        } else {
-            imsg.setAck(true);
-        }
-
+        sendMessage(imsg);
+        imsg.setAck(true);
         insertMessage(imsg);
     }
 

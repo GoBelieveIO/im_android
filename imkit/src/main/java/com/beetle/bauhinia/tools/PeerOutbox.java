@@ -37,31 +37,20 @@ public class PeerOutbox extends Outbox {
 
     @Override
     protected void saveMessageAttachment(IMessage msg, String url) {
-        if (PeerMessageDB.SQL_ENGINE_DB) {
-            String content = "";
-            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-                Audio audio = (Audio)msg.content;
-                content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-            } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-                Image image = (Image) msg.content;
-                content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
-            } else {
-                return;
-            }
-
-            PeerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+            Audio audio = (Audio)msg.content;
+            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+        } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+            Image image = (Image) msg.content;
+            content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         } else {
-            IMessage attachment = new IMessage();
-            attachment.content = Attachment.newURLAttachment(msg.msgLocalID, url);
-            attachment.sender = msg.sender;
-            attachment.receiver = msg.receiver;
-            saveMessage(attachment);
+            return;
         }
+
+        PeerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
     }
 
-    void saveMessage(IMessage imsg) {
-        PeerMessageDB.getInstance().insertMessage(imsg, imsg.receiver);
-    }
 
     @Override
     protected void sendImageMessage(IMessage imsg, String url) {
@@ -79,7 +68,7 @@ public class PeerOutbox extends Outbox {
         }
         if (r) {
             IMService im = IMService.getInstance();
-            im.sendPeerMessage(msg);
+            im.sendPeerMessageAsync(msg);
         }
 
     }
@@ -102,7 +91,7 @@ public class PeerOutbox extends Outbox {
         }
         if (r) {
             IMService im = IMService.getInstance();
-            im.sendPeerMessage(msg);
+            im.sendPeerMessageAsync(msg);
         }
 
     }
@@ -124,7 +113,7 @@ public class PeerOutbox extends Outbox {
         }
         if (r) {
             IMService im = IMService.getInstance();
-            im.sendPeerMessage(msg);
+            im.sendPeerMessageAsync(msg);
         }
     }
 

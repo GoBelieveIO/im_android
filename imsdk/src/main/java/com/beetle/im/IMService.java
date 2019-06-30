@@ -20,6 +20,8 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.util.Log;
 import com.beetle.AsyncTCP;
@@ -80,6 +82,9 @@ public class IMService {
     private String token;
     private String deviceID;
     private int connectTimeout;
+    private Looper looper;
+    private Handler handler;
+    private Handler mainThreadHandler;//调用observer
 
     private boolean keepAlive;//应用在后台，保持socket连接
     private PendingIntent alarmIntent;
@@ -134,28 +139,44 @@ public class IMService {
     }
 
     public IMService() {
-        connectTimer = new Timer() {
+        this.host = HOST;
+        this.port = PORT;
+        this.connectTimeout = CONNECT_TIMEOUT;
+        this.setLooper(Looper.myLooper());
+        this.mainThreadHandler = new Handler(Looper.getMainLooper());
+    }
+
+    public ConnectState getConnectState() {
+        return connectState;
+    }
+
+    public void setLooper(Looper looper) {
+        this.looper = looper;
+        this.handler = new Handler(looper);
+    }
+
+    public Looper getLooper() {
+        return looper;
+    }
+
+    private void createTimer() {
+        if (connectTimer != null && heartbeatTimer != null) {
+            return;
+        }
+
+        connectTimer = new Timer(looper) {
             @Override
             protected void fire() {
                 IMService.this.connect();
             }
         };
 
-        heartbeatTimer = new Timer() {
+        heartbeatTimer = new Timer(looper) {
             @Override
             protected void fire() {
                 IMService.this.sendHeartbeat();
             }
         };
-
-        this.host = HOST;
-        this.port = PORT;
-        this.connectTimeout = CONNECT_TIMEOUT;
-    }
-
-
-    public ConnectState getConnectState() {
-        return connectState;
     }
 
     public void setConnectTimeout(int connectTimeout) {
@@ -214,6 +235,7 @@ public class IMService {
         this.customerMessageHandler = handler;
     }
 
+    //call on main thread
     public void addObserver(IMServiceObserver ob) {
         if (observers.contains(ob)) {
             return;
@@ -293,6 +315,15 @@ public class IMService {
     }
 
     public void enterBackground() {
+        runOnThread(looper, new Runnable() {
+            @Override
+            public void run() {
+                IMService.this._enterBackground();
+            }
+        });
+    }
+
+    public void _enterBackground() {
         Log.i(TAG, "im service enter background");
         this.isBackground = true;
         if (!this.stopped) {
@@ -306,6 +337,15 @@ public class IMService {
     }
 
     public void enterForeground() {
+        runOnThread(looper, new Runnable() {
+            @Override
+            public void run() {
+                IMService.this._enterForeground();
+            }
+        });
+    }
+
+    public void _enterForeground() {
         Log.i(TAG, "im service enter foreground");
         this.isBackground = false;
         if (!this.stopped) {
@@ -395,7 +435,7 @@ public class IMService {
         IntentFilter filter = new IntentFilter();
         filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
         filter.addAction(HEATBEAT_ACTION);
-        context.registerReceiver(receiver, filter);
+        context.registerReceiver(receiver, filter, null, handler);
         this.reachable = isOnNet(context);
     }
 
@@ -434,6 +474,15 @@ public class IMService {
     }
 
     public void start() {
+        runOnThread(looper, new Runnable() {
+            @Override
+            public void run() {
+                IMService.this._start();
+            }
+        });
+    }
+
+    private void _start() {
         if (this.token.length() == 0) {
             throw new RuntimeException("NO TOKEN PROVIDED");
         }
@@ -444,6 +493,7 @@ public class IMService {
         }
         Log.i(TAG, "start im service");
         this.stopped = false;
+        createTimer();
         this.resume();
 
         //应用在后台的情况下基本不太可能调用start
@@ -453,6 +503,15 @@ public class IMService {
     }
 
     public void stop() {
+        runOnThread(looper, new Runnable() {
+            @Override
+            public void run() {
+                IMService.this._stop();
+            }
+        });
+    }
+
+    private void _stop() {
         if (this.stopped) {
             Log.i(TAG, "already stopped");
             return;
@@ -495,7 +554,23 @@ public class IMService {
         heartbeatTimer.resume();
     }
 
+    public void sendPeerMessageAsync(final IMMessage im) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                boolean r = IMService.this.sendPeerMessage(im);
+                if (!r) {
+                    if (peerMessageHandler != null) {
+                        peerMessageHandler.handleMessageFailure(im);
+                    }
+                    publishPeerMessageFailure(im);
+                }
+            }
+        });
+    }
+
     public boolean sendPeerMessage(IMMessage im) {
+        assertLooper();
         Message msg = new Message();
         msg.cmd = Command.MSG_IM;
         msg.body = im;
@@ -511,7 +586,23 @@ public class IMService {
         return true;
     }
 
+    public void sendGroupMessageAsync(final IMMessage im) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                boolean r = IMService.this.sendGroupMessage(im);
+                if (!r) {
+                    if (groupMessageHandler != null) {
+                        groupMessageHandler.handleMessageFailure(im);
+                    }
+                    publishGroupMessageFailure(im);
+                }
+            }
+        });
+    }
+
     public boolean sendGroupMessage(IMMessage im) {
+        assertLooper();
         Message msg = new Message();
         msg.cmd = Command.MSG_GROUP_IM;
         msg.body = im;
@@ -527,7 +618,25 @@ public class IMService {
         return true;
     }
 
+
+    public void sendCustomerMessageAsync(final CustomerMessage im) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                boolean r = IMService.this.sendCustomerMessage(im);
+                if (!r) {
+                    if (customerMessageHandler != null) {
+                        customerMessageHandler.handleMessageFailure(im);
+                    }
+                    publishCustomerServiceMessageACK(im);
+                }
+            }
+        });
+    }
+
+
     public boolean sendCustomerMessage(CustomerMessage im) {
+        assertLooper();
         Message msg = new Message();
         msg.cmd = Command.MSG_CUSTOMER;
         msg.body = im;
@@ -543,7 +652,23 @@ public class IMService {
         return true;
     }
 
+    public void sendCustomerSupportMessageAsync(final CustomerMessage im) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                boolean r = IMService.this.sendCustomerSupportMessage(im);
+                if (!r) {
+                    if (customerMessageHandler != null) {
+                        customerMessageHandler.handleMessageFailure(im);
+                    }
+                    publishCustomerServiceMessageFailure(im);
+                }
+            }
+        });
+    }
+
     public boolean sendCustomerSupportMessage(CustomerMessage im) {
+        assertLooper();
         Message msg = new Message();
         msg.cmd = Command.MSG_CUSTOMER_SUPPORT;
         msg.body = im;
@@ -559,7 +684,18 @@ public class IMService {
         return true;
     }
 
+    public void sendRTMessageAsync(final RTMessage rt) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                IMService.this.sendRTMessage(rt);
+
+            }
+        });
+    }
+
     public boolean sendRTMessage(RTMessage rt) {
+        assertLooper();
         Message msg = new Message();
         msg.cmd = Command.MSG_RT;
         msg.body = rt;
@@ -569,7 +705,17 @@ public class IMService {
         return true;
     }
 
+    public void sendRoomMessageAsync(final RoomMessage rm) {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                IMService.this.sendRoomMessage(rm);
+            }
+        });
+    }
+
     public boolean sendRoomMessage(RoomMessage rm) {
+        assertLooper();
         Message msg = new Message();
         msg.cmd = Command.MSG_ROOM_IM;
         msg.body = rm;
@@ -590,20 +736,35 @@ public class IMService {
         sendMessage(msg);
     }
 
-    public void enterRoom(long roomID) {
+
+    public void enterRoom(final long roomID) {
         if (roomID == 0) {
             return;
         }
-        this.roomID = roomID;
-        sendEnterRoom(roomID);
+
+        runOnThread(looper, new Runnable() {
+            @Override
+            public void run() {
+                IMService.this.roomID = roomID;
+                sendEnterRoom(roomID);
+            }
+        });
     }
 
-    public void leaveRoom(long roomID) {
-        if (this.roomID != roomID || roomID == 0) {
+    public void leaveRoom(final long roomID) {
+        if (roomID == 0) {
             return;
         }
-        sendLeaveRoom(roomID);
-        this.roomID = 0;
+        runOnThread(looper, new Runnable() {
+            @Override
+            public void run() {
+                if (IMService.this.roomID != roomID) {
+                    return;
+                }
+                sendLeaveRoom(roomID);
+                IMService.this.roomID = 0;
+            }
+        });
     }
 
     private void close() {
@@ -657,7 +818,7 @@ public class IMService {
         }
     }
 
-    public static int now() {
+    private static int now() {
         Date date = new Date();
         long t = date.getTime();
         return (int)(t/1000);
@@ -980,19 +1141,29 @@ public class IMService {
     }
 
     private void handleRTMessage(Message msg) {
-        RTMessage rt = (RTMessage)msg.body;
-        for (int i = 0; i < rtMessageObservers.size(); i++ ) {
-            RTMessageObserver ob = rtMessageObservers.get(i);
-            ob.onRTMessage(rt);
-        }
+        final RTMessage rt = (RTMessage)msg.body;
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < rtMessageObservers.size(); i++ ) {
+                    RTMessageObserver ob = rtMessageObservers.get(i);
+                    ob.onRTMessage(rt);
+                }
+            }
+        });
     }
 
     private void handleRoomMessage(Message msg) {
-        RoomMessage rm = (RoomMessage)msg.body;
-        for (int i= 0; i < roomMessageObservers.size(); i++) {
-            RoomMessageObserver ob = roomMessageObservers.get(i);
-            ob.onRoomMessage(rm);
-        }
+        final RoomMessage rm = (RoomMessage)msg.body;
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i= 0; i < roomMessageObservers.size(); i++) {
+                    RoomMessageObserver ob = roomMessageObservers.get(i);
+                    ob.onRoomMessage(rm);
+                }
+            }
+        });
     }
 
     private void handleSyncNotify(Message msg) {
@@ -1394,96 +1565,188 @@ public class IMService {
         return true;
     }
 
-    private void publishGroupNotification(String notification) {
-        for (int i = 0; i < groupObservers.size(); i++ ) {
-            GroupMessageObserver ob = groupObservers.get(i);
-            ob.onGroupNotification(notification);
-        }
+    private void publishGroupNotification(final String notification) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < groupObservers.size(); i++ ) {
+                    GroupMessageObserver ob = groupObservers.get(i);
+                    ob.onGroupNotification(notification);
+                }
+            }
+        });
     }
 
-    private void publishGroupMessages(List<IMMessage> msgs) {
-        for (int i = 0; i < groupObservers.size(); i++ ) {
-            GroupMessageObserver ob = groupObservers.get(i);
-            ob.onGroupMessages(msgs);
-        }
+    private void publishGroupMessages(final List<IMMessage> msgs) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < groupObservers.size(); i++ ) {
+                    GroupMessageObserver ob = groupObservers.get(i);
+                    ob.onGroupMessages(msgs);
+                }
+            }
+        });
     }
 
-    private void publishGroupMessageACK(IMMessage im) {
-        for (int i = 0; i < groupObservers.size(); i++ ) {
-            GroupMessageObserver ob = groupObservers.get(i);
-            ob.onGroupMessageACK(im);
-        }
+    private void publishGroupMessageACK(final IMMessage im) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < groupObservers.size(); i++) {
+                    GroupMessageObserver ob = groupObservers.get(i);
+                    ob.onGroupMessageACK(im);
+                }
+            }
+        });
     }
 
-
-    private void publishGroupMessageFailure(IMMessage im) {
-        for (int i = 0; i < groupObservers.size(); i++ ) {
-            GroupMessageObserver ob = groupObservers.get(i);
-            ob.onGroupMessageFailure(im);
-        }
+    private void publishGroupMessageFailure(final IMMessage im) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < groupObservers.size(); i++) {
+                    GroupMessageObserver ob = groupObservers.get(i);
+                    ob.onGroupMessageFailure(im);
+                }
+            }
+        });
     }
 
-    private void publishPeerMessage(IMMessage msg) {
-        for (int i = 0; i < peerObservers.size(); i++ ) {
-            PeerMessageObserver ob = peerObservers.get(i);
-            ob.onPeerMessage(msg);
-        }
+    private void publishPeerMessage(final IMMessage msg) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < peerObservers.size(); i++) {
+                    PeerMessageObserver ob = peerObservers.get(i);
+                    ob.onPeerMessage(msg);
+                }
+            }
+        });
     }
 
-    private void publishPeerSecretMessage(IMMessage msg) {
-        for (int i = 0; i < peerObservers.size(); i++ ) {
-            PeerMessageObserver ob = peerObservers.get(i);
-            ob.onPeerSecretMessage(msg);
-        }
+    private void publishPeerSecretMessage(final IMMessage msg) {
+
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < peerObservers.size(); i++) {
+                    PeerMessageObserver ob = peerObservers.get(i);
+                    ob.onPeerSecretMessage(msg);
+                }
+            }
+        });
+
     }
 
-    private void publishPeerMessageACK(IMMessage msg) {
-        for (int i = 0; i < peerObservers.size(); i++ ) {
-            PeerMessageObserver ob = peerObservers.get(i);
-            ob.onPeerMessageACK(msg);
-        }
+    private void publishPeerMessageACK(final IMMessage msg) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < peerObservers.size(); i++ ) {
+                    PeerMessageObserver ob = peerObservers.get(i);
+                    ob.onPeerMessageACK(msg);
+                }
+            }
+        });
+
     }
 
-    private void publishPeerMessageFailure(IMMessage msg) {
-        for (int i = 0; i < peerObservers.size(); i++ ) {
-            PeerMessageObserver ob = peerObservers.get(i);
-            ob.onPeerMessageFailure(msg);
-        }
+    private void publishPeerMessageFailure(final IMMessage msg) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < peerObservers.size(); i++ ) {
+                    PeerMessageObserver ob = peerObservers.get(i);
+                    ob.onPeerMessageFailure(msg);
+                }
+            }
+        });
+
+
     }
 
     private void publishConnectState() {
-        for (int i = 0; i < observers.size(); i++ ) {
-            IMServiceObserver ob = observers.get(i);
-            ob.onConnectState(connectState);
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < observers.size(); i++ ) {
+                    IMServiceObserver ob = observers.get(i);
+                    ob.onConnectState(connectState);
+                }
+            }
+        });
+
+    }
+
+    private void publishCustomerMessage(final CustomerMessage cs) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+                    CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
+                    ob.onCustomerMessage(cs);
+                }
+            }
+        });
+
+    }
+
+    private void publishCustomerSupportMessage(final CustomerMessage cs) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+                    CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
+                    ob.onCustomerSupportMessage(cs);
+                }
+            }
+        });
+
+    }
+
+    private void publishCustomerServiceMessageACK(final CustomerMessage msg) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+                    CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
+                    ob.onCustomerMessageACK(msg);
+                }
+            }
+        });
+
+    }
+
+
+    private void publishCustomerServiceMessageFailure(final CustomerMessage msg) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
+                    CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
+                    ob.onCustomerMessageFailure(msg);
+                }
+            }
+        });
+    }
+
+    private void runOnMainThread(Runnable r) {
+        runOnThread(Looper.getMainLooper(), r);
+    }
+
+    private void runOnThread(Looper looper, Runnable r) {
+        if (Looper.myLooper() == looper) {
+            r.run();
+        } else {
+            mainThreadHandler.post(r);
         }
     }
 
-    private void publishCustomerMessage(CustomerMessage cs) {
-        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
-            CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
-            ob.onCustomerMessage(cs);
+    private void assertLooper() {
+        if (Looper.myLooper() != looper) {
+            throw new AssertionError("looper assert");
         }
     }
 
-    private void publishCustomerSupportMessage(CustomerMessage cs) {
-        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
-            CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
-            ob.onCustomerSupportMessage(cs);
-        }
-    }
-
-    private void publishCustomerServiceMessageACK(CustomerMessage msg) {
-        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
-            CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
-            ob.onCustomerMessageACK(msg);
-        }
-    }
-
-
-    private void publishCustomerServiceMessageFailure(CustomerMessage msg) {
-        for (int i = 0; i < customerServiceMessageObservers.size(); i++) {
-            CustomerMessageObserver ob = customerServiceMessageObservers.get(i);
-            ob.onCustomerMessageFailure(msg);
-        }
-    }
 }

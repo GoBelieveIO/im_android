@@ -21,6 +21,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.HandlerThread;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
@@ -61,6 +62,8 @@ public class IMDemoApplication extends Application {
 
     private static Application sApplication;
 
+    private HandlerThread imThread;//处理im消息的线程
+
     private String mDeviceToken;
     public String getDeviceToken() {
         return mDeviceToken;
@@ -95,6 +98,9 @@ public class IMDemoApplication extends Application {
         super.onCreate();
         sApplication = this;
 
+        imThread = new HandlerThread("im_service");
+        imThread.start();
+
         IMService mIMService = IMService.getInstance();
         //app可以单独部署服务器，给予第三方应用更多的灵活性
         mIMService.setHost("imnode2.gobelieve.io");
@@ -106,6 +112,7 @@ public class IMDemoApplication extends Application {
         //设置设备唯一标识,用于多点登录时设备校验
         mIMService.setDeviceID(androidID);
 
+        mIMService.setLooper(imThread.getLooper());
         //监听网路状态变更
         IMService.getInstance().registerConnectivityChangeReceiver(getApplicationContext());
 

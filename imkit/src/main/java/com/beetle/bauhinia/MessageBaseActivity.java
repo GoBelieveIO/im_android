@@ -859,10 +859,7 @@ public class MessageBaseActivity extends BaseActivity {
             }
         }
 
-        boolean r = sendMessage(imsg);
-        if (!r) {
-            imsg.setFailure(true);
-        }
+        sendMessage(imsg);
         insertMessage(imsg);
     }
 
@@ -901,9 +898,8 @@ public class MessageBaseActivity extends BaseActivity {
         return null;
     }
 
-    protected boolean sendMessage(IMessage imsg) {
+    protected void sendMessage(IMessage imsg) {
         assert(false);
-        return false;
     }
 
     protected IMessage findMessage(int msgLocalID) {
