@@ -382,6 +382,10 @@ public class MessageBaseActivity extends BaseActivity {
 
     //加载消息发送者的名称和头像信息
     protected void loadUserName(IMessage msg) {
+        if (msg.sender == 0) {
+            return;
+        }
+
         MessageActivity.User u = getUser(msg.sender);
 
         msg.setSenderAvatar(u.avatarURL);
