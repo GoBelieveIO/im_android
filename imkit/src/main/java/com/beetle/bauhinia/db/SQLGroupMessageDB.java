@@ -308,7 +308,9 @@ public class SQLGroupMessageDB  {
         ArrayList<IMessage> messages = new ArrayList<IMessage>();
         for (int i = 0; i < rows.size(); i++) {
             IMessage msg = getMessage(rows.get(i));
-            messages.add(msg);
+            if (msg != null) {
+                messages.add(msg);
+            }
         }
         return messages;
     }
