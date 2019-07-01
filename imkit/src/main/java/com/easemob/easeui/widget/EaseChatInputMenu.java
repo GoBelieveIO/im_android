@@ -28,7 +28,6 @@ import android.widget.RelativeLayout;
 import com.beetle.imkit.R;
 import com.easemob.easeui.Contact;
 import com.easemob.easeui.widget.EaseChatExtendMenu.EaseChatExtendMenuItemClickListener;
-import com.easemob.easeui.widget.EaseEmojiconMenu.EaseEmojiconMenuListener;
 import com.easemob.easeui.widget.emoticon.EmoticonPanel;
 import com.linkedin.android.spyglass.mentions.MentionSpan;
 import com.linkedin.android.spyglass.mentions.MentionSpanConfig;
@@ -53,7 +52,6 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
     FrameLayout primaryMenuContainer;
     protected RelativeLayout emojiconMenuContainer;
     protected EaseChatPrimaryMenu chatPrimaryMenu;
-    protected EaseEmojiconMenu emojiconMenu;
     private EmoticonPanel mEmoticonPanel;
     protected EaseChatExtendMenu chatExtendMenu;
     protected FrameLayout chatExtendMenuContainer;
@@ -291,24 +289,7 @@ EaseChatInputMenu extends LinearLayout implements View.OnClickListener, QueryTok
     }
 
 
-    protected void processChatMenu() {
-        // emojicon
-        emojiconMenu.setEmojiconMenuListener(new EaseEmojiconMenuListener() {
 
-            @Override
-            public void onExpressionClicked(CharSequence emojiContent) {
-                chatPrimaryMenu.editText.append(emojiContent);
-            }
-
-            @Override
-            public void onDeleteImageClicked() {
-                if (!TextUtils.isEmpty(chatPrimaryMenu.editText.getText())) {
-                    KeyEvent event = new KeyEvent(0, 0, 0, KeyEvent.KEYCODE_DEL, 0, 0, 0, 0, KeyEvent.KEYCODE_ENDCALL);
-                    chatPrimaryMenu.editText.dispatchKeyEvent(event);
-                }
-            }
-        });
-    }
 
     protected void processEmoticon() {
         mEmoticonPanel.setOnItemEmoticonClickListener(new EmoticonPanel.OnItemEmoticonClickListener() {

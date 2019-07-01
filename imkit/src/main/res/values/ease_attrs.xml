@@ -24,11 +24,7 @@
         <attr name="ctsListInitialLetterBg" format="reference|color"/>
         <attr name="ctsListInitialLetterColor" format="color"/>
     </declare-styleable>
-    
-    <declare-styleable name="EaseEmojiconMenu">
-       	<attr name="emojiconRows" format="integer"/>
-       	<attr name="emojiconColumns" format="integer"/>
-    </declare-styleable>
+
     
     <declare-styleable name="EaseChatExtendMenu">
         <attr name="numColumns" format="integer"/>

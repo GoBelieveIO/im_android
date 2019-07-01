@@ -2,9 +2,6 @@ package com.easemob.easeui.widget.emoticon;
 
 import android.content.Context;
 import android.view.WindowManager;
-
-import com.easemob.easeui.utils.EaseSmileUtils;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -24,48 +22,78 @@ import java.util.Set;
  * @date 2019/3/11
  */
 public class EmoticonUtils {
-
     /**
      * 表情配置文件名
      */
     public final static String FILE_EMOTICON = "emoticon";
-    public final static String FILE_EMOJI_AND_EMOTICON = "emoji_and_emoticon";
-    public final static String FILE_EMOJI = "emoji";
     private static final String TAG = "EmoticonUtils";
 
 
-    static int emojis[] = {
-            0x1f604,
-            0x1f637,
-            0x1F602,
-            0x1F61D,
-            0x1f633,
-            0x1f631,
-            0x1F614,
-            0x1f612,
-            0x1f47b,
-            0x1f64f,
-            0x1f4aa,
-            0x1f389,
-            0x1f381
-    };
+    public static String emojiResources[] = {
+            "1f60a",  "ee_1",
+            "1f603",  "ee_2",
+            "1f609",  "ee_3",
+            "1f62e",  "ee_4",
+            "1f60b",  "ee_5",
+            "1f60e",  "ee_6",
+            "1f621",  "ee_7",
+            "1f616",  "ee_8",
+            "1f633",  "ee_9",
+            "1f61e",  "ee_10",
+            "1f62d",  "ee_11",
+            "1f610",  "ee_12",
+            "1f607",  "ee_13",
+            "1f62c",  "ee_14",
+            "1f606",  "ee_15",
+            "1f631",  "ee_16",
+            "1f385",  "ee_17",
+            "1f634",  "ee_18",
+            "1f615",  "ee_19",
+            "1f637",  "ee_20",
+            "1f62f",  "ee_21",
+            "1f60f",  "ee_22",
+            "1f611",  "ee_23",
+            "1f496",  "ee_24",
+            "1f494",  "ee_25",
+            "1f319",  "ee_26",
+            "1f31f",  "ee_27",
+            "1f31e",  "ee_28",
+            "1f308",  "ee_29",
+            "1f60d",  "ee_30",
+            "1f61a",  "ee_31",
+            "1f48b",  "ee_32",
+            "1f339",  "ee_33",
+            "1f342",  "ee_34",
+            "1f44d",  "ee_35",};
 
-    public static String emojisHex[] = {
-            "1f604",
-            "1f637",
-            "1F602",
-            "1F61D",
-            "1f633",
-            "1f631",
-            "1F614",
-            "1f612",
-            "1f47b",
-            "1f64f",
-            "1f4aa",
-            "1f389",
-            "1f381" 
-    };
 
+
+    private static final Map<String, String> emojiMap = new HashMap<String, String>();
+    private static final Set<String> emojiSet = new HashSet<>();
+
+    static {
+        for (int i = 0; i < emojiResources.length; i+=2) {
+            emojiMap.put(emojiResources[i], emojiResources[i+1]);
+            emojiSet.add(emojiResources[i]);
+        }
+    }
+
+
+
+    private static int EMOJI_CODE_TO_SYMBOL(int x) {
+        return ((((0x808080F0 | (x & 0x3F000) >> 4) | (x & 0xFC0) << 10) | (x & 0x1C0000) << 18) | (x & 0x3F) << 24);
+    }
+
+    public static String EmojiCodeToString(int x) {
+        int sym = EMOJI_CODE_TO_SYMBOL(x);
+        byte data[] = {(byte)(sym&0x00ff), (byte)(sym>>8&0x00ff), (byte)(sym>>16&0x00ff), (byte)(sym>>24)};
+        try {
+            return new String(data, 0, 4, "UTF-8");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 
 
     public static List<String> readFile(Context context, String fileName) {
@@ -85,31 +113,13 @@ public class EmoticonUtils {
 
 
 
-    /**
-     * 将emoji替换成十六进制编码字符串
-     *
-     * @param context
-     * @param text
-     * @see {@link EmoticonManager#getEmoticonStr(Context, String)} 方法中是根据十六进制的正则匹配来替换成图片资源的
-     */
-    public static String replaceEmojiToHex(String text) {
-        //以新编码的十六进制为key
-        for (int i = 0; i < emojis.length; i++) {
-            String keyHexStr = EaseSmileUtils.EmojiCodeToString(emojis[i]);
-            if (text.contains(keyHexStr)) {
-                text = text.replace(keyHexStr, emojisHex[i]);
-            }
-        }
-        return text;
+
+
+    public static Map<String, String> getEmojiMap() {
+            return emojiMap;
     }
 
-
-
     public static Set<String> getEmojiEncodeSet() {
-        Set<String> emojiSet = new HashSet<>();
-        for (int i = 0; i < emojisHex.length; i++) {
-            emojiSet.add(emojisHex[i]);
-        }
         return emojiSet;
     }
 

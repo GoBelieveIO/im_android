@@ -10,17 +10,15 @@ import android.text.TextUtils;
 import android.text.style.ImageSpan;
 
 import com.beetle.imkit.R;
-import com.easemob.easeui.utils.EaseSmileUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.easemob.easeui.widget.emoticon.EmoticonUtils.FILE_EMOJI;
-import static com.easemob.easeui.widget.emoticon.EmoticonUtils.FILE_EMOJI_AND_EMOTICON;
 import static com.easemob.easeui.widget.emoticon.EmoticonUtils.FILE_EMOTICON;
 
 /**
@@ -56,8 +54,6 @@ public class EmoticonManager {
     /**
      * 保存于内存中的表情HashMap
      */
-    private HashMap<String, String> mEmoticonMap = new HashMap<>();
-
     private HashMap<String, Emoticon> mEmoticons = new HashMap<>();
 
     /**
@@ -84,32 +80,25 @@ public class EmoticonManager {
         mContext = context;
         mEmojiSet = EmoticonUtils.getEmojiEncodeSet();
         mEmoticonSize = EmoticonUtils.getNormalSize(context);
-        try {
-            parseEmoticonData(context);
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        loadUnicodeEmoji(context);
+        //loadImageEmoji(context);
+
+        int pageCount = (int) Math.ceil((double) mEmoticonList.size() / PAGE_EMOTICON_SIZE);
+        for (int i = 0; i < pageCount; i++) {
+            mEmoticonPageList.add(getPageData(i));
         }
     }
 
-    private void parseEmoticonData(Context context) {
-        List<String> emoticonStrList = EmoticonUtils.readFile(context, FILE_EMOTICON);
-        List<String> emojiStrList = EmoticonUtils.readFile(context, FILE_EMOJI);
-        List<String> emojiAsEmoticonList = EmoticonUtils.readFile(context, FILE_EMOJI_AND_EMOTICON);
-        emoticonStrList.addAll(emojiStrList);
-        emoticonStrList.addAll(emojiAsEmoticonList);
-        //已经加载过数据，或待解析数据集为空，直接返回
-        if (mEmoticonPageList.size() > 0 || emoticonStrList.size() <= 0) {
-            return;
-        }
-        Emoticon emoticon = null;
-        for (String str : emoticonStrList) {
-            String[] text = str.split(",");
-            String fileName = text[0].substring(0, text[0].lastIndexOf("."));
-            String desc = text[1];
-            mEmoticonMap.put(desc, fileName);
+    private void loadUnicodeEmoji(Context context) {
+        Map<String, String> emojis = EmoticonUtils.getEmojiMap();
+
+        for (Map.Entry<String, String> e : emojis.entrySet()) {
+            String desc = e.getKey();
+            String fileName = e.getValue();
             int resId = context.getResources().getIdentifier(fileName, "drawable", context.getPackageName());
             if (resId != 0) {
-                emoticon = new Emoticon();
+                Emoticon emoticon = new Emoticon();
                 emoticon.setId(resId);
                 emoticon.setName(fileName);
                 emoticon.setDesc(desc);
@@ -117,13 +106,33 @@ public class EmoticonManager {
                 bitmap = Bitmap.createScaledBitmap(bitmap, mEmoticonSize, mEmoticonSize, true);
                 emoticon.setBitmap(bitmap);
                 mEmoticonList.add(emoticon);
-
                 mEmoticons.put(desc, emoticon);
             }
         }
-        int pageCount = (int) Math.ceil((double) mEmoticonList.size() / PAGE_EMOTICON_SIZE);
-        for (int i = 0; i < pageCount; i++) {
-            mEmoticonPageList.add(getPageData(i));
+    }
+
+    private void loadImageEmoji(Context context) {
+        List<String> emoticonStrList = EmoticonUtils.readFile(context, FILE_EMOTICON);
+        //已经加载过数据，或待解析数据集为空，直接返回
+        if (emoticonStrList.size() <= 0) {
+            return;
+        }
+        for (String str : emoticonStrList) {
+            String[] text = str.split(",");
+            String fileName = text[0].substring(0, text[0].lastIndexOf("."));
+            String desc = text[1];
+            int resId = context.getResources().getIdentifier(fileName, "drawable", context.getPackageName());
+            if (resId != 0) {
+                Emoticon emoticon = new Emoticon();
+                emoticon.setId(resId);
+                emoticon.setName(fileName);
+                emoticon.setDesc(desc);
+                Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resId);
+                bitmap = Bitmap.createScaledBitmap(bitmap, mEmoticonSize, mEmoticonSize, true);
+                emoticon.setBitmap(bitmap);
+                mEmoticonList.add(emoticon);
+                mEmoticons.put(desc, emoticon);
+            }
         }
     }
 
@@ -164,7 +173,7 @@ public class EmoticonManager {
             return null;
         }
         if (mEmojiSet != null && mEmojiSet.contains(text)) {
-            text = EaseSmileUtils.EmojiCodeToString(Integer.parseInt(text, 16));
+            text = EmoticonUtils.EmojiCodeToString(Integer.parseInt(text, 16));
         }
         Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), imgId);
         bitmap = Bitmap.createScaledBitmap(bitmap, 64, 64, true);
@@ -184,13 +193,10 @@ public class EmoticonManager {
         if (TextUtils.isEmpty(text)) {
             return new SpannableString("");
         }
-
-        //预处理
-        text = EmoticonUtils.replaceEmojiToHex(text.toString());
-        String[] regexes = new String[]{REGEX_CONTAIN_EMOTION, REGEX_DIVERSE_EMOJI};
+        String[] regexes = new String[]{REGEX_CONTAIN_EMOTION};
         SpannableString spannableString = new SpannableString(text);
         for (String regex : regexes) {
-            dealEmoticon( spannableString, regex);
+            dealEmoticon(spannableString, regex);
         }
 
         return spannableString;
@@ -201,11 +207,6 @@ public class EmoticonManager {
         Matcher matcher = pattern.matcher(spannableString);
         while (matcher.find()) {
             String key = matcher.group();
-            String value = mEmoticonMap.get(key);
-            if (TextUtils.isEmpty(value)) {
-                continue;
-            }
-
             Emoticon emoticon = mEmoticons.get(key);
 
             if (emoticon == null) {
