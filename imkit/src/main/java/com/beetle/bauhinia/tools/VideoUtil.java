@@ -12,6 +12,7 @@ package com.beetle.bauhinia.tools;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaExtractor;
 import android.media.MediaMetadata;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaCodec;
@@ -19,12 +20,14 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.util.Log;
 import net.ypresto.androidtranscoder.MediaTranscoder;
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
 import net.ypresto.androidtranscoder.format.MediaFormatPresets;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
+import net.ypresto.androidtranscoder.utils.MediaExtractorUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,10 +36,17 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class VideoUtil {
+
+    public static final String MIMETYPE_AUDIO_AAC = "audio/mp4a-latm";
+    public static final String MIMETYPE_VIDEO_AVC = "video/avc";
+
     public static class Metadata {
         public int width;
         public int height;
         public int duration;
+
+        public String videoMime;
+        public String audioMime;
     }
 
     public static Bitmap createVideoThumbnail(String filePath) {
@@ -85,10 +95,45 @@ public class VideoUtil {
         } finally {
             instance.release();
         }
+
+        getTrackInfo(filePath, size);
         return size;
     }
 
+    private static boolean getTrackInfo(String filePath, Metadata meta) {
+        MediaExtractor instance = new MediaExtractor();
+        try {
+            instance.setDataSource(filePath);
+            int trackCount = instance.getTrackCount();
+            for (int i = 0; i < trackCount; i++) {
+                MediaFormat format = instance.getTrackFormat(i);
+                String mime = format.getString(MediaFormat.KEY_MIME);
+                if (mime.startsWith("video/")) {
+                    if (TextUtils.isEmpty(meta.videoMime)) {
+                        meta.videoMime = mime;
+                    }
+                } else if (mime.startsWith("audio/")) {
+                    if (TextUtils.isEmpty(meta.audioMime)) {
+                        meta.audioMime = mime;
+                    }
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            instance.release();
+        }
+    }
 
+
+    public static boolean isAcc(String mime) {
+        return mime != null && mime.equalsIgnoreCase(MIMETYPE_AUDIO_AAC);
+    }
+    public static boolean isH264(String mime) {
+        return mime != null && mime.equalsIgnoreCase(MIMETYPE_VIDEO_AVC);
+    }
 
     public static final String AUDIO_RECORDING_FILE_NAME = "audio_Capturing-190814-034638.422.wav"; // Input PCM file
     public static final String COMPRESSED_AUDIO_FILE_NAME = "convertedmp4.m4a"; // Output MP4/M4A file

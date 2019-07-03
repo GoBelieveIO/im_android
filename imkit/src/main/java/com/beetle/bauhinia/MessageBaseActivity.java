@@ -717,10 +717,23 @@ public class MessageBaseActivity extends BaseActivity {
         }
 
         final VideoUtil.Metadata meta = VideoUtil.getVideoMetadata(path);
+        Log.i(TAG, "video mime:" + meta.videoMime + " audio mime:" + meta.audioMime);
+
         if (meta.duration < 1000) {
             Toast.makeText(this, "拍摄时间太短了", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        if (!TextUtils.isEmpty(meta.videoMime) && !VideoUtil.isH264(meta.videoMime)) {
+            Toast.makeText(this, "不支持的视频编码", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!TextUtils.isEmpty(meta.audioMime) && !VideoUtil.isAcc(meta.audioMime)) {
+            Toast.makeText(this, "不支持的视频编码", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         final int duration = meta.duration/1000;//单位秒
         Log.i(TAG, "video path:" + path + " file size:" + f.length() + "video size:" + meta.width + " " + meta.height + " duration:" + meta.duration);
 
