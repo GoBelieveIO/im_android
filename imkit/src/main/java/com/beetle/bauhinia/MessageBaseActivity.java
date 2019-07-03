@@ -751,69 +751,6 @@ public class MessageBaseActivity extends BaseActivity {
         }
     }
 
-    protected void sendVideoMessage(String path) {
-        File f = new File(path);
-        if (!f.exists()) {
-            return;
-        }
-
-        final VideoUtil.Metadata meta = VideoUtil.getVideoMetadata(path);
-        if (meta.duration < 1000) {
-            Toast.makeText(this, "拍摄时间太短了", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        final int duration = meta.duration/1000;//单位秒
-
-        Bitmap thumbnail = ThumbnailUtils.createVideoThumbnail(path,  MediaStore.Images.Thumbnails.MINI_KIND);
-        if (thumbnail == null) {
-            Log.w(TAG, "create video thumbnail fail");
-        }
-        Log.i(TAG, "thumb size:" + thumbnail.getWidth() + " " + thumbnail.getHeight());
-        Log.i(TAG, "video path:" + path + " file size:" + f.length() + "video size:" + meta.width + " " + meta.height + " duration:" + meta.duration);
-
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, os);
-        try {
-            String thumbURL = localImageURL();
-            FileCache.getInstance().storeByteArray(thumbURL, os);
-
-            final String thumbPath = FileCache.getInstance().getCachedFilePath(thumbURL);
-            final String videoURL = localVideoURL();
-            String p = FileCache.getInstance().getCachedFilePath(videoURL);
-            final long startTime = SystemClock.uptimeMillis();
-            MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
-                @Override
-                public void onTranscodeProgress(double progress) {
-                    Log.i(TAG, "transcoder progress...");
-                }
-
-                @Override
-                public void onTranscodeCompleted() {
-                    Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-
-                    sendMessageContent(Video.newVideo(videoURL, "file:" + thumbPath, meta.width, meta.height, duration));
-                }
-
-                @Override
-                public void onTranscodeCanceled() {
-                    Log.i(TAG, "transcoder canceled");
-                }
-
-                @Override
-                public void onTranscodeFailed(Exception exception) {
-                    exception.printStackTrace();
-                }
-            };
-            try {
-                MediaTranscoder.getInstance().transcodeVideo(path, p, new VideoUtil.AACMediaFormat(), listener);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
 
     protected void sendImageMessage(Bitmap bmp) {
         double w = bmp.getWidth();
