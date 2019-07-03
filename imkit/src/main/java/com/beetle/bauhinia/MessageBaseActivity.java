@@ -46,7 +46,6 @@ import com.beetle.bauhinia.tools.TimeUtil;
 import com.beetle.bauhinia.tools.VideoUtil;
 import com.beetle.im.IMService;
 
-import net.ypresto.androidtranscoder.MediaTranscoder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
