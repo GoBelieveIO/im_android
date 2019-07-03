@@ -71,6 +71,7 @@ dependencies {
     implementation 'com.commit451:PhotoView:1.2.5'
     implementation 'com.android.support.constraint:constraint-layout:1.1.1'
     implementation 'com.linkedin.android.spyglass:spyglass:1.4.0'
+    implementation 'cjt.library.wheel:camera:1.1.9'
 
 
 }

@@ -25,6 +25,7 @@ import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.text.ClipboardManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -65,22 +66,18 @@ public class MessageActivity extends MessageAudioActivity implements
 
 
     private static final int PERMISSIONS_REQUEST = 2;
-
+    private static final int CAMERA_PERMISSIONS_REQUEST = 3;
 
     public static final int SELECT_PICTURE = 101;
     public static final int SELECT_PICTURE_KITKAT = 102;
     public static final int TAKE_PICTURE = 103;
     public static final int PICK_LOCATION = 104;
-    public static final int RECORD_VIDEO = 105;
-
+    public static final int CAPTURE_CAMERA = 105;
 
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
 
     protected boolean isShowUserName = false;
-
-    private File captureFile;
-    private File recordVideoFile;
 
     BaseAdapter adapter;
     ListView listview;
@@ -139,11 +136,6 @@ public class MessageActivity extends MessageAudioActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.chat);
-
-        captureFile = new File(getExternalCacheDir(), "pic.jpg");
-        Log.i(TAG, "capture file:" + captureFile.getAbsolutePath());
-        recordVideoFile = new File(MessageActivity.this.getExternalCacheDir(), "gobelieve.m4a");
-        Log.i(TAG, "record video file:" + recordVideoFile.getAbsolutePath());
 
         File f = new File(getCacheDir(), "bh_audio.amr");
         recordFileName = f.getAbsolutePath();
@@ -300,6 +292,30 @@ public class MessageActivity extends MessageAudioActivity implements
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSIONS_REQUEST) {
             Log.i(TAG, "granted permission:" + grantResults);
+        } else if (requestCode == CAMERA_PERMISSIONS_REQUEST) {
+            int size = 0;
+            if (grantResults.length >= 2) {
+                //录音权限
+                int recordPermissionResult = grantResults[0];
+                boolean recordPermissionGranted = recordPermissionResult == PackageManager.PERMISSION_GRANTED;
+                if (!recordPermissionGranted) {
+                    size++;
+                }
+                //相机权限
+                int cameraPermissionResult = grantResults[1];
+                boolean cameraPermissionGranted = cameraPermissionResult == PackageManager.PERMISSION_GRANTED;
+                if (!cameraPermissionGranted) {
+                    size++;
+                }
+                if (size == 0) {
+                    Intent intent = new Intent(this, CameraActivity.class);
+                    intent.putExtra("dir", getCacheDir().getAbsolutePath());
+                    startActivityForResult(intent, CAPTURE_CAMERA);
+                } else {
+                    Toast.makeText(this, "请到设置-权限管理中开启", Toast.LENGTH_SHORT).show();
+                }
+            }
+
         }
     }
 
@@ -673,46 +689,25 @@ public class MessageActivity extends MessageAudioActivity implements
     }
 
     void takePicture() {
-        final CharSequence[] items = {
-                "拍照", "摄像"
-        };
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("");
-        builder.setItems(items, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int item) {
-                if (item == 0) {
-                    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    captureFile.delete();
-                    Uri fileUri;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        String authority = getPackageName() + ".fileprovider";
-                        fileUri = FileProvider.getUriForFile(MessageActivity.this, authority, captureFile);
-                    } else {
-                        fileUri = Uri.fromFile(captureFile);
-                    }
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-                    startActivityForResult(takePictureIntent, TAKE_PICTURE);
-                } else if (item == 1){
-                    Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-                    recordVideoFile.delete();
-                    Uri localVideoUri;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        String authority = getPackageName() + ".fileprovider";
-                        localVideoUri = FileProvider.getUriForFile(MessageActivity.this, authority, recordVideoFile);
-                    } else {
-                        localVideoUri = Uri.fromFile(recordVideoFile);
-                    }
-
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, localVideoUri);
-                    intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
-                    intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 6);
-                    intent.putExtra(MediaStore.EXTRA_SIZE_LIMIT, 2 * 1024 * 1024);
-                    startActivityForResult(intent, RECORD_VIDEO);
-                }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (this.checkSelfPermission( Manifest.permission.RECORD_AUDIO) == PackageManager
+                    .PERMISSION_GRANTED &&
+                    this.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager
+                            .PERMISSION_GRANTED) {
+                Intent intent = new Intent(this, CameraActivity.class);
+                intent.putExtra("dir", getCacheDir().getAbsolutePath());
+                startActivityForResult(intent, CAPTURE_CAMERA);
+            } else {
+                //不具有获取权限，需要进行权限申请
+                this.requestPermissions(new String[]{
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.CAMERA}, CAMERA_PERMISSIONS_REQUEST);
             }
-        });
-        AlertDialog alert = builder.create();
-        alert.show();
+        } else {
+            Intent intent = new Intent(this, CameraActivity.class);
+            intent.putExtra("dir", getCacheDir().getAbsolutePath());
+            startActivityForResult(intent, CAPTURE_CAMERA);
+        }
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -721,15 +716,7 @@ public class MessageActivity extends MessageAudioActivity implements
             return;
         }
 
-        if (requestCode == TAKE_PICTURE) {
-            if (captureFile.exists()) {
-                Log.i(TAG, "take picture success:" + captureFile.getAbsolutePath());
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap bmp = BitmapFactory.decodeFile(captureFile.getAbsolutePath(), options);
-                sendImageMessage(bmp);
-            }
-        } else if (requestCode == SELECT_PICTURE || requestCode == SELECT_PICTURE_KITKAT) {
+        if (requestCode == SELECT_PICTURE || requestCode == SELECT_PICTURE_KITKAT) {
             try {
                 Uri selectedImageUri = data.getData();
                 Log.i(TAG, "selected image uri:" + selectedImageUri);
@@ -749,9 +736,23 @@ public class MessageActivity extends MessageAudioActivity implements
 
             Log.i(TAG, "address:" + address + " longitude:" + longitude + " latitude:" + latitude);
             sendLocationMessage(longitude, latitude, address);
-        } else if (requestCode == RECORD_VIDEO) {
-            if (recordVideoFile.exists()) {
-                sendVideoMessage(recordVideoFile.getAbsolutePath());
+        } else if (requestCode == CAPTURE_CAMERA) {
+            String videoPath = data.getStringExtra("video_path");
+            String thumbPath = data.getStringExtra("thumbnail_path");
+            String picturePath = data.getStringExtra("picture_path");
+
+            if (!TextUtils.isEmpty(picturePath)) {
+                Log.i(TAG, "take picture success:" + picturePath);
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bmp = BitmapFactory.decodeFile(picturePath, options);
+                sendImageMessage(bmp);
+
+                //删除临时文件
+                new File(picturePath).delete();
+            } else if (!TextUtils.isEmpty(videoPath) && !TextUtils.isEmpty(thumbPath)) {
+                Log.i(TAG, "take video success:" + videoPath + " thumbnail path:" + thumbPath);
+                sendVideoMessage(videoPath, thumbPath);
             }
         } else {
             Log.i(TAG, "invalide request code:" + requestCode);

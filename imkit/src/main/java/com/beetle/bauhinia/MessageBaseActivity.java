@@ -708,6 +708,36 @@ public class MessageBaseActivity extends BaseActivity {
         sendMessageContent(Text.newText(text, at, atNames));
     }
 
+
+    protected void sendVideoMessage(String path, String thumbPath) {
+        File f = new File(path);
+        File thumbFile = new File(thumbPath);
+        if (!f.exists() || !thumbFile.exists()) {
+            return;
+        }
+
+        final VideoUtil.Metadata meta = VideoUtil.getVideoMetadata(path);
+        if (meta.duration < 1000) {
+            Toast.makeText(this, "拍摄时间太短了", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final int duration = meta.duration/1000;//单位秒
+        Log.i(TAG, "video path:" + path + " file size:" + f.length() + "video size:" + meta.width + " " + meta.height + " duration:" + meta.duration);
+
+        try {
+            String thumbURL = localImageURL();
+            FileCache.getInstance().moveFile(thumbURL, thumbPath);
+            String p1 = FileCache.getInstance().getCachedFilePath(thumbURL);
+
+            final String videoURL = localVideoURL();
+            FileCache.getInstance().moveFile(videoURL, path);
+
+            sendMessageContent(Video.newVideo(videoURL, "file:" + p1, meta.width, meta.height, duration));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     protected void sendVideoMessage(String path) {
         File f = new File(path);
         if (!f.exists()) {
