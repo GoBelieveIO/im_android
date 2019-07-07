@@ -64,10 +64,15 @@ public class MessageActivity extends MessageAudioActivity implements
     protected static final String TAG = "imservice";
 
 
-
+    //permission request code
     private static final int PERMISSIONS_REQUEST = 2;
-    private static final int CAMERA_PERMISSIONS_REQUEST = 3;
+    private static final int CAMERA_PERMISSIONS_REQUEST = 3;//拍摄
+    private static final int LOCATION_PERMISSIONS_REQUEST = 4;//位置
+    private static final int PHOTO_PERMISSIONS_REQUEST = 5;//图片
+    private static final int VOICE_PERMISSIONS_REQUEST = 6;//语音
 
+
+    //activity request code
     public static final int SELECT_PICTURE = 101;
     public static final int SELECT_PICTURE_KITKAT = 102;
     public static final int TAKE_PICTURE = 103;
@@ -119,7 +124,11 @@ public class MessageActivity extends MessageAudioActivity implements
                     getPicture(); // 图库选择图片
                     break;
                 case ITEM_LOCATION: // 位置
-                    startActivityForResult(new Intent(MessageActivity.this, LocationPickerActivity.class), PICK_LOCATION);
+                    if (checkLocationPermission()) {
+                        startActivityForResult(new Intent(MessageActivity.this, LocationPickerActivity.class), PICK_LOCATION);
+                    } else {
+                        requestLocationPermission();
+                    }
                     break;
                 case ITEM_VIDEO_CALL:
                     call();
@@ -166,7 +175,12 @@ public class MessageActivity extends MessageAudioActivity implements
                     case MotionEvent.ACTION_DOWN:
                         try {
                             v.setPressed(true);
-                            MessageActivity.this.startRecord();
+                            if (!checkRecordPermission()) {
+                                //用户需要再次操作
+                                requestRecordPermission();
+                            } else {
+                                MessageActivity.this.startRecord();
+                            }
                         } catch (Exception e) {
                             v.setPressed(false);
                         }
@@ -268,7 +282,6 @@ public class MessageActivity extends MessageAudioActivity implements
             disableSend();
         }
 
-        requestPermission();
     }
 
     @Override
@@ -290,70 +303,93 @@ public class MessageActivity extends MessageAudioActivity implements
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSIONS_REQUEST) {
-            Log.i(TAG, "granted permission:" + grantResults);
-        } else if (requestCode == CAMERA_PERMISSIONS_REQUEST) {
-            int size = 0;
-            if (grantResults.length >= 2) {
-                //录音权限
-                int recordPermissionResult = grantResults[0];
-                boolean recordPermissionGranted = recordPermissionResult == PackageManager.PERMISSION_GRANTED;
-                if (!recordPermissionGranted) {
-                    size++;
-                }
-                //相机权限
-                int cameraPermissionResult = grantResults[1];
-                boolean cameraPermissionGranted = cameraPermissionResult == PackageManager.PERMISSION_GRANTED;
-                if (!cameraPermissionGranted) {
-                    size++;
-                }
-                if (size == 0) {
-                    Intent intent = new Intent(this, CameraActivity.class);
-                    intent.putExtra("dir", getCacheDir().getAbsolutePath());
-                    startActivityForResult(intent, CAPTURE_CAMERA);
-                } else {
-                    Toast.makeText(this, "请到设置-权限管理中开启", Toast.LENGTH_SHORT).show();
-                }
-            }
 
+
+        boolean granted = true;
+        for (int i = 0; i < grantResults.length; i++) {
+            if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                granted = false;
+            }
+        }
+
+        if (!granted) {
+            Toast.makeText(this, "请到设置-权限管理中开启", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (requestCode == CAMERA_PERMISSIONS_REQUEST) {
+            Intent intent = new Intent(this, CameraActivity.class);
+            intent.putExtra("dir", getCacheDir().getAbsolutePath());
+            startActivityForResult(intent, CAPTURE_CAMERA);
+        } else if (requestCode == LOCATION_PERMISSIONS_REQUEST) {
+            startActivityForResult(new Intent(MessageActivity.this, LocationPickerActivity.class), PICK_LOCATION);
+        } else if (requestCode == PHOTO_PERMISSIONS_REQUEST) {
+            getPicture();
         }
     }
 
-    private void requestPermission() {
+    private boolean checkRecordPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             int recordPermission = (checkSelfPermission(Manifest.permission.RECORD_AUDIO));
+            return recordPermission == PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
+
+    private boolean checkPhotoPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             int readExternalPermission = (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE));
+            return readExternalPermission == PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
+
+    private boolean checkLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             int fineLocationPermission = (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION));
             int coarseLocationPermission = (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION));
+            return fineLocationPermission == PackageManager.PERMISSION_GRANTED && coarseLocationPermission == PackageManager.PERMISSION_GRANTED;
+        }
+
+        return true;
+    }
+
+    private boolean checkCameraPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int recordPermission = (checkSelfPermission(Manifest.permission.RECORD_AUDIO));
             int cameraPermission = (checkSelfPermission(Manifest.permission.CAMERA));
+            return recordPermission == PackageManager.PERMISSION_GRANTED && cameraPermission == PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
 
-            ArrayList<String> permissions = new ArrayList<String>();
+    private void requestRecordPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            String[] array = {Manifest.permission.RECORD_AUDIO};
+            this.requestPermissions(array, VOICE_PERMISSIONS_REQUEST);
+        }
+    }
 
-            if (recordPermission != PackageManager.PERMISSION_GRANTED) {
-                permissions.add(Manifest.permission.RECORD_AUDIO);
-            }
 
-            if (readExternalPermission != PackageManager.PERMISSION_GRANTED) {
-                permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-            }
+    private void requestPhotoPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            String[] array = {Manifest.permission.READ_EXTERNAL_STORAGE};
+            this.requestPermissions(array, PHOTO_PERMISSIONS_REQUEST);
+        }
+    }
 
-            if (fineLocationPermission != PackageManager.PERMISSION_GRANTED) {
-                permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
-            }
+    private void requestLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            String[] array = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
+            this.requestPermissions(array, LOCATION_PERMISSIONS_REQUEST);
+        }
+    }
 
-            if (coarseLocationPermission != PackageManager.PERMISSION_GRANTED) {
-                permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
-            }
 
-            if (cameraPermission != PackageManager.PERMISSION_GRANTED) {
-                permissions.add(Manifest.permission.CAMERA);
-            }
-
-            if (permissions.size() > 0) {
-                String[] array = new String[permissions.size()];
-                permissions.toArray(array);
-                this.requestPermissions(array, PERMISSIONS_REQUEST);
-            }
+    private void requestCameraPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            String[] array = {Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA};
+            this.requestPermissions(array, CAMERA_PERMISSIONS_REQUEST);
         }
     }
 
@@ -674,7 +710,13 @@ public class MessageActivity extends MessageAudioActivity implements
             }
         }
     }
+
     void getPicture() {
+        if (!this.checkPhotoPermission()) {
+            requestPhotoPermission();
+            return;
+        }
+
         if (Build.VERSION.SDK_INT <19){
             Intent intent = new Intent();
             intent.setType("image/*");
@@ -689,24 +731,12 @@ public class MessageActivity extends MessageAudioActivity implements
     }
 
     void takePicture() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (this.checkSelfPermission( Manifest.permission.RECORD_AUDIO) == PackageManager
-                    .PERMISSION_GRANTED &&
-                    this.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager
-                            .PERMISSION_GRANTED) {
-                Intent intent = new Intent(this, CameraActivity.class);
-                intent.putExtra("dir", getCacheDir().getAbsolutePath());
-                startActivityForResult(intent, CAPTURE_CAMERA);
-            } else {
-                //不具有获取权限，需要进行权限申请
-                this.requestPermissions(new String[]{
-                        Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.CAMERA}, CAMERA_PERMISSIONS_REQUEST);
-            }
-        } else {
+        if (checkCameraPermission()) {
             Intent intent = new Intent(this, CameraActivity.class);
             intent.putExtra("dir", getCacheDir().getAbsolutePath());
             startActivityForResult(intent, CAPTURE_CAMERA);
+        } else {
+            requestCameraPermission();
         }
     }
 
