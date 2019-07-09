@@ -1,7 +1,7 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
+/*
+  Copyright (c) 2014-2019, GoBelieve
+    All rights reserved.
+
   This source code is licensed under the BSD-style license found in the
   LICENSE file in the root directory of this source tree. An additional grant
   of patent rights can be found in the PATENTS file in the same directory.
@@ -10,7 +10,6 @@
 
 package com.beetle.bauhinia.tools;
 
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.types.Audio;
@@ -20,8 +19,6 @@ import com.beetle.bauhinia.db.IMessage;
 import java.io.File;
 import java.util.ArrayList;
 
-import com.beetle.im.IMMessage;
-import com.google.gson.JsonObject;
 import retrofit.mime.TypedFile;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -86,6 +83,10 @@ public abstract class Outbox {
                                 .subscribe(new Action1<com.beetle.bauhinia.api.types.File>() {
                                     @Override
                                     public void call(com.beetle.bauhinia.api.types.File f) {
+                                        String newPath = FileCache.getInstance().getCachedFilePath(f.srcUrl);
+                                        //避免重现下载
+                                        new File(path).renameTo(new File(newPath));
+                                        Outbox.this.saveVideoURL(msg, f.srcUrl, thumbURL);
                                         Outbox.this.sendVideoMessage(msg, f.srcUrl, thumbURL);
                                         onUploadVideoSuccess(msg, f.srcUrl, thumbURL);
                                         messages.remove(msg);
@@ -182,6 +183,7 @@ public abstract class Outbox {
                 .subscribe(new Action1<Image>() {
                     @Override
                     public void call(Image image) {
+                        Outbox.this.saveImageURL(msg, image.srcUrl);
                         Outbox.this.sendImageMessage(msg, image.srcUrl);
                         onUploadImageSuccess(msg, image.srcUrl);
                         messages.remove(msg);
@@ -197,16 +199,20 @@ public abstract class Outbox {
         return true;
     }
 
-    public boolean uploadAudio(final IMessage msg, String file) {
+    public boolean uploadAudio(final IMessage msg, final String filePath) {
         messages.add(msg);
         String type = "audio/amr";
-        TypedFile typedFile = new TypedFile(type, new File(file));
+        TypedFile typedFile = new TypedFile(type, new File(filePath));
         IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
         imHttp.postAudios(type, typedFile)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<Audio>() {
                     @Override
                     public void call(Audio audio) {
+                        String newPath = FileCache.getInstance().getCachedFilePath(audio.srcUrl);
+                        //避免重现下载
+                        new File(filePath).renameTo(new File(newPath));
+                        Outbox.this.saveAudioURL(msg, audio.srcUrl);
                         Outbox.this.sendAudioMessage(msg, audio.srcUrl);
                         onUploadAudioSuccess(msg, audio.srcUrl);
                         messages.remove(msg);
@@ -319,11 +325,6 @@ public abstract class Outbox {
     }
 
 
-    protected boolean encrypt(IMMessage msg) {
-        assert (false);
-        return false;
-    }
-
     protected String encryptFile(String path, long peerUID) {
         assert (false);
         return "";
@@ -333,6 +334,9 @@ public abstract class Outbox {
     abstract protected void sendImageMessage(IMessage imsg, String url);
     abstract protected void sendAudioMessage(IMessage imsg, String url);
     abstract protected void sendVideoMessage(IMessage imsg, String url, String thumbURL);
-    abstract protected void saveMessageAttachment(IMessage msg, String address);
 
+
+    abstract protected void saveImageURL(IMessage msg, String url);
+    abstract protected void saveAudioURL(IMessage msg, String url);
+    abstract protected void saveVideoURL(IMessage msg, String url, String thumbURL);
 }

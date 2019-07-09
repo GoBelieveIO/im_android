@@ -10,7 +10,6 @@
 
 package com.beetle.bauhinia.tools;
 
-import android.util.Log;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.message.*;
@@ -35,13 +34,11 @@ public class PeerOutbox extends Outbox {
         PeerMessageDB.getInstance().markMessageFailure(msg.msgLocalID);
     }
 
+
     @Override
-    protected void saveMessageAttachment(IMessage msg, String url) {
+    protected void saveImageURL(IMessage msg, String url) {
         String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-            Audio audio = (Audio)msg.content;
-            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-        } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
             Image image = (Image) msg.content;
             content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         } else {
@@ -53,6 +50,32 @@ public class PeerOutbox extends Outbox {
 
 
     @Override
+    protected void saveAudioURL(IMessage msg, String url) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+            Audio audio = (Audio)msg.content;
+            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+        } else {
+            return;
+        }
+
+        PeerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+    }
+
+    @Override
+    protected void saveVideoURL(IMessage msg, String url, String thumbURL) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
+            Video video = (Video)msg.content;
+            content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
+        } else {
+            return;
+        }
+
+        PeerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+    }
+
+    @Override
     protected void sendImageMessage(IMessage imsg, String url) {
         IMMessage msg = new IMMessage();
         msg.sender = imsg.sender;
@@ -62,15 +85,8 @@ public class PeerOutbox extends Outbox {
         msg.content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         msg.msgLocalID = imsg.msgLocalID;
 
-        boolean r = true;
-        if (imsg.secret) {
-            r = encrypt(msg);
-        }
-        if (r) {
-            IMService im = IMService.getInstance();
-            im.sendPeerMessageAsync(msg);
-        }
-
+        IMService im = IMService.getInstance();
+        im.sendPeerMessageAsync(msg);
     }
 
     @Override
@@ -83,17 +99,8 @@ public class PeerOutbox extends Outbox {
         msg.msgLocalID = imsg.msgLocalID;
         msg.content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
 
-
-        boolean r = true;
-        if (imsg.secret) {
-            r = encrypt(msg);
-
-        }
-        if (r) {
-            IMService im = IMService.getInstance();
-            im.sendPeerMessageAsync(msg);
-        }
-
+        IMService im = IMService.getInstance();
+        im.sendPeerMessageAsync(msg);
     }
 
     @Override
@@ -106,17 +113,8 @@ public class PeerOutbox extends Outbox {
         msg.msgLocalID = imsg.msgLocalID;
         msg.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
 
-
-        boolean r = true;
-        if (imsg.secret) {
-            r = encrypt(msg);
-        }
-        if (r) {
-            IMService im = IMService.getInstance();
-            im.sendPeerMessageAsync(msg);
-        }
+        IMService im = IMService.getInstance();
+        im.sendPeerMessageAsync(msg);
     }
-
-
 
 }
