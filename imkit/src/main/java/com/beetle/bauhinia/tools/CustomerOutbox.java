@@ -1,7 +1,7 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
+/*
+  Copyright (c) 2014-2019, GoBelieve
+    All rights reserved.
+
   This source code is licensed under the BSD-style license found in the
   LICENSE file in the root directory of this source tree. An additional grant
   of patent rights can be found in the PATENTS file in the same directory.
@@ -15,7 +15,6 @@ import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.message.*;
 import com.beetle.im.CustomerMessage;
 import com.beetle.im.IMService;
-
 
 
 /**
@@ -33,12 +32,9 @@ public class CustomerOutbox extends Outbox {
     }
 
     @Override
-    protected void saveMessageAttachment(IMessage msg, String url) {
+    protected void saveImageURL(IMessage msg, String url) {
         String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-            Audio audio = (Audio)msg.content;
-            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-        } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
             Image image = (Image) msg.content;
             content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
         } else {
@@ -47,6 +43,33 @@ public class CustomerOutbox extends Outbox {
 
         CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
     }
+
+    @Override
+    protected void saveAudioURL(IMessage msg, String url) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+            Audio audio = (Audio)msg.content;
+            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
+        } else {
+            return;
+        }
+
+        CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+    }
+
+    @Override
+    protected void saveVideoURL(IMessage msg, String url, String thumbURL) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
+            Video video = (Video)msg.content;
+            content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
+        } else {
+            return;
+        }
+
+        CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
+    }
+
 
     @Override
     protected void sendImageMessage(IMessage imsg, String url) {

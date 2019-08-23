@@ -20,6 +20,7 @@ import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.util.Log;
 import com.beetle.imkit.R;
+
 /**
  * 录音、播音的操作都是异步的，不用另起线程来执行
  * 
@@ -39,10 +40,6 @@ public class AudioUtil{
     private ArrayList<OnCompletionListener> mOnCompletionListeners = new ArrayList<OnCompletionListener>();
 
     private ArrayList<OnStopListener> mOnStopListeners = new ArrayList<OnStopListener>();
-
-    private boolean isRecording = false;
-
-    private long mRecordTimeStamp = 0;
 
     public final static int STOP_REASON_RECORDING = 0;
 

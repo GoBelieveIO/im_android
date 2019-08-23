@@ -74,13 +74,17 @@ public class MessageAudioActivity extends MessageBaseActivity {
 
 
     protected void showReleaseToCancelHint() {
-        recordingText.setText(getString(R.string.release_to_cancel));
-        recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
+        if (audioRecorder.isRecording()) {
+            recordingText.setText(getString(R.string.release_to_cancel));
+            recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
+        }
     }
 
     protected void showMoveUpToCancelHint() {
-        recordingText.setText(getString(R.string.move_up_to_cancel));
-        recordingText.setBackgroundColor(Color.TRANSPARENT);
+        if (audioRecorder.isRecording()) {
+            recordingText.setText(getString(R.string.move_up_to_cancel));
+            recordingText.setBackgroundColor(Color.TRANSPARENT);
+        }
     }
 
     protected void showRecordDialog() {
@@ -203,8 +207,8 @@ public class MessageAudioActivity extends MessageBaseActivity {
             alertDialog.dismiss();
         }
 
-        if (MessageAudioActivity.this.audioRecorder.isRecording()) {
-            MessageAudioActivity.this.audioRecorder.stopRecord();
+        if (audioRecorder.isRecording()) {
+            audioRecorder.stopRecord();
         }
     }
 
@@ -223,8 +227,8 @@ public class MessageAudioActivity extends MessageBaseActivity {
             alertDialog.dismiss();
         }
 
-        if (MessageAudioActivity.this.audioRecorder.isRecording()) {
-            MessageAudioActivity.this.audioRecorder.stopRecord();
+        if (audioRecorder.isRecording()) {
+            audioRecorder.stopRecord();
             String tfile = audioRecorder.getPathName();
             MessageAudioActivity.this.sendAudioMessage(tfile);
         }
