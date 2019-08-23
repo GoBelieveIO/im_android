@@ -47,12 +47,12 @@ public class MessageImageView extends MessageContentView {
             if (path != null) {
                 url = "file:" + path;
             }
-            Picasso.with(context)
+            Picasso.get()
                     .load(url)
                     .placeholder(R.drawable.image_download_fail)
                     .into(imageView);
         } else {
-            Picasso.with(context)
+            Picasso.get()
                     .load(url + "@256w_256h_0c")
                     .placeholder(R.drawable.image_download_fail)
                     .into(imageView);
@@ -103,7 +103,7 @@ public class MessageImageView extends MessageContentView {
                 if (path != null) {
                     url = "file:" + path;
                 }
-                Picasso.with(context)
+                Picasso.get()
                         .load(url)
                         .placeholder(R.drawable.image_download_fail)
                         .into(imageView);

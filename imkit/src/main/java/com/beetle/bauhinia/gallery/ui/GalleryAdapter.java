@@ -70,9 +70,9 @@ public class GalleryAdapter extends PagerAdapter {
 
         final String path = mPhotos.get(position).path;
         if (path.contains(":/")) {
-            Picasso.with(context).load(path).into(photoView);
+            Picasso.get().load(path).into(photoView);
         } else {
-            Picasso.with(context).load(new File(path)).into(photoView);
+            Picasso.get().load(new File(path)).into(photoView);
         }
         container.addView(photoView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
         photoView.setOnClickListener(new View.OnClickListener() {

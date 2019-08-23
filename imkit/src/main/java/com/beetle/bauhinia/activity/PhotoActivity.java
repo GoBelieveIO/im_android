@@ -44,7 +44,7 @@ public class PhotoActivity extends BaseActivity {
         } catch (Exception ignored) {}
 
         photo = (ImageView)findViewById(R.id.photo);
-        Picasso.with(this)
+        Picasso.get()
                 .load(getIntent().getStringExtra(EXTRA_URL))
                 .fit()
                 .centerInside()

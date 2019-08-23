@@ -97,7 +97,7 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
         ImageView headerView = (ImageView)findViewById(R.id.header);
         String avatar = msg.getSenderAvatar();
         if (headerView != null && !TextUtils.isEmpty(avatar)) {
-            Picasso.with(getContext())
+            Picasso.get()
                     .load(avatar)
                     .placeholder(R.drawable.avatar_contact)
                     .into(headerView);

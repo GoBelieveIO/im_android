@@ -73,9 +73,9 @@ public class GalleryGridAdapter extends BaseAdapter {
         viewHolder.imageView.setTag(ib.path);
 
         if (ib.path.contains(":/")) {
-            Picasso.with(context).load(ib.path).into(viewHolder.imageView);
+            Picasso.get().load(ib.path).into(viewHolder.imageView);
         } else {
-            Picasso.with(context).load(new File(ib.path)).into(viewHolder.imageView);
+            Picasso.get().load(new File(ib.path)).into(viewHolder.imageView);
         }
         return convertView;
     }

@@ -68,7 +68,7 @@ public class InMessageView extends MessageRowView {
             ImageView headerView = (ImageView)findViewById(R.id.header);
             String avatar = this.message.getSenderAvatar();
             if (headerView != null && !TextUtils.isEmpty(avatar)) {
-                Picasso.with(getContext())
+                Picasso.get()
                         .load(avatar)
                         .placeholder(R.drawable.avatar_contact)
                         .into(headerView);

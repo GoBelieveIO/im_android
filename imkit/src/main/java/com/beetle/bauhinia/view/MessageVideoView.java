@@ -63,12 +63,12 @@ public class MessageVideoView extends MessageContentView {
                     url = null;
                 }
             }
-            Picasso.with(context)
+            Picasso.get()
                     .load(url)
                     .placeholder(R.drawable.image_download_fail)
                     .into(imageView);
         } else {
-            Picasso.with(context)
+            Picasso.get()
                     .load(url)
                     .placeholder(R.drawable.image_download_fail)
                     .into(imageView);
@@ -136,7 +136,7 @@ public class MessageVideoView extends MessageContentView {
                         url = "file:" + path;
                     }
                 }
-                Picasso.with(context)
+                Picasso.get()
                         .load(url)
                         .placeholder(R.drawable.image_download_fail)
                         .into(imageView);

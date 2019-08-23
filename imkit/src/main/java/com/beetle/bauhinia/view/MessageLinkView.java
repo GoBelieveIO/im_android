@@ -32,7 +32,7 @@ public class MessageLinkView extends MessageContentView {
         Link linkMsg = (Link) msg.content;
 
         ImageView imageView = (ImageView)findViewById(R.id.image);
-        Picasso.with(context)
+        Picasso.get()
                 .load(linkMsg.image)
                 .placeholder(R.drawable.image_download_fail)
                 .into(imageView);

@@ -63,7 +63,7 @@ public class ConversationView extends FrameLayout implements PropertyChangeListe
         }
 
         ImageView imageView = (ImageView) this.findViewById(R.id.header);
-        Picasso.with(context)
+        Picasso.get()
                 .load(avatar)
                 .placeholder(placeholder)
                 .into(imageView);
@@ -104,7 +104,7 @@ public class ConversationView extends FrameLayout implements PropertyChangeListe
             }
 
             ImageView imageView = (ImageView) this.findViewById(R.id.header);
-            Picasso.with(context)
+            Picasso.get()
                     .load(avatar)
                     .placeholder(placeholder)
                     .into(imageView);
