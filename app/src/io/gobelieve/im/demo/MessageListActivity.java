@@ -33,6 +33,7 @@ import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.bauhinia.db.message.ACK;
 import com.beetle.bauhinia.db.message.Audio;
 import com.beetle.bauhinia.db.message.File;
 import com.beetle.bauhinia.db.message.GroupNotification;
@@ -58,8 +59,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import com.beetle.im.MessageACK;
 import com.beetle.im.PeerMessageObserver;
 import com.beetle.im.SystemMessageObserver;
 
@@ -480,8 +485,9 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         }
     }
 
+
     @Override
-    public void onPeerMessageACK(IMMessage im) {
+    public void onPeerMessageACK(IMMessage im, int error) {
         Log.i(TAG, "message ack on main");
 
         int msgLocalID = im.msgLocalID;
@@ -511,21 +517,52 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
     }
 
+
     @Override
     public void onGroupMessages(List<IMMessage> msgs) {
+        HashMap<Long, Integer> unreadDict = new HashMap<>();
+        HashMap<Long, IMMessage> msgDict = new HashMap<>();
+
         for (IMMessage msg : msgs) {
-            onGroupMessage(msg);
+            int count = 0;
+            if (unreadDict.containsKey(msg.receiver)) {
+                count = (Integer)unreadDict.get(msg.receiver);
+            }
+            if (!msg.isGroupNotification && msg.sender != this.currentUID) {
+                count += 1;
+            }
+
+            unreadDict.put(msg.receiver, count);
+            msgDict.put(msg.receiver, msg);
+        }
+
+        Iterator iter = msgDict.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Long, IMMessage> entry = (Map.Entry<Long, IMMessage>)iter.next();
+
+            IMMessage im = entry.getValue();
+            Long groupId = entry.getKey();
+            int unread = unreadDict.get(groupId);
+            onGroupMessage(im, unread);
         }
     }
 
-    public void onGroupMessage(IMMessage msg) {
+
+    public void onGroupMessage(IMMessage msg, int unread) {
         Log.i(TAG, "on group message");
         IMessage imsg = new IMessage();
         imsg.timestamp = msg.timestamp;
         imsg.msgLocalID = msg.msgLocalID;
         imsg.sender = msg.sender;
         imsg.receiver = msg.receiver;
-        imsg.setContent(msg.content);
+        if (msg.isGroupNotification) {
+            GroupNotification groupNotification = GroupNotification.newGroupNotification(msg.content);
+            imsg.receiver = groupNotification.groupID;
+            imsg.timestamp = groupNotification.timestamp;
+            imsg.setContent(groupNotification);
+        } else {
+            imsg.setContent(msg.content);
+        }
 
         int pos = findConversationPosition(msg.receiver, Conversation.CONVERSATION_GROUP);
         Conversation conversation = null;
@@ -549,8 +586,9 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             //pos == 0
         }
     }
+
     @Override
-    public void onGroupMessageACK(IMMessage im) {
+    public void onGroupMessageACK(IMMessage im, int error) {
         int msgLocalID = im.msgLocalID;
         long gid = im.receiver;
         if (msgLocalID == 0) {
@@ -574,36 +612,6 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
     }
 
-    @Override
-    public void onGroupNotification(String text) {
-        GroupNotification groupNotification = GroupNotification.newGroupNotification(text);
-        IMessage imsg = new IMessage();
-        imsg.sender = 0;
-        imsg.receiver = groupNotification.groupID;
-        imsg.timestamp = groupNotification.timestamp;
-        imsg.setContent(groupNotification);
-        int pos = findConversationPosition(groupNotification.groupID, Conversation.CONVERSATION_GROUP);
-        Conversation conv = null;
-        if (pos == -1) {
-            conv = newGroupConversation(groupNotification.groupID);
-        } else {
-            conv = conversations.get(pos);
-        }
-        conv.message = imsg;
-        updateNotificationDesc(conv);
-        updateConversationDetail(conv);
-        if (pos == -1) {
-            conversations.add(0, conv);
-            adapter.notifyDataSetChanged();
-        } else if (pos > 0) {
-            //swap with 0
-            conversations.remove(pos);
-            conversations.add(0, conv);
-            adapter.notifyDataSetChanged();
-        } else {
-            //pos == 0
-        }
-    }
 
     private void updateNotificationDesc(Conversation conv) {
         final IMessage imsg = conv.message;

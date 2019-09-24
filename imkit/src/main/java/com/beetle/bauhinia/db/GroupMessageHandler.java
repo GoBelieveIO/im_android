@@ -1,13 +1,3 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia.db;
 
 import android.text.TextUtils;
@@ -19,6 +9,7 @@ import com.beetle.bauhinia.db.message.GroupNotification;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.im.IMMessage;
+import com.beetle.im.MessageACK;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -71,12 +62,25 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
 
         ArrayList<IMessage> imsgs = new ArrayList<>();
         ArrayList<IMMessage> insertedMsgs = new ArrayList<>();
+        ArrayList<IMessage> revokeMsgs = new ArrayList<>();
         for (IMMessage msg : msgs) {
             IMessage imsg = new IMessage();
             imsg.sender = msg.sender;
             imsg.receiver = msg.receiver;
             imsg.timestamp = msg.timestamp;
-            imsg.setContent(msg.content);
+
+            if (msg.isGroupNotification) {
+                assert(msg.sender == 0);
+                GroupNotification groupNotification = GroupNotification.newGroupNotification(msg.content);
+                imsg.receiver = groupNotification.groupID;
+                imsg.timestamp = groupNotification.timestamp;
+                msg.receiver = groupNotification.groupID;
+                msg.timestamp = groupNotification.timestamp;
+                imsg.setContent(groupNotification);
+            } else {
+                imsg.setContent(msg.content);
+            }
+
             if (msg.sender == this.uid) {
                 imsg.flags = MessageFlag.MESSAGE_FLAG_ACK;
             }
@@ -84,15 +88,8 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
             if (msg.isSelf) {
                 assert(msg.sender == uid);
                 repairFailureMessage(imsg.getUUID());
-                continue;
             } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-                Revoke revoke = (Revoke) imsg.content;
-                int msgLocalID = db.getMessageId(revoke.msgid);
-                if (msgLocalID > 0) {
-                    db.updateContent(msgLocalID, msg.content);
-                    db.removeMessageIndex(msgLocalID, imsg.receiver);
-                }
-                continue;
+                revokeMsgs.add(imsg);
             } else {
                 imsgs.add(imsg);
                 insertedMsgs.add(msg);
@@ -109,48 +106,52 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
             msg.msgLocalID = m.msgLocalID;
         }
 
+        for (int i = 0; i < revokeMsgs.size(); i++) {
+            IMessage imsg = revokeMsgs.get(i);
+            Revoke revoke = (Revoke) imsg.content;
+            int msgLocalID = db.getMessageId(revoke.msgid);
+            if (msgLocalID > 0) {
+                db.updateContent(msgLocalID, imsg.content.getRaw());
+                db.removeMessageIndex(msgLocalID, imsg.receiver);
+            }
+        }
+
         return true;
     }
 
-    public boolean handleMessageACK(IMMessage im) {
+    public boolean handleMessageACK(IMMessage im, int error) {
         int msgLocalID = im.msgLocalID;
         long gid = im.receiver;
         GroupMessageDB db = GroupMessageDB.getInstance();
-        if (msgLocalID == 0) {
-            MessageContent c = IMessage.fromRaw(im.content);
-            if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-                Revoke r = (Revoke)c;
-                int revokedMsgId = db.getMessageId(r.msgid);
-                if (revokedMsgId > 0) {
-                    db.updateContent(revokedMsgId, im.content);
-                    db.removeMessageIndex(revokedMsgId, gid);
+        if (error == MessageACK.MESSAGE_ACK_SUCCESS) {
+            if (msgLocalID == 0) {
+                MessageContent c = IMessage.fromRaw(im.content);
+                if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                    Revoke r = (Revoke) c;
+                    int revokedMsgId = db.getMessageId(r.msgid);
+                    if (revokedMsgId > 0) {
+                        db.updateContent(revokedMsgId, im.content);
+                        db.removeMessageIndex(revokedMsgId, gid);
+                    }
                 }
+                return true;
+            } else {
+                return db.acknowledgeMessage(msgLocalID);
+            }
+        } else {
+            if (msgLocalID > 0) {
+                return db.markMessageFailure(msgLocalID);
             }
             return true;
-        } else {
-            return db.acknowledgeMessage(msgLocalID);
         }
     }
 
     public boolean handleMessageFailure(IMMessage im) {
         int msgLocalID = im.msgLocalID;
-        long gid = im.receiver;
-        if (msgLocalID > 0) {
+         if (msgLocalID > 0) {
             GroupMessageDB db = GroupMessageDB.getInstance();
             return db.markMessageFailure(msgLocalID);
         }
         return true;
     }
-
-    public boolean handleGroupNotification(String notification) {
-        GroupMessageDB db = GroupMessageDB.getInstance();
-        GroupNotification groupNotification = GroupNotification.newGroupNotification(notification);
-        IMessage imsg = new IMessage();
-        imsg.sender = 0;
-        imsg.receiver = groupNotification.groupID;
-        imsg.timestamp = groupNotification.timestamp;
-        imsg.setContent(groupNotification);
-        return db.insertMessage(imsg, groupNotification.groupID);
-    }
-
 }

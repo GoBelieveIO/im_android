@@ -25,5 +25,7 @@ public class IMMessage {
 
     //是否由当前用户在当前设备所发出
     public boolean isSelf;
+    //群组通知消息
+    public boolean isGroupNotification;
 }
 

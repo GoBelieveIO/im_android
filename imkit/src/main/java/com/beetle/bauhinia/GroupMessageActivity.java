@@ -1,13 +1,3 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia;
 
 import android.content.Intent;
@@ -34,6 +24,7 @@ import com.beetle.im.GroupMessageObserver;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
+import com.beetle.im.MessageACK;
 
 import java.util.List;
 
@@ -48,9 +39,9 @@ public class GroupMessageActivity extends MessageActivity implements
     public static final String CLEAR_MESSAGES = "clear_group_messages";
     public static final String CLEAR_NEW_MESSAGES = "clear_group_new_messages";
 
+
     protected long groupID;
     protected String groupName;
-
 
     public GroupMessageActivity() {
         super();
@@ -148,7 +139,12 @@ public class GroupMessageActivity extends MessageActivity implements
     @Override
     public void onGroupMessages(List<IMMessage> msgs) {
         for (IMMessage msg : msgs) {
-            this.onGroupMessage(msg);
+            if (msg.isGroupNotification) {
+                assert(msg.sender == 0);
+                this.onGroupNotification(msg.content);
+            } else {
+                this.onGroupMessage(msg);
+            }
         }
 
     }
@@ -201,7 +197,7 @@ public class GroupMessageActivity extends MessageActivity implements
     }
 
     @Override
-    public void onGroupMessageACK(IMMessage im) {
+    public void onGroupMessageACK(IMMessage im, int error) {
         int msgLocalID = im.msgLocalID;
         long gid = im.receiver;
         if (gid != groupID) {
@@ -209,25 +205,41 @@ public class GroupMessageActivity extends MessageActivity implements
         }
         Log.i(TAG, "message ack");
 
-        if (msgLocalID > 0) {
-            IMessage imsg = findMessage(msgLocalID);
-            if (imsg == null) {
-                Log.i(TAG, "can't find msg:" + msgLocalID);
-                return;
-            }
-            imsg.setAck(true);
-        } else {
-            MessageContent c = IMessage.fromRaw(im.content);
-            if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-                Revoke r = (Revoke)c;
-                IMessage imsg = findMessage(r.msgid);
+        if (error == MessageACK.MESSAGE_ACK_SUCCESS) {
+            if (msgLocalID > 0) {
+                IMessage imsg = findMessage(msgLocalID);
                 if (imsg == null) {
                     Log.i(TAG, "can't find msg:" + msgLocalID);
                     return;
                 }
-                imsg.setContent(r);
-                updateNotificationDesc(imsg);
-                adapter.notifyDataSetChanged();
+                imsg.setAck(true);
+            } else {
+                MessageContent c = IMessage.fromRaw(im.content);
+                if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                    Revoke r = (Revoke) c;
+                    IMessage imsg = findMessage(r.msgid);
+                    if (imsg == null) {
+                        Log.i(TAG, "can't find msg:" + msgLocalID);
+                        return;
+                    }
+                    imsg.setContent(r);
+                    updateNotificationDesc(imsg);
+                    adapter.notifyDataSetChanged();
+                }
+            }
+        } else {
+            if (msgLocalID > 0) {
+                IMessage imsg = findMessage(msgLocalID);
+                if (imsg == null) {
+                    Log.i(TAG, "can't find msg:" + msgLocalID);
+                    return;
+                }
+                imsg.setFailure(true);
+            } else {
+                MessageContent c = IMessage.fromRaw(im.content);
+                if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                    Toast.makeText(this, "撤回失败", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
@@ -256,7 +268,6 @@ public class GroupMessageActivity extends MessageActivity implements
         }
     }
 
-    @Override
     public void onGroupNotification(String text) {
         GroupNotification notification = GroupNotification.newGroupNotification(text);
 

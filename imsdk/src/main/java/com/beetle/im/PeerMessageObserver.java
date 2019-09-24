@@ -16,6 +16,6 @@ package com.beetle.im;
 public interface PeerMessageObserver {
     public void onPeerMessage(IMMessage msg);
     public void onPeerSecretMessage(IMMessage msg);
-    public void onPeerMessageACK(IMMessage msg);
+    public void onPeerMessageACK(IMMessage msg, int error);
     public void onPeerMessageFailure(IMMessage msg);
 }

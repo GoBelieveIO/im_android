@@ -1,13 +1,3 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia.db;
 
 import com.beetle.bauhinia.db.message.*;
@@ -92,6 +82,8 @@ public class IMessage implements Cloneable {
                 content = gson.fromJson(element.get(MessageContent.VIDEO), Video.class);
             } else if (element.has(MessageContent.REVOKE)) {
                 content = gson.fromJson(element.get(MessageContent.REVOKE), Revoke.class);
+            } else if (element.has(MessageContent.ACK)) {
+                content = gson.fromJson(element.get(MessageContent.ACK), ACK.class);
             } else {
                 content = new Unknown();
             }

@@ -78,9 +78,6 @@ class AuthenticationToken {
     public String deviceID;
 }
 
-class MessageACK {
-    public int seq;
-}
 
 //个人消息：typedef long SyncKey
 
@@ -106,13 +103,15 @@ class Metadata {
 
 public class Message {
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     public static final int HEAD_SIZE = 8;
     public int cmd;
     public int seq;
     public int flag;
     public Object body;
+
+    public int failCount;//发送失败的次数
 
     public byte[] pack() {
         int pos = 0;
@@ -172,7 +171,8 @@ public class Message {
             MessageACK ack = (MessageACK)body;
             BytePacket.writeInt32(ack.seq, buf, pos);
             pos += 4;
-            return Arrays.copyOf(buf, HEAD_SIZE+4);
+            buf[pos++] = (byte)ack.status;
+            return Arrays.copyOf(buf, HEAD_SIZE+5);
         } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
             CustomerMessage cs = (CustomerMessage) body;
             BytePacket.writeInt64(cs.customerAppID, buf, pos);
@@ -290,6 +290,7 @@ public class Message {
             MessageACK ack = new MessageACK();
             ack.seq = BytePacket.readInt32(data, pos);
             pos += 4;
+            ack.status = data[pos];
             this.body = ack;
             return true;
         } else if (cmd == Command.MSG_GROUP_NOTIFICATION) {

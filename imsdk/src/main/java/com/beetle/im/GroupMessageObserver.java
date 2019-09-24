@@ -17,7 +17,6 @@ import java.util.List;
  */
 public interface GroupMessageObserver {
     public void onGroupMessages(List<IMMessage> msg);
-    public void onGroupMessageACK(IMMessage msg);
+    public void onGroupMessageACK(IMMessage msg, int error);
     public void onGroupMessageFailure(IMMessage msg);
-    public void onGroupNotification(String notification);
 }

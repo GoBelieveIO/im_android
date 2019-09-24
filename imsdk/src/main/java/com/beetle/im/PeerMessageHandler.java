@@ -15,6 +15,6 @@ package com.beetle.im;
  */
 public interface PeerMessageHandler {
     public boolean handleMessage(IMMessage msg);
-    public boolean handleMessageACK(IMMessage msg);
+    public boolean handleMessageACK(IMMessage msg, int error);
     public boolean handleMessageFailure(IMMessage msg);
 }

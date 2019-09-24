@@ -1,13 +1,3 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia.db.message;
 
 import org.json.JSONException;
@@ -31,6 +21,7 @@ public abstract class MessageContent implements Cloneable {
     public static final String SECRET = "secret";
     public static final String FILE = "file";
     public static final String REVOKE = "revoke";
+    public static final String ACK = "ack";
 
     public enum MessageType {
         MESSAGE_UNKNOWN,
@@ -51,6 +42,8 @@ public abstract class MessageContent implements Cloneable {
         MESSAGE_SECRET,
 
         MESSAGE_REVOKE,
+
+        MESSAGE_ACK,
 
         MESSAGE_TIME_BASE, //虚拟的消息，不会存入磁盘
     }

@@ -17,7 +17,6 @@ import java.util.List;
  */
 public interface GroupMessageHandler {
     public boolean handleMessages(List<IMMessage> msgs);
-    public boolean handleMessageACK(IMMessage msg);
+    public boolean handleMessageACK(IMMessage msg, int error);
     public boolean handleMessageFailure(IMMessage msg);
-    public boolean handleGroupNotification(String notification);
 }

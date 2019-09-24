@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import static android.os.SystemClock.uptimeMillis;
@@ -122,9 +121,7 @@ public class IMService {
     ArrayList<RTMessageObserver> rtMessageObservers = new ArrayList<RTMessageObserver>();
     ArrayList<RoomMessageObserver> roomMessageObservers = new ArrayList<RoomMessageObserver>();
 
-    HashMap<Integer, IMMessage> peerMessages = new HashMap<Integer, IMMessage>();
-    HashMap<Integer, IMMessage> groupMessages = new HashMap<Integer, IMMessage>();
-    HashMap<Integer, CustomerMessage> customerMessages = new HashMap<Integer, CustomerMessage>();
+    ArrayList<Message> messages = new ArrayList<Message>();//已发出，等待ack的消息
 
     ArrayList<IMMessage> receivedGroupMessages = new ArrayList<IMMessage>();
 
@@ -385,6 +382,9 @@ public class IMService {
                         //就没有必要重连socket
                         Log.i(TAG, "reconnect im service");
                         IMService.im.suspend();
+                        IMService.im.connectState = ConnectState.STATE_UNCONNECTED;
+                        IMService.im.publishConnectState();
+                        IMService.im.close();
                         IMService.im.resume();
                     }
                 } else {
@@ -392,6 +392,9 @@ public class IMService {
                     IMService.im.reachable = false;
                     if (!IMService.im.stopped) {
                         IMService.im.suspend();
+                        IMService.im.connectState = ConnectState.STATE_UNCONNECTED;
+                        IMService.im.publishConnectState();
+                        IMService.im.close();
                     }
                 }
             } else if (action.equals(IMService.HEATBEAT_ACTION)) {
@@ -574,16 +577,19 @@ public class IMService {
         Message msg = new Message();
         msg.cmd = Command.MSG_IM;
         msg.body = im;
-        if (!sendMessage(msg)) {
-            return false;
+        if (sendMessage(msg)) {
+            messages.add(msg);
+            //在发送需要回执的消息时尽快发现socket已经断开的情况
+            sendHeartbeat();
+            return true;
+        } else if (!suspended) {
+            msg.failCount = 1;
+            messages.add(msg);
+            return true;
+        } else {
+            return  false;
         }
 
-        peerMessages.put(new Integer(msg.seq), im);
-
-        //在发送需要回执的消息时尽快发现socket已经断开的情况
-        sendHeartbeat();
-
-        return true;
     }
 
     public void sendGroupMessageAsync(final IMMessage im) {
@@ -606,18 +612,20 @@ public class IMService {
         Message msg = new Message();
         msg.cmd = Command.MSG_GROUP_IM;
         msg.body = im;
-        if (!sendMessage(msg)) {
+        if (sendMessage(msg)) {
+            messages.add(msg);
+            //在发送需要回执的消息时尽快发现socket已经断开的情况
+            sendHeartbeat();
+
+            return true;
+        } else if (!suspended) {
+            msg.failCount = 1;
+            messages.add(msg);
+            return true;
+        } else {
             return false;
         }
-
-        groupMessages.put(new Integer(msg.seq), im);
-
-        //在发送需要回执的消息时尽快发现socket已经断开的情况
-        sendHeartbeat();
-
-        return true;
     }
-
 
     public void sendCustomerMessageAsync(final CustomerMessage im) {
         handler.post(new Runnable() {
@@ -640,16 +648,19 @@ public class IMService {
         Message msg = new Message();
         msg.cmd = Command.MSG_CUSTOMER;
         msg.body = im;
-        if (!sendMessage(msg)) {
+        if (sendMessage(msg)) {
+            messages.add(msg);
+            //在发送需要回执的消息时尽快发现socket已经断开的情况
+            sendHeartbeat();
+
+            return true;
+        } else if (!suspended) {
+            msg.failCount = 1;
+            messages.add(msg);
+            return true;
+        } else {
             return false;
         }
-
-        customerMessages.put(new Integer(msg.seq), im);
-
-        //在发送需要回执的消息时尽快发现socket已经断开的情况
-        sendHeartbeat();
-
-        return true;
     }
 
     public void sendCustomerSupportMessageAsync(final CustomerMessage im) {
@@ -672,16 +683,20 @@ public class IMService {
         Message msg = new Message();
         msg.cmd = Command.MSG_CUSTOMER_SUPPORT;
         msg.body = im;
-        if (!sendMessage(msg)) {
+        if (sendMessage(msg)) {
+            messages.add(msg);
+            //在发送需要回执的消息时尽快发现socket已经断开的情况
+            sendHeartbeat();
+
+            return true;
+        } else if (!suspended) {
+            msg.failCount = 1;
+            messages.add(msg);
+            return true;
+        } else {
             return false;
         }
 
-        customerMessages.put(new Integer(msg.seq), im);
-
-        //在发送需要回执的消息时尽快发现socket已经断开的情况
-        sendHeartbeat();
-
-        return true;
     }
 
     public void sendRTMessageAsync(final RTMessage rt) {
@@ -778,38 +793,52 @@ public class IMService {
             metaMessage = null;
         }
 
-        Iterator iter = peerMessages.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
-            IMMessage im = entry.getValue();
+        ArrayList<IMMessage> peerMessages = new ArrayList<IMMessage>();
+        ArrayList<IMMessage> groupMessages = new ArrayList<IMMessage>();
+        ArrayList<CustomerMessage> customerMessages = new ArrayList<CustomerMessage>();
+        ArrayList<Message> resendMessages = new ArrayList<Message>();
+        for (int i = 0; i < messages.size(); i++) {
+            Message m = messages.get(i);
+            //消息只会被重发一次
+            if (m.failCount > 0 || suspended) {
+                if (m.cmd == Command.MSG_IM) {
+                    peerMessages.add((IMMessage)m.body);
+                } else if (m.cmd == Command.MSG_GROUP_IM) {
+                    groupMessages.add((IMMessage)m.body);
+                } else if (m.cmd == Command.MSG_CUSTOMER || m.cmd == Command.MSG_CUSTOMER_SUPPORT) {
+                    customerMessages.add((CustomerMessage)m.body);
+                }
+            } else {
+                m.failCount += 1;
+                resendMessages.add(m);
+            }
+        }
+
+        for (int i = 0; i < peerMessages.size(); i++) {
+            IMMessage im = peerMessages.get(i);
             if (peerMessageHandler != null) {
                 peerMessageHandler.handleMessageFailure(im);
             }
             publishPeerMessageFailure(im);
         }
-        peerMessages.clear();
-
-        iter = groupMessages.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<Integer, IMMessage> entry = (Map.Entry<Integer, IMMessage>)iter.next();
-            IMMessage im = entry.getValue();
+        for (int i = 0; i < groupMessages.size(); i++) {
+            IMMessage im = groupMessages.get(i);
             if (groupMessageHandler != null) {
                 groupMessageHandler.handleMessageFailure(im);
             }
             publishGroupMessageFailure(im);
         }
-        groupMessages.clear();
 
-        iter = customerMessages.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<Integer, CustomerMessage> entry = (Map.Entry<Integer, CustomerMessage>)iter.next();
-            CustomerMessage im = entry.getValue();
+        for (int i= 0; i < customerMessages.size(); i++) {
+            CustomerMessage im = customerMessages.get(i);
             if (customerMessageHandler != null) {
                 customerMessageHandler.handleMessageFailure(im);
             }
             publishCustomerServiceMessageFailure(im);
         }
-        customerMessages.clear();
+
+        messages = resendMessages;
+
 
         if (this.tcp != null) {
             Log.i(TAG, "close tcp");
@@ -895,6 +924,11 @@ public class IMService {
             s.syncTimestamp = now;
             s.pendingSyncKey = 0;
         }
+        //重发失败的消息
+        for (Message m : messages) {
+            this.sendMessage(m);
+        }
+
         this.tcp.startRead();
     }
 
@@ -914,8 +948,6 @@ public class IMService {
 
             long t;
             if (this.connectFailCount > 60) {
-
-
                 t = uptimeMillis() + 60*1000;
             } else {
                 t = uptimeMillis() + this.connectFailCount*1000;
@@ -1055,11 +1087,24 @@ public class IMService {
     private void handleGroupNotification(Message msg) {
         String notification = (String)msg.body;
         Log.d(TAG, "group notification:" + notification);
-        if (groupMessageHandler != null && !groupMessageHandler.handleGroupNotification(notification)) {
-            Log.i(TAG, "handle group notification fail");
-            return;
+
+        if ((msg.flag & Flag.MESSAGE_FLAG_PUSH) != 0) {
+            ArrayList<IMMessage> array = new ArrayList<IMMessage>();
+            IMMessage im = new IMMessage();
+            im.content = notification;
+            im.isGroupNotification = true;
+            array.add(im);
+            if (groupMessageHandler != null && !groupMessageHandler.handleMessages(array)) {
+                Log.i(TAG, "handle group messages fail");
+                return;
+            }
+            publishGroupMessages(array);
+        } else {
+            IMMessage im = new IMMessage();
+            im.content = notification;
+            im.isGroupNotification = true;
+            receivedGroupMessages.add(im);
         }
-        publishGroupNotification(notification);
 
         sendACK(msg.seq);
     }
@@ -1072,37 +1117,98 @@ public class IMService {
     private void handleACK(Message msg) {
         MessageACK ack = (MessageACK)msg.body;
         Integer seq = ack.seq;
-        IMMessage im = peerMessages.get(seq);
+
+        int index = -1;
+        for (int i = 0; i < messages.size(); i++) {
+            Message m = messages.get(i);
+            if (m.seq == seq) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index == -1) {
+            return;
+        }
+
+        Message m = messages.get(index);
+        messages.remove(index);
+        IMMessage im = null;
+        IMMessage groupMsg = null;
+        CustomerMessage cm = null;
+        if (m.cmd == Command.MSG_IM) {
+            im = (IMMessage)m.body;
+        } else if (m.cmd == Command.MSG_GROUP_IM) {
+            groupMsg = (IMMessage)m.body;
+        } else if (m.cmd == Command.MSG_CUSTOMER || m.cmd == Command.MSG_CUSTOMER_SUPPORT) {
+            cm = (CustomerMessage)m.body;
+        }
+
         if (im != null) {
-            if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im)) {
+            if (peerMessageHandler != null && !peerMessageHandler.handleMessageACK(im, ack.status)) {
                 Log.w(TAG, "handle message ack fail");
                 return;
             }
-            peerMessages.remove(seq);
-            publishPeerMessageACK(im);
-            return;
+            publishPeerMessageACK(im, ack.status);
         }
-        im = groupMessages.get(seq);
-        if (im != null) {
 
-            if (groupMessageHandler != null && !groupMessageHandler.handleMessageACK(im)) {
+        if (groupMsg != null) {
+            if (groupMessageHandler != null && !groupMessageHandler.handleMessageACK(groupMsg, ack.status)) {
                 Log.i(TAG, "handle group message ack fail");
                 return;
             }
-            groupMessages.remove(seq);
-            publishGroupMessageACK(im);
+            publishGroupMessageACK(groupMsg, ack.status);
         }
 
-        CustomerMessage cm = customerMessages.get(seq);
         if (cm != null) {
             if (customerMessageHandler != null && !customerMessageHandler.handleMessageACK(cm)) {
                 Log.i(TAG, "handle customer service message ack fail");
                 return;
             }
-            customerMessages.remove(seq);
             publishCustomerServiceMessageACK(cm);
         }
+
+        Message metaMessage = this.metaMessage;
+        this.metaMessage = null;
+        if (metaMessage != null && metaMessage.seq + 1 == msg.seq) {
+            Metadata metadata = (Metadata)metaMessage.body;
+            if (metadata.prevSyncKey == 0 || metadata.syncKey == 0) {
+                return;
+            }
+
+            long newSyncKey = metadata.syncKey;
+            if ((msg.flag & Flag.MESSAGE_FLAG_SUPER_GROUP) != 0) {
+                if (groupMsg == null) {
+                    return;
+                }
+
+                long groupID = groupMsg.receiver;
+                GroupSync s = null;
+                if (this.groupSyncKeys.containsKey(groupID)) {
+                    s = this.groupSyncKeys.get(groupID);
+                } else {
+                    return;
+                }
+
+                if (s.syncKey == metadata.prevSyncKey && newSyncKey != s.syncKey) {
+                    s.syncKey = newSyncKey;
+                    if (this.syncKeyHandler != null) {
+                        this.syncKeyHandler.saveGroupSyncKey(groupID, s.syncKey);
+                        this.sendGroupSyncKey(groupID, s.syncKey);
+                    }
+                }
+            } else {
+                if (this.syncKey == metadata.prevSyncKey && newSyncKey != this.syncKey) {
+                    this.syncKey = newSyncKey;
+                    if (this.syncKeyHandler != null) {
+                        this.syncKeyHandler.saveSyncKey(this.syncKey);
+                        this.sendSyncKey(this.syncKey);
+                    }
+                }
+            }
+        }
     }
+
 
     private void handleSystemMessage(Message msg) {
         String sys = (String)msg.body;
@@ -1565,18 +1671,6 @@ public class IMService {
         return true;
     }
 
-    private void publishGroupNotification(final String notification) {
-        runOnMainThread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < groupObservers.size(); i++ ) {
-                    GroupMessageObserver ob = groupObservers.get(i);
-                    ob.onGroupNotification(notification);
-                }
-            }
-        });
-    }
-
     private void publishGroupMessages(final List<IMMessage> msgs) {
         runOnMainThread(new Runnable() {
             @Override
@@ -1589,13 +1683,13 @@ public class IMService {
         });
     }
 
-    private void publishGroupMessageACK(final IMMessage im) {
+    private void publishGroupMessageACK(final IMMessage im, final int error) {
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < groupObservers.size(); i++) {
                     GroupMessageObserver ob = groupObservers.get(i);
-                    ob.onGroupMessageACK(im);
+                    ob.onGroupMessageACK(im, error);
                 }
             }
         });
@@ -1639,13 +1733,13 @@ public class IMService {
 
     }
 
-    private void publishPeerMessageACK(final IMMessage msg) {
+    private void publishPeerMessageACK(final IMMessage msg, final int error) {
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
                 for (int i = 0; i < peerObservers.size(); i++ ) {
                     PeerMessageObserver ob = peerObservers.get(i);
-                    ob.onPeerMessageACK(msg);
+                    ob.onPeerMessageACK(msg, error);
                 }
             }
         });

@@ -1,13 +1,3 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia;
 
 import android.content.Intent;
@@ -17,6 +7,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.beetle.bauhinia.db.*;
+import com.beetle.bauhinia.db.message.ACK;
 import com.beetle.bauhinia.db.message.Audio;
 import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.MessageContent;
@@ -31,6 +22,7 @@ import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
+import com.beetle.im.MessageACK;
 import com.beetle.im.PeerMessageObserver;
 
 
@@ -46,11 +38,11 @@ public class PeerMessageActivity extends MessageActivity implements
     public static final String CLEAR_SECRET_MESSAGES = "clear_secret_messages";
     public static final String CLEAR_SECRET_NEW_MESSAGES = "clear_secret_new_messages";
 
+
     protected long peerUID;
     protected String peerName;
     protected String peerAvatar;
     protected boolean secret;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -284,34 +276,58 @@ public class PeerMessageActivity extends MessageActivity implements
 
 
     @Override
-    public void onPeerMessageACK(IMMessage im) {
+    public void onPeerMessageACK(IMMessage im, int error) {
         int msgLocalID = im.msgLocalID;
         long uid = im.receiver;
         if (peerUID != uid) {
             return;
         }
-        Log.i(TAG, "message ack");
+        Log.i(TAG, "message ack:" + error);
 
-        if (msgLocalID > 0) {
-            IMessage imsg = findMessage(msgLocalID);
-            if (imsg == null) {
-                Log.i(TAG, "can't find msg:" + msgLocalID);
-                return;
-            }
-            imsg.setAck(true);
-        } else {
-            MessageContent c = IMessage.fromRaw(im.plainContent);
-            if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-                Revoke r = (Revoke)c;
-                IMessage imsg = findMessage(r.msgid);
+        if (error == MessageACK.MESSAGE_ACK_SUCCESS) {
+            if (msgLocalID > 0) {
+                IMessage imsg = findMessage(msgLocalID);
                 if (imsg == null) {
-                    Log.i(TAG, "can't find msg:" + r.msgid);
+                    Log.i(TAG, "can't find msg:" + msgLocalID);
                     return;
                 }
-                imsg.setContent(r);
-                updateNotificationDesc(imsg);
-                adapter.notifyDataSetChanged();
+                imsg.setAck(true);
+            } else {
+                MessageContent c = IMessage.fromRaw(im.plainContent);
+                if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                    Revoke r = (Revoke) c;
+                    IMessage imsg = findMessage(r.msgid);
+                    if (imsg == null) {
+                        Log.i(TAG, "can't find msg:" + r.msgid);
+                        return;
+                    }
+                    imsg.setContent(r);
+                    updateNotificationDesc(imsg);
+                    adapter.notifyDataSetChanged();
+                }
             }
+        } else {
+            if (msgLocalID > 0) {
+                IMessage imsg = findMessage(msgLocalID);
+                if (imsg == null) {
+                    Log.i(TAG, "can't find msg:" + msgLocalID);
+                    return;
+                }
+                imsg.setFailure(true);
+            } else {
+                MessageContent c = IMessage.fromRaw(im.content);
+                if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                    Toast.makeText(this, "撤回失败", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            IMessage ack = new IMessage();
+            ack.sender = 0;
+            ack.receiver = im.sender;
+            ack.timestamp = now();
+            ack.setContent(ACK.newACK(error));
+            updateNotificationDesc(ack);
+            insertMessage(ack);
         }
     }
 

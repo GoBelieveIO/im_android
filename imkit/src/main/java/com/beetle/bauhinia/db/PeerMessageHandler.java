@@ -12,10 +12,13 @@ package com.beetle.bauhinia.db;
 
 import android.text.TextUtils;
 
+import com.beetle.bauhinia.db.message.ACK;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.im.IMMessage;
+import com.beetle.im.MessageACK;
 
+import java.util.Date;
 
 
 /**
@@ -49,6 +52,7 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
             }
         }
     }
+
     public boolean handleMessage(IMMessage msg) {
         IMessage imsg = new IMessage();
         imsg.timestamp = msg.timestamp;
@@ -87,24 +91,43 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
 
     }
 
-    public boolean handleMessageACK(IMMessage im) {
-        long uid = im.receiver;
+    public boolean handleMessageACK(IMMessage im, int error) {
         int msgLocalID = im.msgLocalID;
         PeerMessageDB db = PeerMessageDB.getInstance();
-        if (msgLocalID == 0) {
-            MessageContent c = IMessage.fromRaw(im.content);
-            if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-                Revoke r = (Revoke)c;
-                int revokedMsgId = db.getMessageId(r.msgid);
-                if (revokedMsgId > 0) {
-                    db.updateContent(revokedMsgId, im.content);
-                    db.removeMessageIndex(revokedMsgId);
+
+        if (error == MessageACK.MESSAGE_ACK_SUCCESS) {
+            if (msgLocalID == 0) {
+                MessageContent c = IMessage.fromRaw(im.plainContent);
+                if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                    Revoke r = (Revoke) c;
+                    int revokedMsgId = db.getMessageId(r.msgid);
+                    if (revokedMsgId > 0) {
+                        db.updateContent(revokedMsgId, im.plainContent);
+                        db.removeMessageIndex(revokedMsgId);
+                    }
                 }
+                return true;
+            } else {
+                return db.acknowledgeMessage(msgLocalID);
+            }
+        } else {
+            IMessage ack = new IMessage();
+            ack.sender = 0;
+            ack.receiver = im.sender;
+            ack.timestamp = now();
+            ack.setContent(ACK.newACK(error));
+            db.insertMessage(ack, im.receiver);
+            if (msgLocalID > 0) {
+                return db.markMessageFailure(msgLocalID);
             }
             return true;
-        } else {
-            return db.acknowledgeMessage(msgLocalID);
         }
+    }
+
+    public static int now() {
+        Date date = new Date();
+        long t = date.getTime();
+        return (int)(t/1000);
     }
 
     public boolean handleMessageFailure(IMMessage im) {
