@@ -60,6 +60,7 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
             case MESSAGE_HEADLINE:
             case MESSAGE_GROUP_VOIP:
             case MESSAGE_REVOKE:
+            case MESSAGE_ACK:
                 v = new MessageNotificationView(context);
                 break;
             case MESSAGE_FILE:
