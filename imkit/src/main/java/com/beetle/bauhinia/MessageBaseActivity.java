@@ -28,6 +28,7 @@ import com.beetle.bauhinia.activity.BaseActivity;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessageDB;
 import com.beetle.bauhinia.db.MessageIterator;
+import com.beetle.bauhinia.db.message.ACK;
 import com.beetle.bauhinia.db.message.Attachment;
 import com.beetle.bauhinia.db.message.Audio;
 import com.beetle.bauhinia.db.message.GroupNotification;
@@ -45,6 +46,7 @@ import com.beetle.bauhinia.tools.FileDownloader;
 import com.beetle.bauhinia.tools.TimeUtil;
 import com.beetle.bauhinia.tools.VideoUtil;
 import com.beetle.im.IMService;
+import com.beetle.im.MessageACK;
 
 
 import java.io.ByteArrayOutputStream;
@@ -502,6 +504,15 @@ public class MessageBaseActivity extends BaseActivity {
                 MessageActivity.User u = this.getUser(imsg.sender);
                 String name = !TextUtils.isEmpty(u.name) ? u.name : u.identifier;
                 revoke.description = String.format("\"%s\"撤回了一条消息", name);
+            }
+        } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_ACK) {
+            ACK ack = (ACK)imsg.content;
+            if (ack.error == MessageACK.MESSAGE_ACK_NOT_YOUR_FRIEND) {
+                ack.description = "你还不是他（她）朋友";
+            } else if (ack.error == MessageACK.MESSAGE_ACK_IN_YOUR_BLACKLIST) {
+                ack.description = "消息已发出，但被对方拒收了。";
+            } else if (ack.error == MessageACK.MESSAGE_ACK_NOT_MY_FRIEND) {
+                ack.description = "对方已不是你的朋友";
             }
         }
     }
