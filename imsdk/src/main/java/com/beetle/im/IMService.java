@@ -24,7 +24,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.util.Log;
+
+import com.beetle.AsyncSSLTCP;
 import com.beetle.AsyncTCP;
+import com.beetle.AsyncTCPInterface;
 import com.beetle.TCPConnectCallback;
 import com.beetle.TCPReadCallback;
 
@@ -43,9 +46,19 @@ import static android.os.SystemClock.uptimeMillis;
  * Created by houxh on 14-7-21.
  */
 public class IMService {
-
+    private static final boolean ENABLE_SSL = false;
     private static final String HOST = "imnode2.gobelieve.io";
-    private static final int PORT = 23000;
+    private static int PORT;
+
+    {
+        if (ENABLE_SSL) {
+            PORT = 24430;
+        } else {
+            PORT = 23000;
+        }
+    }
+
+
     private static final String TAG = "imservice";
     private static final int HEARTBEAT = 60*3;
     private static final String HEATBEAT_ACTION = "io.gobelieve.HEARTBEAT";
@@ -58,7 +71,7 @@ public class IMService {
         STATE_CONNECTFAIL,
     }
 
-    private AsyncTCP tcp;
+    private AsyncTCPInterface tcp;
     private boolean stopped = true;
     private boolean suspended = true;
     private boolean reachable = true;
@@ -964,7 +977,11 @@ public class IMService {
         this.connectTimestamp = now();
         this.connectState = ConnectState.STATE_CONNECTING;
         IMService.this.publishConnectState();
-        this.tcp = new AsyncTCP();
+        if (ENABLE_SSL) {
+            this.tcp = new AsyncSSLTCP();
+        } else {
+            this.tcp = new AsyncTCP();
+        }
         Log.i(TAG, "new tcp...");
 
         this.tcp.setConnectCallback(new TCPConnectCallback() {
@@ -1003,9 +1020,10 @@ public class IMService {
             }
         });
 
+        Log.i(TAG, "tcp connect host ip:" + this.hostIP + " port:" + port);
         boolean r = this.tcp.connect(this.hostIP, this.port);
-        Log.i(TAG, "tcp connect:" + r);
         if (!r) {
+            Log.i(TAG, "connect failure");
             this.tcp = null;
             IMService.this.connectFailCount++;
             IMService.this.connectState = ConnectState.STATE_CONNECTFAIL;

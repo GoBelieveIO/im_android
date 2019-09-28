@@ -1,23 +1,13 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle;
 
-import java.lang.ref.WeakReference;
-
-public class AsyncTCP implements AsyncTCPInterface {
+public class AsyncSSLTCP implements AsyncTCPInterface {
     private int sock;
     private int events;
+    private int state;
+    private long ssl;
+    private long sslCTX;
 
     private byte[] data;
-    private boolean connecting;
     
     private TCPConnectCallback connectCallback;
     private TCPReadCallback readCallback;
@@ -39,6 +29,6 @@ public class AsyncTCP implements AsyncTCPInterface {
   
 
     static {
-        System.loadLibrary("async_tcp");
+        System.loadLibrary("async_ssl_tcp");
     }
 }
