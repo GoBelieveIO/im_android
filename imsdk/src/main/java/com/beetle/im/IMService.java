@@ -1328,7 +1328,7 @@ public class IMService {
                 return;
             }
             publishGroupMessages(receivedGroupMessages);
-            receivedGroupMessages.clear();
+            receivedGroupMessages = new ArrayList<IMMessage>();
         }
 
         Long newSyncKey = (Long)msg.body;
@@ -1393,7 +1393,7 @@ public class IMService {
                 return;
             }
             publishGroupMessages(receivedGroupMessages);
-            receivedGroupMessages.clear();
+            receivedGroupMessages = new ArrayList<IMMessage>();
         }
 
         GroupSync s = null;
