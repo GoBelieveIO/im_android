@@ -23,6 +23,9 @@ public class IMMessage {
     public int timestamp;
     public String content;
 
+    //文本消息
+    public boolean isText;
+
     //是否由当前用户在当前设备所发出
     public boolean isSelf;
     //群组通知消息

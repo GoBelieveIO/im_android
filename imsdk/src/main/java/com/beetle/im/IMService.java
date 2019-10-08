@@ -590,6 +590,9 @@ public class IMService {
         Message msg = new Message();
         msg.cmd = Command.MSG_IM;
         msg.body = im;
+        if (im.isText) {
+            msg.flag = Flag.MESSAGE_FLAG_TEXT;
+        }
         if (sendMessage(msg)) {
             messages.add(msg);
             //在发送需要回执的消息时尽快发现socket已经断开的情况
@@ -625,6 +628,9 @@ public class IMService {
         Message msg = new Message();
         msg.cmd = Command.MSG_GROUP_IM;
         msg.body = im;
+        if (im.isText) {
+            msg.flag = Flag.MESSAGE_FLAG_TEXT;
+        }
         if (sendMessage(msg)) {
             messages.add(msg);
             //在发送需要回执的消息时尽快发现socket已经断开的情况

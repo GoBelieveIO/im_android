@@ -399,6 +399,7 @@ public class PeerMessageActivity extends MessageActivity implements
             msg.sender = imsg.sender;
             msg.receiver = imsg.receiver;
             msg.msgLocalID = imsg.msgLocalID;
+            msg.isText = true;
             msg.content = imsg.content.getRaw();
             msg.plainContent = msg.content;
             if (secret) {

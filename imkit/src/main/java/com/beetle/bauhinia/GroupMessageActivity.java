@@ -318,6 +318,7 @@ public class GroupMessageActivity extends MessageActivity implements
             msg.receiver = imsg.receiver;
             msg.content = imsg.content.getRaw();
             msg.msgLocalID = imsg.msgLocalID;
+            msg.isText = true;
             IMService im = IMService.getInstance();
             im.sendGroupMessageAsync(msg);
         }
