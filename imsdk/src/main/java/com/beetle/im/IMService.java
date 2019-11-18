@@ -69,6 +69,7 @@ public class IMService {
         STATE_CONNECTING,
         STATE_CONNECTED,
         STATE_CONNECTFAIL,
+        STATE_AUTHENTICATION_FAIL,
     }
 
     private AsyncTCPInterface tcp;
@@ -1064,7 +1065,7 @@ public class IMService {
         if (status != 0) {
             //失效的accesstoken,2s后重新连接
             this.connectFailCount = 2;
-            this.connectState = ConnectState.STATE_UNCONNECTED;
+            this.connectState = ConnectState.STATE_AUTHENTICATION_FAIL;
             this.publishConnectState();
             this.close();
             this.startConnectTimer();
