@@ -11,7 +11,7 @@
 package com.easemob.easeui;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import com.linkedin.android.spyglass.mentions.Mentionable;
 
 public class Contact implements Mentionable {

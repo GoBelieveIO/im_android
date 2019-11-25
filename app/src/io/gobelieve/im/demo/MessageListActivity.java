@@ -20,20 +20,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
-import android.support.v7.widget.Toolbar;
+import androidx.appcompat.widget.Toolbar;
 
 import com.beetle.bauhinia.CustomerMessageActivity;
 import com.beetle.bauhinia.GroupMessageActivity;
 import com.beetle.bauhinia.PeerMessageActivity;
-import com.beetle.bauhinia.db.ConversationIterator;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.EPeerMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.db.PeerMessageDB;
-import com.beetle.bauhinia.db.message.ACK;
 import com.beetle.bauhinia.db.message.Audio;
 import com.beetle.bauhinia.db.message.File;
 import com.beetle.bauhinia.db.message.GroupNotification;
@@ -55,7 +52,6 @@ import com.beetle.im.IMServiceObserver;
 import com.beetle.bauhinia.activity.BaseActivity;
 import com.beetle.bauhinia.tools.Notification;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -64,7 +60,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.beetle.im.MessageACK;
 import com.beetle.im.PeerMessageObserver;
 import com.beetle.im.SystemMessageObserver;
 

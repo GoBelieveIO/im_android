@@ -13,7 +13,7 @@ package io.gobelieve.im.demo;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
+import androidx.fragment.app.FragmentActivity;
 
 import com.beetle.im.IMService;
 

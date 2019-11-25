@@ -12,7 +12,6 @@ package com.beetle.bauhinia.activity;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Window;
@@ -20,9 +19,6 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
-
-import com.beetle.imkit.R;
-import com.beetle.bauhinia.activity.BaseActivity;
 
 public class WebActivity extends BaseActivity {
 

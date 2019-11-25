@@ -11,9 +11,7 @@
 package com.beetle.bauhinia;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -21,9 +19,9 @@ import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
-import android.provider.MediaStore;
-import android.support.v4.content.FileProvider;
-import android.support.v4.widget.SwipeRefreshLayout;
+
+import androidx.core.content.FileProvider;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.text.ClipboardManager;
 import android.text.TextUtils;
 import android.util.Log;

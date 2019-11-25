@@ -16,7 +16,7 @@
 
 package com.beetle.bauhinia.gallery.tool;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;

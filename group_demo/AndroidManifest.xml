@@ -124,7 +124,7 @@
 
         <!-- authorities 当前包名+'.fileprovider' -->
         <provider
-            android:name="android.support.v4.content.FileProvider"
+            android:name="androidx.core.content.FileProvider"
             android:authorities="io.gobelieve.im.demo.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">

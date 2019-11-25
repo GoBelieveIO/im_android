@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
+    compileSdkVersion 28
     buildToolsVersion '28.0.3'
     useLibrary 'org.apache.http.legacy'
 
@@ -28,8 +28,8 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation 'com.android.support:support-v4:25.0.0'
-    implementation 'com.android.support:appcompat-v7:25.0.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation project(':imkit')
     implementation project(':imsdk')
     implementation project(':asynctcp')
