@@ -1,4 +1,4 @@
-package com.easemob.easeui.widget.emoticon;
+package com.beetle.bauhinia.toolbar.emoticon;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -15,8 +15,8 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import com.beetle.imkit.R;
-import com.easemob.easeui.utils.DisplayUtils;
-import com.easemob.easeui.widget.EaseExpandRecylerView;
+import com.beetle.bauhinia.tools.DisplayUtils;
+import com.beetle.bauhinia.toolbar.EaseExpandRecylerView;
 
 import java.util.ArrayList;
 import java.util.List;

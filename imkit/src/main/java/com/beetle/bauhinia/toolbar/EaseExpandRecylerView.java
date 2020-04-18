@@ -11,25 +11,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.easemob.easeui.widget;
+package com.beetle.bauhinia.toolbar;
 
 import android.content.Context;
+import androidx.recyclerview.widget.RecyclerView;
 import android.util.AttributeSet;
-import android.widget.GridView;
+import android.view.View;
 
-public class EaseExpandGridView extends GridView {
+public class EaseExpandRecylerView extends RecyclerView {
 
-    public EaseExpandGridView(Context context) {
+    public EaseExpandRecylerView(Context context) {
         super(context);
     }
 
-    public EaseExpandGridView(Context context, AttributeSet attrs) {
+    public EaseExpandRecylerView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
     @Override
     public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int expandSpec = MeasureSpec.makeMeasureSpec(Integer.MAX_VALUE >> 2, MeasureSpec.AT_MOST);
+        int expandSpec = View.MeasureSpec.makeMeasureSpec(Integer.MAX_VALUE >> 2, View.MeasureSpec.AT_MOST);
         super.onMeasure(widthMeasureSpec, expandSpec);
     }
 }

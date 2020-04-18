@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/primary_menu_container">
-        <com.easemob.easeui.widget.EaseChatPrimaryMenu
+        <com.beetle.bauhinia.toolbar.EaseChatPrimaryMenu
             android:id="@+id/primary_menu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
@@ -25,7 +25,7 @@
         android:background="#fff"
         android:visibility="gone" >
 
-        <com.easemob.easeui.widget.EaseChatExtendMenu
+        <com.beetle.bauhinia.toolbar.EaseChatExtendMenu
             android:id="@+id/extend_menu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -18,7 +18,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 import com.beetle.imkit.R;
-import com.easemob.easeui.widget.emoticon.EmoticonManager;
+import com.beetle.bauhinia.toolbar.emoticon.EmoticonManager;
 
 public class OverlayActivity extends BaseActivity {
 

@@ -40,6 +40,7 @@ import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.bauhinia.db.message.Text;
 import com.beetle.bauhinia.db.message.TimeBase;
 import com.beetle.bauhinia.db.message.Video;
+import com.beetle.bauhinia.toolbar.emoticon.EmoticonManager;
 import com.beetle.bauhinia.tools.AudioUtil;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.FileDownloader;
@@ -589,6 +590,9 @@ public class MessageBaseActivity extends BaseActivity {
                 downloader.download(msg);
             }
             msg.setDownloading(downloader.isDownloading(msg));
+        } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+            Text text = (Text)msg.content;
+            text.spanText = EmoticonManager.getInstance().getEmoticonStr(text.text);
         }
     }
 
@@ -714,8 +718,9 @@ public class MessageBaseActivity extends BaseActivity {
         if (text.length() == 0) {
             return;
         }
-
-        sendMessageContent(Text.newText(text, at, atNames));
+        Text t = Text.newText(text, at, atNames);
+        t.spanText = EmoticonManager.getInstance().getEmoticonStr(text);
+        sendMessageContent(t);
     }
 
 

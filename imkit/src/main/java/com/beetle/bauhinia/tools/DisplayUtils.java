@@ -1,4 +1,4 @@
-package com.easemob.easeui.utils;
+package com.beetle.bauhinia.tools;
 
 import android.content.Context;
 import android.util.TypedValue;

@@ -1,4 +1,4 @@
-package com.easemob.easeui.widget.emoticon;
+package com.beetle.bauhinia.toolbar.emoticon;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.easemob.easeui.widget.emoticon.EmoticonUtils.FILE_EMOTICON;
+import static com.beetle.bauhinia.toolbar.emoticon.EmoticonUtils.FILE_EMOTICON;
 
 /**
  * Desc.
@@ -82,7 +82,10 @@ public class EmoticonManager {
         mEmoticonSize = EmoticonUtils.getNormalSize(context);
 
         loadUnicodeEmoji(context);
-        //loadImageEmoji(context);
+        if (false) {
+            //disable image emoji
+            loadImageEmoji(context);
+        }
 
         int pageCount = (int) Math.ceil((double) mEmoticonList.size() / PAGE_EMOTICON_SIZE);
         for (int i = 0; i < pageCount; i++) {

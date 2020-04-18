@@ -33,7 +33,7 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <com.easemob.easeui.widget.EaseChatInputMenu
+    <com.beetle.bauhinia.toolbar.EaseChatInputMenu
         android:id="@+id/input_menu"
         android:layout_weight="0"
         android:layout_width="match_parent"

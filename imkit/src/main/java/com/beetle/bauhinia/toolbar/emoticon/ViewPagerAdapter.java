@@ -1,4 +1,4 @@
-package com.easemob.easeui.widget.emoticon;
+package com.beetle.bauhinia.toolbar.emoticon;
 
 import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;

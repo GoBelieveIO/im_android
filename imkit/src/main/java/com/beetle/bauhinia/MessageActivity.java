@@ -48,8 +48,8 @@ import com.beetle.bauhinia.outbox.Outbox;
 import com.beetle.bauhinia.tools.*;
 import com.beetle.bauhinia.view.*;
 import com.beetle.im.IMService;
-import com.easemob.easeui.widget.EaseChatExtendMenu;
-import com.easemob.easeui.widget.EaseChatInputMenu;
+import com.beetle.bauhinia.toolbar.EaseChatExtendMenu;
+import com.beetle.bauhinia.toolbar.EaseChatInputMenu;
 import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
 import com.beetle.imkit.R;
 

@@ -8,7 +8,7 @@
 */
 
 
-package com.easemob.easeui;
+package com.beetle.bauhinia.toolbar;
 import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;

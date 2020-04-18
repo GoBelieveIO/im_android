@@ -8,7 +8,7 @@
 */
 
 
-package com.easemob.easeui.widget;
+package com.beetle.bauhinia.toolbar;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -26,9 +26,8 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.beetle.imkit.R;
-import com.easemob.easeui.Contact;
-import com.easemob.easeui.widget.EaseChatExtendMenu.EaseChatExtendMenuItemClickListener;
-import com.easemob.easeui.widget.emoticon.EmoticonPanel;
+import com.beetle.bauhinia.toolbar.EaseChatExtendMenu.EaseChatExtendMenuItemClickListener;
+import com.beetle.bauhinia.toolbar.emoticon.EmoticonPanel;
 import com.linkedin.android.spyglass.mentions.MentionSpan;
 import com.linkedin.android.spyglass.mentions.MentionSpanConfig;
 import com.linkedin.android.spyglass.tokenization.QueryToken;

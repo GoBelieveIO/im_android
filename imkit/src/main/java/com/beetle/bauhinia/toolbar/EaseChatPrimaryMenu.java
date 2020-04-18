@@ -8,7 +8,7 @@
 */
 
 
-package com.easemob.easeui.widget;
+package com.beetle.bauhinia.toolbar;
 
 import android.app.Activity;
 import android.content.Context;

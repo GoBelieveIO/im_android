@@ -26,7 +26,7 @@ import com.beetle.bauhinia.handler.GroupMessageHandler;
 import com.beetle.bauhinia.handler.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
-import com.easemob.easeui.widget.emoticon.EmoticonManager;
+import com.beetle.bauhinia.toolbar.emoticon.EmoticonManager;
 
 import java.io.FileOutputStream;
 import java.io.IOException;

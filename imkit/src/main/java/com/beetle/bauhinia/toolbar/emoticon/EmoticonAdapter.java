@@ -1,4 +1,4 @@
-package com.easemob.easeui.widget.emoticon;
+package com.beetle.bauhinia.toolbar.emoticon;
 
 import android.content.Context;
 import androidx.annotation.Nullable;

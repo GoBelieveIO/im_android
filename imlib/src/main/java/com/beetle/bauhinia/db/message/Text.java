@@ -1,5 +1,8 @@
 package com.beetle.bauhinia.db.message;
 
+import android.text.SpannableString;
+import android.text.TextUtils;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
@@ -9,6 +12,8 @@ import java.util.UUID;
 
 public class Text extends MessageContent {
     public String text;
+    public SpannableString spanText;//emoticon
+
     public List<Long> at;
     @SerializedName("at_name")
     public List<String> atNames;
@@ -66,6 +71,7 @@ public class Text extends MessageContent {
     public Text() {
 
     }
+
 
     public MessageType getType() {
         return MessageType.MESSAGE_TEXT;

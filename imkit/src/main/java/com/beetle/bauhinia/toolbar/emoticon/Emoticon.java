@@ -1,7 +1,6 @@
-package com.easemob.easeui.widget.emoticon;
+package com.beetle.bauhinia.toolbar.emoticon;
 
 import android.graphics.Bitmap;
-import android.text.style.ImageSpan;
 
 /**
  * Desc.

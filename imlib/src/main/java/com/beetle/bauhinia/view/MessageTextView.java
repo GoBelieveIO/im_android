@@ -83,11 +83,12 @@ public class MessageTextView extends MessageContentView {
 
         if (mediaType == MessageContent.MessageType.MESSAGE_TEXT) {
             TextView content = (TextView) findViewById(R.id.text);
-            String text = ((Text) msg.content).text;
-
-            content.setText(text);
-            //todo
-            //content.setText(EmoticonManager.getInstance().getEmoticonStr(text));
+            Text text = (Text)msg.content;
+            if (text.spanText != null) {
+                content.setText(text.spanText);
+            } else {
+                content.setText(text.text);
+            }
         }
 
         if (msg.isOutgoing) {

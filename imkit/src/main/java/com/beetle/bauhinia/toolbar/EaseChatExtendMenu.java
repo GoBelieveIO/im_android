@@ -8,7 +8,7 @@
 */
 
 
-package com.easemob.easeui.widget;
+package com.beetle.bauhinia.toolbar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ import com.beetle.imkit.R;
  * 按+按钮出来的扩展按钮
  *
  */
-public class EaseChatExtendMenu extends GridView{
+public class EaseChatExtendMenu extends GridView {
 
     protected Context context;
     private List<ChatMenuItemModel> itemModels = new ArrayList<ChatMenuItemModel>();
