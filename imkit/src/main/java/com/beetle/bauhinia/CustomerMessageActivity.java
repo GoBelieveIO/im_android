@@ -19,7 +19,7 @@ import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.im.CustomerMessage;
 import com.beetle.im.CustomerMessageObserver;
-import com.beetle.bauhinia.tools.CustomerOutbox;
+import com.beetle.bauhinia.outbox.CustomerOutbox;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.tools.FileCache;

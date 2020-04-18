@@ -8,7 +8,7 @@
 */
 
 
-package com.beetle.bauhinia.tools;
+package com.beetle.bauhinia.outbox;
 
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.PeerMessageDB;

@@ -17,7 +17,7 @@ import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileDownloader;
 import com.beetle.bauhinia.tools.FileCache;
-import com.beetle.bauhinia.tools.GroupOutbox;
+import com.beetle.bauhinia.outbox.GroupOutbox;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.im.GroupMessageObserver;

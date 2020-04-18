@@ -20,7 +20,6 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
 
-import androidx.core.content.FileProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.text.ClipboardManager;
 import android.text.TextUtils;
@@ -45,6 +44,7 @@ import com.beetle.bauhinia.db.message.*;
 import com.beetle.bauhinia.db.message.Notification;
 import com.beetle.bauhinia.gallery.GalleryImage;
 import com.beetle.bauhinia.gallery.ui.GalleryUI;
+import com.beetle.bauhinia.outbox.Outbox;
 import com.beetle.bauhinia.tools.*;
 import com.beetle.bauhinia.view.*;
 import com.beetle.im.IMService;
@@ -739,6 +739,7 @@ public class MessageActivity extends MessageAudioActivity implements
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (resultCode != RESULT_OK) {
             Log.i(TAG, "take or select picture fail:" + resultCode);
             return;

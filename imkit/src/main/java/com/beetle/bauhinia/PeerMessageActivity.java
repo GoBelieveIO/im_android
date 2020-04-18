@@ -2,7 +2,6 @@ package com.beetle.bauhinia;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -16,7 +15,7 @@ import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileDownloader;
 import com.beetle.bauhinia.tools.Notification;
 import com.beetle.bauhinia.tools.NotificationCenter;
-import com.beetle.bauhinia.tools.PeerOutbox;
+import com.beetle.bauhinia.outbox.PeerOutbox;
 import com.beetle.bauhinia.tools.FileCache;
 
 import com.beetle.im.IMMessage;

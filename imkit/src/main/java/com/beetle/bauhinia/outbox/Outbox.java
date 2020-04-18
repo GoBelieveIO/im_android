@@ -8,13 +8,15 @@
 */
 
 
-package com.beetle.bauhinia.tools;
+package com.beetle.bauhinia.outbox;
 
 import android.webkit.MimeTypeMap;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.types.Audio;
 import com.beetle.bauhinia.api.types.Image;
 import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.tools.FileCache;
+import com.beetle.bauhinia.tools.ImageMIME;
 
 import java.io.File;
 import java.util.ArrayList;

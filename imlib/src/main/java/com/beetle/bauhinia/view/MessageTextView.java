@@ -19,8 +19,6 @@ import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Text;
 import com.beetle.imlib.R;
-//import com.easemob.easeui.widget.emoticon.EmoticonManager;
-
 
 public class MessageTextView extends MessageContentView {
     private TextView textView;

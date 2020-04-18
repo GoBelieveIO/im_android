@@ -8,7 +8,7 @@
 */
 
 
-package com.beetle.bauhinia.tools;
+package com.beetle.bauhinia.outbox;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
 import com.beetle.bauhinia.db.IMessage;
