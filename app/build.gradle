@@ -60,6 +60,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation project(':imkit')
+    implementation project(':imlib')
     implementation project(':imsdk')
     implementation project(':asynctcp')
 

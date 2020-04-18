@@ -24,10 +24,10 @@ import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.EPeerMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
-import com.beetle.bauhinia.db.GroupMessageHandler;
 import com.beetle.bauhinia.db.PeerMessageDB;
-import com.beetle.bauhinia.db.PeerMessageHandler;
-import com.beetle.bauhinia.db.SyncKeyHandler;
+import com.beetle.bauhinia.handler.GroupMessageHandler;
+import com.beetle.bauhinia.handler.PeerMessageHandler;
+import com.beetle.bauhinia.handler.SyncKeyHandler;
 import com.beetle.im.IMService;
 
 import org.apache.http.Header;

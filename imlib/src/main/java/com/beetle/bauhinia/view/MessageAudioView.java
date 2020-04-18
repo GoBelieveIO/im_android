@@ -24,7 +24,7 @@ import org.joda.time.format.PeriodFormatterBuilder;
 import java.beans.PropertyChangeEvent;
 
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 public class MessageAudioView extends MessageContentView {
     public MessageAudioView(Context context) {

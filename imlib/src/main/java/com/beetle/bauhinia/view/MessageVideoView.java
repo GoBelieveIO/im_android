@@ -17,10 +17,8 @@ import android.widget.ProgressBar;
 
 import android.widget.TextView;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.Video;
-import com.beetle.bauhinia.tools.FileCache;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 import com.squareup.picasso.Picasso;
 import org.joda.time.Period;
 import org.joda.time.format.PeriodFormatter;
@@ -53,15 +51,9 @@ public class MessageVideoView extends MessageContentView {
 
         Video video = (Video)msg.content;
         String url = video.thumbnail;
-        if (!url.startsWith("file:") && msg.secret ) {
-            String path = null;
-            if (FileCache.getInstance().isCached(url)) {
-                path = FileCache.getInstance().getCachedFilePath(((Video) msg.content).thumbnail);
-                if (path != null) {
-                    url = "file:" + path;
-                } else {
-                    url = null;
-                }
+        if (msg.secret) {
+            if (!url.startsWith("file:")) {
+                url = "";
             }
             Picasso.get()
                     .load(url)
@@ -128,13 +120,9 @@ public class MessageVideoView extends MessageContentView {
         ImageView imageView = (ImageView)findViewById(R.id.image);
         if (event.getPropertyName().equals("downloading")) {
             if (message.secret) {
-                String url = null;
-                String thumbURL = ((Video) message.content).thumbnail;
-                if (FileCache.getInstance().isCached(thumbURL)) {
-                    String path = FileCache.getInstance().getCachedFilePath(thumbURL);
-                    if (path != null) {
-                        url = "file:" + path;
-                    }
+                String url = ((Video) message.content).thumbnail;
+                if (!url.startsWith("file:")) {
+                    url = "";
                 }
                 Picasso.get()
                         .load(url)

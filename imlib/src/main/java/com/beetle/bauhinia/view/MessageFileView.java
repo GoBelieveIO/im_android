@@ -17,7 +17,7 @@ import com.beetle.bauhinia.db.message.File;
 
 import java.beans.PropertyChangeEvent;
 import com.beetle.bauhinia.db.IMessage;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 public class MessageFileView extends MessageContentView {
 

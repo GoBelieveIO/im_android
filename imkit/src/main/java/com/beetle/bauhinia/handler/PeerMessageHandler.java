@@ -8,10 +8,13 @@
 */
 
 
-package com.beetle.bauhinia.db;
+package com.beetle.bauhinia.handler;
 
 import android.text.TextUtils;
 
+import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.db.MessageFlag;
+import com.beetle.bauhinia.db.PeerMessageDB;
 import com.beetle.bauhinia.db.message.ACK;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;

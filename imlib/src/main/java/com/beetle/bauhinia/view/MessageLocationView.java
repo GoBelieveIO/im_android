@@ -17,7 +17,7 @@ import android.widget.TextView;
 
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.message.Location;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 import java.beans.PropertyChangeEvent;
 

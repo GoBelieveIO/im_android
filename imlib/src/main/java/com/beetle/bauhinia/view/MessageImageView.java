@@ -17,8 +17,7 @@ import android.widget.ProgressBar;
 
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.message.Image;
-import com.beetle.bauhinia.tools.FileCache;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 import com.squareup.picasso.Picasso;
 
 import java.beans.PropertyChangeEvent;
@@ -42,10 +41,9 @@ public class MessageImageView extends MessageContentView {
         ImageView imageView = (ImageView)findViewById(R.id.image);
 
         String url = ((Image) msg.content).url;
-        if (!url.startsWith("file:") && msg.secret) {
-            String path = FileCache.getInstance().getCachedFilePath(((Image) msg.content).url);
-            if (path != null) {
-                url = "file:" + path;
+        if (msg.secret) {
+            if (!url.startsWith("file:")) {
+                url = "";
             }
             Picasso.get()
                     .load(url)
@@ -98,10 +96,9 @@ public class MessageImageView extends MessageContentView {
         ImageView imageView = (ImageView)findViewById(R.id.image);
         if (event.getPropertyName().equals("downloading")) {
             if (message.secret) {
-                String url = null;
-                String path = FileCache.getInstance().getCachedFilePath(((Image) message.content).url);
-                if (path != null) {
-                    url = "file:" + path;
+                String url = ((Image) message.content).url;
+                if (!url.startsWith("file:")) {
+                    url = "";
                 }
                 Picasso.get()
                         .load(url)

@@ -1,8 +1,10 @@
-package com.beetle.bauhinia.db;
+package com.beetle.bauhinia.handler;
 import android.text.TextUtils;
 
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.ICustomerMessage;
+import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.im.CustomerMessage;

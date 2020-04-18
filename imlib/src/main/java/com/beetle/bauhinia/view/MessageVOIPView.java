@@ -18,7 +18,7 @@ import android.widget.TextView;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.VOIP;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 /**
  * Created by houxh on 2017/11/14.

@@ -14,7 +14,7 @@ import android.content.Context;
 import android.widget.TextView;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.message.MessageContent;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 public class MessageUnknownView extends MessageContentView {
     public MessageUnknownView(Context context) {

@@ -20,7 +20,7 @@ import android.util.Base64;
 
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.db.CustomerMessageDB;
-import com.beetle.bauhinia.db.CustomerMessageHandler;
+import com.beetle.bauhinia.handler.CustomerMessageHandler;
 import com.beetle.im.IMService;
 
 import org.json.JSONException;

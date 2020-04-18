@@ -1,4 +1,4 @@
-package com.beetle.bauhinia.db;
+package com.beetle.bauhinia.handler;
 
 import android.content.Context;
 import android.content.SharedPreferences;

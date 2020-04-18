@@ -11,28 +11,17 @@
 package io.gobelieve.im.demo;
 
 import android.app.Application;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.beetle.bauhinia.api.IMHttpAPI;
-import com.beetle.bauhinia.db.GroupMessageDB;
-import com.beetle.bauhinia.db.GroupMessageHandler;
-import com.beetle.bauhinia.db.PeerMessageDB;
-import com.beetle.bauhinia.db.PeerMessageHandler;
+import com.beetle.bauhinia.handler.GroupMessageHandler;
+import com.beetle.bauhinia.handler.PeerMessageHandler;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,7 +29,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import static android.database.sqlite.SQLiteDatabase.OPEN_READWRITE;
+
 
 /**
  * IMDemoApplication
