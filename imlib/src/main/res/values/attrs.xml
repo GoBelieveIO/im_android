@@ -5,4 +5,8 @@
         <attr name="emoticonColumns" format="integer" />
     </declare-styleable>
 
+    <declare-styleable name="EaseChatExtendMenu">
+        <attr name="numColumns" format="integer"/>
+    </declare-styleable>
+
 </resources>

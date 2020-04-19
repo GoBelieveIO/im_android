@@ -22,7 +22,7 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.gallery.GalleryImage;
 import com.beetle.bauhinia.gallery.tool.ImageUtils;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;

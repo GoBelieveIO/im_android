@@ -21,7 +21,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 import com.linkedin.android.spyglass.ui.MentionsEditText;
 
 /**

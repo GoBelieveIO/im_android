@@ -24,7 +24,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 import java.util.ArrayList;
 

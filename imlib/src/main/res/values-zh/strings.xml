@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <string name="gallery_image_saved_to">图片已保存至</string>
+    <string name="gallery_save_to_phone">保存至手机</string>
+    <string name="gallery_image_save_failed">图片保存失败</string>
+    <string name="gallery_chat_files">聊天文件</string>
+
+
+    <string name="desc_emoticon_delete">desc_emoticon_delete</string>
+    <string name="name_emoticon_delete">name_emoticon_delete</string>
+
+</resources>

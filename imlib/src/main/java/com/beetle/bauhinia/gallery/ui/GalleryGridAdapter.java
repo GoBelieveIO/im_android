@@ -18,7 +18,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
 import com.beetle.bauhinia.gallery.GalleryImage;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;

@@ -44,7 +44,7 @@ import com.beetle.bauhinia.db.message.*;
 import com.beetle.bauhinia.db.message.Notification;
 import com.beetle.bauhinia.gallery.GalleryImage;
 import com.beetle.bauhinia.gallery.ui.GalleryUI;
-import com.beetle.bauhinia.outbox.Outbox;
+import com.beetle.bauhinia.outbox.OutboxObserver;
 import com.beetle.bauhinia.tools.*;
 import com.beetle.bauhinia.view.*;
 import com.beetle.im.IMService;
@@ -57,7 +57,7 @@ import com.beetle.imkit.R;
 public class MessageActivity extends MessageAudioActivity implements
         SwipeRefreshLayout.OnRefreshListener,
         FileDownloader.FileDownloaderObserver,
-        Outbox.OutboxObserver {
+        OutboxObserver {
 
     protected static final String TAG = "imservice";
 

@@ -25,7 +25,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 import com.beetle.bauhinia.toolbar.EaseChatExtendMenu.EaseChatExtendMenuItemClickListener;
 import com.beetle.bauhinia.toolbar.emoticon.EmoticonPanel;
 import com.linkedin.android.spyglass.mentions.MentionSpan;

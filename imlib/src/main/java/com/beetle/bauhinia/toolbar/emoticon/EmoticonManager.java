@@ -9,7 +9,7 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ImageSpan;
 
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 import java.util.ArrayList;
 import java.util.HashMap;

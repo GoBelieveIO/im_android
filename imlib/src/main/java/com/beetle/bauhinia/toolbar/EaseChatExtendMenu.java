@@ -26,7 +26,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 /**
  * 按+按钮出来的扩展按钮

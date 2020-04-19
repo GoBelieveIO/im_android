@@ -29,15 +29,6 @@ import rx.functions.Action1;
  * Created by houxh on 16/1/18.
  */
 public abstract class Outbox {
-    public static interface OutboxObserver {
-        public void onAudioUploadSuccess(IMessage msg, String url);
-        public void onAudioUploadFail(IMessage msg);
-        public void onImageUploadSuccess(IMessage msg, String url);
-        public void onImageUploadFail(IMessage msg);
-
-        public void onVideoUploadSuccess(IMessage msg, String url, String thumbURL);
-        public void onVideoUploadFail(IMessage msg);
-    }
 
     ArrayList<OutboxObserver> observers = new ArrayList<OutboxObserver>();
     ArrayList<IMessage> messages = new ArrayList<IMessage>();

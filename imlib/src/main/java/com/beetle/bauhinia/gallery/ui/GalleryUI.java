@@ -20,7 +20,7 @@ import android.widget.ImageButton;
 import com.beetle.bauhinia.activity.BaseActivity;
 import com.beetle.bauhinia.gallery.GalleryImage;
 import com.beetle.bauhinia.gallery.view.ScrollViewPager;
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 
 import java.util.ArrayList;
 

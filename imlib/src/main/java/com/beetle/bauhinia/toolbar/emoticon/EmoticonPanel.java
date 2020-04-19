@@ -14,7 +14,7 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
-import com.beetle.imkit.R;
+import com.beetle.imlib.R;
 import com.beetle.bauhinia.tools.DisplayUtils;
 import com.beetle.bauhinia.toolbar.EaseExpandRecylerView;
 

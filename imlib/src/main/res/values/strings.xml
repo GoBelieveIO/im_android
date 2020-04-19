@@ -1,3 +1,12 @@
 <resources>
 
+
+    <string name="gallery_image_saved_to">Image saved to </string>
+    <string name="gallery_image_save_failed">Image save failed!</string>
+    <string name="gallery_save_to_phone">Save to phone</string>
+    <string name="gallery_chat_files">Chat Files</string>
+
+    <string name="desc_emoticon_delete">desc_emoticon_delete</string>
+    <string name="name_emoticon_delete">name_emoticon_delete</string>
+
 </resources>
