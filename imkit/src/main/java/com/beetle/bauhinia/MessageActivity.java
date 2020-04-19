@@ -33,6 +33,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 
+
 import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -45,11 +46,12 @@ import com.beetle.bauhinia.db.message.Notification;
 import com.beetle.bauhinia.gallery.GalleryImage;
 import com.beetle.bauhinia.gallery.ui.GalleryUI;
 import com.beetle.bauhinia.outbox.OutboxObserver;
+import com.beetle.bauhinia.toolbar.EaseChatExtendMenu;
+import com.beetle.bauhinia.toolbar.EaseChatInputMenu;
 import com.beetle.bauhinia.tools.*;
 import com.beetle.bauhinia.view.*;
 import com.beetle.im.IMService;
-import com.beetle.bauhinia.toolbar.EaseChatExtendMenu;
-import com.beetle.bauhinia.toolbar.EaseChatInputMenu;
+import com.beetle.imkit.BuildConfig;
 import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
 import com.beetle.imkit.R;
 
@@ -102,7 +104,9 @@ public class MessageActivity extends MessageAudioActivity implements
     protected int[] itemdrawables = { R.drawable.ease_chat_takepic_selector, R.drawable.ease_chat_image_selector,
             R.drawable.ease_chat_location_selector,  R.drawable.ease_chat_takepic_selector};
     protected int[] itemIds = { ITEM_TAKE_PICTURE, ITEM_PICTURE, ITEM_LOCATION, ITEM_VIDEO_CALL };
-    protected boolean[] items = {true, true, true, false};
+
+    protected boolean[] items = {true, true, true, BuildConfig.DEBUG ? true : false};
+
 
     protected MyItemClickListener extendMenuItemClickListener;
     protected EaseChatInputMenu inputMenu;
@@ -311,7 +315,6 @@ public class MessageActivity extends MessageAudioActivity implements
         }
 
         if (!granted) {
-            Toast.makeText(this, "请到设置-权限管理中开启", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -413,8 +416,10 @@ public class MessageActivity extends MessageAudioActivity implements
         public static int VOIP = 14;
         public static int FILE = 16;
         public static int VIDEO = 18;
+        public static int CLASSROOM = 20;
+
     }
-    private static int VIEW_TYPE_COUNT = 20;
+    private static int VIEW_TYPE_COUNT = 22;
 
     class ChatAdapter extends BaseAdapter implements ContentTypes {
         @Override
@@ -462,6 +467,8 @@ public class MessageActivity extends MessageAudioActivity implements
                 media = FILE;
             } else if (msg.content instanceof Video) {
                 media = VIDEO;
+            } else if (msg.content instanceof Classroom) {
+                media = CLASSROOM;
             } else {
                 media = UNKNOWN;
             }
@@ -509,13 +516,27 @@ public class MessageActivity extends MessageAudioActivity implements
 
                             ArrayList<ChatQuickAction> actions = new ArrayList<ChatQuickAction>();
 
-                            if (im.isFailure()) {
-                                actions.add(ChatQuickAction.RESEND);
-                            }
-
                             if (im.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
                                 actions.add(ChatItemQuickAction.ChatQuickAction.COPY);
                             }
+
+                            if (im.isFailure()) {
+                                actions.add(ChatQuickAction.RESEND);
+                            } else {
+                                if (im.content.getType() == MessageContent.MessageType.MESSAGE_TEXT ||
+                                        im.content.getType() == MessageContent.
+                                                MessageType.MESSAGE_IMAGE ||
+                                        im.content.getType() == MessageContent.
+                                                MessageType.MESSAGE_AUDIO ||
+                                        im.content.getType() == MessageContent.
+                                                MessageType.MESSAGE_VIDEO ||
+                                        im.content.getType() == MessageContent.
+                                                MessageType.MESSAGE_LOCATION ||
+                                        im.content.getType() == MessageContent.MessageType.MESSAGE_FILE) {
+                                    actions.add(ChatQuickAction.FORWARD);
+                                }
+                            }
+
 
                             int now = now();
                             if (now >= im.timestamp && (now - im.timestamp) < (REVOKE_EXPIRE-10) && im.isOutgoing) {
@@ -545,6 +566,8 @@ public class MessageActivity extends MessageAudioActivity implements
                                                 case REVOKE:
                                                     MessageActivity.this.revoke(im);
                                                     break;
+                                                case FORWARD:
+                                                    MessageActivity.this.forward(im);
                                                 default:
                                                     break;
                                             }
@@ -601,6 +624,8 @@ public class MessageActivity extends MessageAudioActivity implements
         Log.i(TAG, "audio upload success:" + url);
         IMessage m = findMessage(imsg.content.getUUID());
         if (m != null) {
+            Audio audio = (Audio)m.content;
+            m.content = Audio.newAudio(url, audio.duration, audio.getUUID());
             m.setUploading(false);
         }
     }
@@ -620,6 +645,8 @@ public class MessageActivity extends MessageAudioActivity implements
         Log.i(TAG, "image upload success:" + url);
         IMessage m = findMessage(msg.content.getUUID());
         if (m != null) {
+            Image image = (Image)m.content;
+            m.content = Image.newImage(url, image.width, image.height, image.getUUID());
             m.setUploading(false);
         }
     }
@@ -639,6 +666,8 @@ public class MessageActivity extends MessageAudioActivity implements
         Log.i(TAG, "video upload success:" + url + " thumb url:" + thumbURL);
         IMessage m = findMessage(msg.content.getUUID());
         if (m != null) {
+            Video video = (Video)m.content;
+            m.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID());
             m.setUploading(false);
         }
     }
@@ -671,12 +700,12 @@ public class MessageActivity extends MessageAudioActivity implements
         }
     }
 
-
-    void clearConversation() {
+    protected void clearConversation() {
         Log.i(TAG, "clearConversation");
         messages = new ArrayList<IMessage>();
         adapter.notifyDataSetChanged();
     }
+
 
     @Override
     protected void insertMessage(IMessage imsg) {
@@ -720,7 +749,7 @@ public class MessageActivity extends MessageAudioActivity implements
             intent.setType("image/*");
             intent.setAction(Intent.ACTION_GET_CONTENT);
             startActivityForResult(Intent.createChooser(intent
-                    , getResources().getString(R.string.product_fotos_get_from))
+                    , getString(R.string.product_fotos_get_from))
                     , SELECT_PICTURE);
         } else {
             Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -859,6 +888,9 @@ public class MessageActivity extends MessageAudioActivity implements
     }
 
 
+    protected void openClassroom(long masterID, String channelID, String micMode, long serverID) {
+
+    }
 
     protected void callVoice() {
 
@@ -871,5 +903,8 @@ public class MessageActivity extends MessageAudioActivity implements
     }
 
     protected void onAt() {}
+
+    protected void forward(IMessage im) {
+    }
 
 }

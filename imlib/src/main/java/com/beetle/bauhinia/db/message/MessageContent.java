@@ -22,6 +22,7 @@ public abstract class MessageContent implements Cloneable {
     public static final String FILE = "file";
     public static final String REVOKE = "revoke";
     public static final String ACK = "ack";
+    public static final String CLASSROOM = "classroom";
 
     public enum MessageType {
         MESSAGE_UNKNOWN,
@@ -44,6 +45,8 @@ public abstract class MessageContent implements Cloneable {
         MESSAGE_REVOKE,
 
         MESSAGE_ACK,
+
+        MESSAGE_CLASSROOM,
 
         MESSAGE_TIME_BASE, //虚拟的消息，不会存入磁盘
     }

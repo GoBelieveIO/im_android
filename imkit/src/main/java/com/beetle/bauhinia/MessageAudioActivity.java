@@ -1,13 +1,3 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia;
 
 import android.app.Activity;
@@ -74,17 +64,13 @@ public class MessageAudioActivity extends MessageBaseActivity {
 
 
     protected void showReleaseToCancelHint() {
-        if (audioRecorder.isRecording()) {
-            recordingText.setText(getString(R.string.release_to_cancel));
-            recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
-        }
+        recordingText.setText(getString(R.string.release_to_cancel));
+        recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
     }
 
     protected void showMoveUpToCancelHint() {
-        if (audioRecorder.isRecording()) {
-            recordingText.setText(getString(R.string.move_up_to_cancel));
-            recordingText.setBackgroundColor(Color.TRANSPARENT);
-        }
+        recordingText.setText(getString(R.string.move_up_to_cancel));
+        recordingText.setBackgroundColor(Color.TRANSPARENT);
     }
 
     protected void showRecordDialog() {
@@ -158,11 +144,6 @@ public class MessageAudioActivity extends MessageBaseActivity {
     }
 
     protected void startRecord() {
-        if (DeviceUtil.isFullStorage()) {
-            Toast.makeText(this, "您没有可用的SD卡，请退出U盘模式或者插入SD卡", Toast.LENGTH_SHORT)
-                    .show();
-            return;
-        }
         if (audioUtil.isPlaying()) {
             audioUtil.stopPlay();
         }
@@ -207,8 +188,8 @@ public class MessageAudioActivity extends MessageBaseActivity {
             alertDialog.dismiss();
         }
 
-        if (audioRecorder.isRecording()) {
-            audioRecorder.stopRecord();
+        if (MessageAudioActivity.this.audioRecorder.isRecording()) {
+            MessageAudioActivity.this.audioRecorder.stopRecord();
         }
     }
 
@@ -227,8 +208,8 @@ public class MessageAudioActivity extends MessageBaseActivity {
             alertDialog.dismiss();
         }
 
-        if (audioRecorder.isRecording()) {
-            audioRecorder.stopRecord();
+        if (MessageAudioActivity.this.audioRecorder.isRecording()) {
+            MessageAudioActivity.this.audioRecorder.stopRecord();
             String tfile = audioRecorder.getPathName();
             MessageAudioActivity.this.sendAudioMessage(tfile);
         }

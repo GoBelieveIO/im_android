@@ -295,16 +295,6 @@ public class CustomerMessageActivity extends MessageActivity
     }
 
 
-    @Override
-    void clearConversation() {
-        super.clearConversation();
-        CustomerMessageDB db = CustomerMessageDB.getInstance();
-        db.clearConversation(this.storeID);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(this.storeID, CLEAR_MESSAGES);
-        nc.postNotification(notification);
-    }
 
     @Override
     protected IMessage newOutMessage() {

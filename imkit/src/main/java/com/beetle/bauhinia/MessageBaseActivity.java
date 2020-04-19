@@ -40,7 +40,6 @@ import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.bauhinia.db.message.Text;
 import com.beetle.bauhinia.db.message.TimeBase;
 import com.beetle.bauhinia.db.message.Video;
-import com.beetle.bauhinia.toolbar.emoticon.EmoticonManager;
 import com.beetle.bauhinia.tools.AudioUtil;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.FileDownloader;
@@ -48,7 +47,6 @@ import com.beetle.bauhinia.tools.TimeUtil;
 import com.beetle.bauhinia.tools.VideoUtil;
 import com.beetle.im.IMService;
 import com.beetle.im.MessageACK;
-
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -61,6 +59,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import com.beetle.imkit.R;
 
 /*
  at对象的用户名问题
@@ -442,50 +441,50 @@ public class MessageBaseActivity extends BaseActivity {
             GroupNotification notification = (GroupNotification) imsg.content;
             if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_CREATED) {
                 if (notification.master == currentUID) {
-                    notification.description = String.format("您创建了\"%s\"群组", notification.groupName);
+                    notification.description = getString(R.string.message_create_group, notification.groupName);
                 } else {
-                    notification.description = String.format("您加入了\"%s\"群组", notification.groupName);
+                    notification.description = getString(R.string.message_me_join_group, notification.groupName);
                 }
             } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_DISBAND) {
-                notification.description = "群组已解散";
+                notification.description = getString(R.string.message_group_disbanded);
             } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED) {
                 MessageActivity.User u = getUser(notification.member);
                 if (TextUtils.isEmpty(u.name)) {
-                    notification.description = String.format("\"%s\"加入群", u.identifier);
+                    notification.description = getString(R.string.message_join_group, u.identifier);
                     imsg.setDownloading(true);
                     final IMessage fmsg = imsg;
                     asyncGetUser(notification.member, new MessageActivity.GetUserCallback() {
                         @Override
                         public void onUser(MessageActivity.User u) {
                             GroupNotification notification = (GroupNotification) fmsg.content;
-                            notification.description = String.format("\"%s\"加入群", u.name);
+                            notification.description = getString(R.string.message_join_group, u.name);
                             fmsg.setDownloading(false);
                         }
                     });
                 } else {
-                    notification.description = String.format("\"%s\"加入群", u.name);
+                    notification.description = getString(R.string.message_join_group, u.name);
                 }
             } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED) {
                 MessageActivity.User u = getUser(notification.member);
                 if (TextUtils.isEmpty(u.name)) {
-                    notification.description = String.format("\"%s\"离开群", u.identifier);
+                    notification.description = getString(R.string.message_leave_group, u.identifier);
                     imsg.setDownloading(true);
                     final IMessage fmsg = imsg;
                     asyncGetUser(notification.member, new MessageActivity.GetUserCallback() {
                         @Override
                         public void onUser(MessageActivity.User u) {
                             GroupNotification notification = (GroupNotification) fmsg.content;
-                            notification.description = String.format("\"%s\"离开群", u.name);
+                            notification.description = getString(R.string.message_leave_group, u.name);
                             fmsg.setDownloading(false);
                         }
                     });
                 } else {
-                    notification.description = String.format("\"%s\"离开群", u.name);
+                    notification.description = getString(R.string.message_leave_group, u.name);
                 }
             } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_NAME_UPDATED) {
-                notification.description = String.format("群组改名为\"%s\"", notification.groupName);
+                notification.description = getString(R.string.message_change_group_name, notification.groupName);
             } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_NOTICE_UPDATED) {
-                notification.description = String.format("群公告:%s", notification.notice);
+                notification.description = getString(R.string.message_group_notice, notification.notice);
             }
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_GROUP_VOIP) {
             GroupVOIP groupVOIP = (GroupVOIP)imsg.content;
@@ -493,27 +492,27 @@ public class MessageBaseActivity extends BaseActivity {
             if (!groupVOIP.finished) {
                 MessageActivity.User u = this.getUser(groupVOIP.initiator);
                 String name = !TextUtils.isEmpty(u.name) ? u.name : u.identifier;
-                groupVOIP.description = String.format("%s发起了语音聊天", name);
+                groupVOIP.description = getString(R.string.message_group_call_start, name);
             } else {
-                groupVOIP.description = "语音聊天已结束";
+                groupVOIP.description = getString(R.string.message_group_call_finished);
             }
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke)imsg.content;
             if (imsg.isOutgoing) {
-                revoke.description = "你撤回了一条消息";
+                revoke.description = getString(R.string.message_revoked, getString(R.string.you));
             } else {
                 MessageActivity.User u = this.getUser(imsg.sender);
                 String name = !TextUtils.isEmpty(u.name) ? u.name : u.identifier;
-                revoke.description = String.format("\"%s\"撤回了一条消息", name);
+                revoke.description = getString(R.string.message_revoked, name);
             }
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_ACK) {
             ACK ack = (ACK)imsg.content;
             if (ack.error == MessageACK.MESSAGE_ACK_NOT_YOUR_FRIEND) {
-                ack.description = "你还不是他（她）朋友";
+                ack.description = getString(R.string.message_not_friend);
             } else if (ack.error == MessageACK.MESSAGE_ACK_IN_YOUR_BLACKLIST) {
-                ack.description = "消息已发出，但被对方拒收了。";
+                ack.description = getString(R.string.message_refuesed);
             } else if (ack.error == MessageACK.MESSAGE_ACK_NOT_MY_FRIEND) {
-                ack.description = "对方已不是你的朋友";
+                ack.description = getString(R.string.message_not_my_friend);
             }
         }
     }
@@ -590,9 +589,6 @@ public class MessageBaseActivity extends BaseActivity {
                 downloader.download(msg);
             }
             msg.setDownloading(downloader.isDownloading(msg));
-        } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
-            Text text = (Text)msg.content;
-            text.spanText = EmoticonManager.getInstance().getEmoticonStr(text.text);
         }
     }
 
@@ -718,9 +714,8 @@ public class MessageBaseActivity extends BaseActivity {
         if (text.length() == 0) {
             return;
         }
-        Text t = Text.newText(text, at, atNames);
-        t.spanText = EmoticonManager.getInstance().getEmoticonStr(text);
-        sendMessageContent(t);
+
+        sendMessageContent(Text.newText(text, at, atNames));
     }
 
 
@@ -735,17 +730,17 @@ public class MessageBaseActivity extends BaseActivity {
         Log.i(TAG, "video mime:" + meta.videoMime + " audio mime:" + meta.audioMime);
 
         if (meta.duration < 1000) {
-            Toast.makeText(this, "拍摄时间太短了", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.video_record_duration_warning), Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (!TextUtils.isEmpty(meta.videoMime) && !VideoUtil.isH264(meta.videoMime)) {
-            Toast.makeText(this, "不支持的视频编码", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.unsupported_video_encoding_warning), Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (!TextUtils.isEmpty(meta.audioMime) && !VideoUtil.isAcc(meta.audioMime)) {
-            Toast.makeText(this, "不支持的视频编码", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.unsupported_video_encoding_warning), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -765,7 +760,6 @@ public class MessageBaseActivity extends BaseActivity {
             e.printStackTrace();
         }
     }
-
 
     protected void sendImageMessage(Bitmap bmp) {
         double w = bmp.getWidth();
@@ -811,7 +805,7 @@ public class MessageBaseActivity extends BaseActivity {
             long mduration = AudioUtil.getAudioDuration(tfile);
 
             if (mduration < 1000) {
-                Toast.makeText(this, "录音时间太短了", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.voice_record_duration_warning), Toast.LENGTH_SHORT).show();
                 return;
             }
             long duration = mduration/1000;
@@ -869,12 +863,12 @@ public class MessageBaseActivity extends BaseActivity {
 
         int now = now();
         if (now - msg.timestamp > REVOKE_EXPIRE) {
-            Toast.makeText(this, "已经超过消息撤回的时间", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.revoke_timed_out), Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (IMService.getInstance().getConnectState() != IMService.ConnectState.STATE_CONNECTED) {
-            Toast.makeText(this, "网络连接断开，撤回失败", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.revoke_connection_disconnect), Toast.LENGTH_SHORT).show();
             return;
         }
 

@@ -424,23 +424,6 @@ public class PeerMessageActivity extends MessageActivity implements
 
 
     @Override
-    void clearConversation() {
-        super.clearConversation();
-
-        this.messageDB.clearConversation(this.conversationID);
-
-        if (secret) {
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.peerUID, CLEAR_SECRET_MESSAGES);
-            nc.postNotification(notification);
-        } else {
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.peerUID, CLEAR_MESSAGES);
-            nc.postNotification(notification);
-        }
-    }
-
-    @Override
     protected IMessage newOutMessage() {
         IMessage msg = new IMessage();
         msg.sender = this.currentUID;

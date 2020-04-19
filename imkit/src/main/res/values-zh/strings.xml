@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="product_fotos_get_from">Get photo from:</string>
+
+    <string name="button_pushtotalk">按住说话</string>
+    <string name="button_send">发送</string>
+
+    <string name="move_up_to_cancel">手指上滑，取消发送</string>
+    <string name="release_to_cancel">松开手指，取消发送</string>
+
+    <string name="attach_picture">图片</string>
+    <string name="attach_take_pic">拍摄</string>
+    <string name="attach_location">位置</string>
+    <string name="attach_voice_call">语音电话</string>
+    <string name="attach_video_call">视频通话</string>
+
+    <string name="im_title_choose">选择操作</string>
+    <string name="im_btn_forward">转发</string>
+    <string name="im_btn_resend">重发</string>
+    <string name="im_btn_copy">复制</string>
+    <string name="im_btn_del">删除</string>
+    <string name="im_btn_revoke">撤回</string>
+
+
+    <string name="message_create_group">你创建了\"%s\"群组</string>
+    <string name="message_me_join_group">你加入了"%s"群组</string>
+    <string name="message_join_group">"%s"加入群</string>
+    <string name="message_leave_group">"%s"离开群</string>
+    <string name="message_change_group_name">群组改名为\"%s\"</string>
+    <string name="message_group_notice">群公告:%s</string>
+    <string name="message_group_disbanded">群组已解散</string>
+
+    <string name="message_group_call_start">%s发起了语音聊天</string>
+    <string name="message_group_call_finished">语音聊天已结束</string>
+
+    <string name="message_revoked">%s撤回了一条消息</string>
+
+    <string name="message_not_friend">你还不是他（她）朋友</string>
+    <string name="message_refuesed">消息已发出，但被对方拒收了。</string>
+    <string name="message_not_my_friend">对方已不是你的朋友</string>
+
+    <string name="voice_record_duration_warning">录音时间太短了</string>
+
+    <string name="video_record_duration_warning">拍摄时间太短了</string>
+    <string name="unsupported_video_encoding_warning">不支持的视频编码</string>
+
+    <string name="you">你</string>
+
+    <string name="revoke_timed_out">超过两分钟，消息撤回失败</string>
+
+    <string name="revoke_connection_disconnect">网络连接断开，撤回失败</string>
+
+    <string name="revoke_failure">撤回失败</string>
+</resources>

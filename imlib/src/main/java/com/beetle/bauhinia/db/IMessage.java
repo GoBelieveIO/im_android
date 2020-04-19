@@ -84,6 +84,8 @@ public class IMessage implements Cloneable {
                 content = gson.fromJson(element.get(MessageContent.REVOKE), Revoke.class);
             } else if (element.has(MessageContent.ACK)) {
                 content = gson.fromJson(element.get(MessageContent.ACK), ACK.class);
+            } else if (element.has(MessageContent.CLASSROOM)) {
+                content = gson.fromJson(element.get(MessageContent.CLASSROOM), Classroom.class);
             } else {
                 content = new Unknown();
             }

@@ -1,16 +1,56 @@
 <resources>
-    <string name="app_name">imkit</string>
+
     <string name="product_fotos_get_from">Get photo from:</string>
 
-    <string name="im_title_choose">选择操作</string>
-    <string name="im_btn_forward">转发</string>
-    <string name="im_btn_resend">重发</string>
-    <string name="im_btn_copy">复制</string>
-    <string name="im_btn_del">删除</string>
-    <string name="im_btn_revoke">撤回</string>
+    <string name="im_title_choose">Choose action</string>
+    <string name="im_btn_forward">Forward</string>
+    <string name="im_btn_resend">Resend</string>
+    <string name="im_btn_copy">Copy</string>
+    <string name="im_btn_del">Delete</string>
+    <string name="im_btn_revoke">Recall</string>
 
-    <!-- 表情 -->
-    <string name="desc_emoticon_delete">desc_emoticon_delete</string>
-    <string name="name_emoticon_delete">name_emoticon_delete</string>
+
+    <string name="button_pushtotalk">Hold to talk</string>
+    <string name="button_send">Send</string>
+
+    <string name="move_up_to_cancel">Finger up to cancel sending</string>
+    <string name="release_to_cancel">Finger release to cancel sending</string>
+
+    <string name="attach_picture">Image</string>
+    <string name="attach_take_pic">Capture</string>
+    <string name="attach_location">Location</string>
+    <string name="attach_voice_call">Voice call</string>
+    <string name="attach_video_call">Video call</string>
+
+
+    <string name="message_create_group">You created \"%s\" group</string>
+    <string name="message_me_join_group">You joined \"%s\" group</string>
+    <string name="message_join_group">\"%s\" joined group</string>
+    <string name="message_leave_group">\"%s\" leaved group</string>
+    <string name="message_change_group_name">Group name changed:\"%s\"</string>
+    <string name="message_group_notice">Group notice:%s</string>
+    <string name="message_group_disbanded">Group disbanded</string>
+
+    <string name="message_group_call_start">%s started a Walkie Talkie session</string>
+    <string name="message_group_call_finished">Walkie Talkie session ended</string>
+
+    <string name="message_revoked">%s revoked a message</string>
+
+    <string name="message_not_friend">You are not his/her friend</string>
+    <string name="message_refuesed">Message sent, but be refused.</string>
+    <string name="message_not_my_friend">The other user is not your friend</string>
+
+    <string name="voice_record_duration_warning">Audio recording time is too short</string>
+
+    <string name="video_record_duration_warning">Video recording time is too short</string>
+    <string name="unsupported_video_encoding_warning">This video codec is not supported.</string>
+
+    <string name="you">You</string>
+
+    <string name="revoke_timed_out">More than two minutes, the message revoke failed</string>
+
+    <string name="revoke_connection_disconnect">Service disconnected, the message revoke failed</string>
+
+    <string name="revoke_failure">Revoke failed!</string>
 
 </resources>
