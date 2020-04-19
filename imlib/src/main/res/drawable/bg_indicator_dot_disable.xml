@@ -3,7 +3,7 @@
     android:shape="oval"
     >
 
-    <solid android:color="@color/text_conversation_time" />
+    <solid android:color="@color/dot_disable_state" />
 
     <corners android:radius="3dp" />
 

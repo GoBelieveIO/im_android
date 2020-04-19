@@ -22,4 +22,8 @@
     <color name="white_trans_40">#66FFFFFF</color>
 
     <color name="main_regist">#fffff0</color>
+
+    <color name="theme_primary">#18b000</color>
+
+
 </resources>

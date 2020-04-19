@@ -3,7 +3,7 @@
     android:shape="oval"
     >
 
-    <solid android:color="@color/text_friend_customer" />
+    <solid android:color="@color/dot_enable_state" />
 
     <corners android:radius="4dp" />
 
