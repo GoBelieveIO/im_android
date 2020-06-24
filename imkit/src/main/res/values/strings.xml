@@ -2,13 +2,14 @@
 
     <string name="product_fotos_get_from">Get photo from:</string>
 
-    <string name="im_title_choose">Choose action</string>
+    <string name="im_title_choose">Choose</string>
     <string name="im_btn_forward">Forward</string>
     <string name="im_btn_resend">Resend</string>
     <string name="im_btn_copy">Copy</string>
     <string name="im_btn_del">Delete</string>
     <string name="im_btn_revoke">Recall</string>
-
+    <string name="im_btn_reply">Reply</string>
+    <string name="im_btn_tag">Tag</string>
 
     <string name="button_pushtotalk">Hold to talk</string>
     <string name="button_send">Send</string>
@@ -16,11 +17,20 @@
     <string name="move_up_to_cancel">Finger up to cancel sending</string>
     <string name="release_to_cancel">Finger release to cancel sending</string>
 
+
     <string name="attach_picture">Image</string>
     <string name="attach_take_pic">Capture</string>
     <string name="attach_location">Location</string>
     <string name="attach_voice_call">Voice call</string>
     <string name="attach_video_call">Video call</string>
+    <string name="attach_file">File</string>
+
+    <string name="gallery_image_saved_to">Image saved to </string>
+    <string name="gallery_image_save_failed">Image save failed!</string>
+    <string name="gallery_save_to_phone">Save to phone</string>
+    <string name="gallery_chat_files">Chat Files</string>
+
+    <string name="not_enough_storage_space">Not enough storage space.</string>
 
 
     <string name="message_create_group">You created \"%s\" group</string>
@@ -36,21 +46,29 @@
 
     <string name="message_revoked">%s revoked a message</string>
 
+    <string name="you">You</string>
+
+
     <string name="message_not_friend">You are not his/her friend</string>
     <string name="message_refuesed">Message sent, but be refused.</string>
     <string name="message_not_my_friend">The other user is not your friend</string>
 
-    <string name="voice_record_duration_warning">Audio recording time is too short</string>
-
     <string name="video_record_duration_warning">Video recording time is too short</string>
     <string name="unsupported_video_encoding_warning">This video codec is not supported.</string>
 
-    <string name="you">You</string>
-
+    <string name="voice_record_duration_warning">Audio recording time is too short</string>
+    <string name="file_size_limit_warning">File size limit:%dM</string>
     <string name="revoke_timed_out">More than two minutes, the message revoke failed</string>
 
     <string name="revoke_connection_disconnect">Service disconnected, the message revoke failed</string>
 
     <string name="revoke_failure">Revoke failed!</string>
 
+    <string name="conversation_encrypt_flag">(encrypt)</string>
+
+
+    <string name="message_readed">readed</string>
+    <string name="message_unread">unread</string>
+    <string name="message_unread_count">%d unread</string>
+    <string name="message_readed_count">%d readed</string>
 </resources>

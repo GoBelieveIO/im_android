@@ -40,7 +40,7 @@ public class SQLPeerMessageDB {
                     "peer = ? AND secret= ?", new String[]{""+peer, ""+secret}, null, null, "id DESC");
         }
 
-        public ForwardPeerMessageInterator(SQLiteDatabase db, long peer, int position)  {
+        public ForwardPeerMessageInterator(SQLiteDatabase db, long peer, long position)  {
             this.cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
                     "peer = ? AND secret = ? AND id < ?", new String[]{""+peer, ""+secret, ""+position},
                     null, null, "id DESC");
@@ -48,7 +48,7 @@ public class SQLPeerMessageDB {
     }
 
     private class BackwardPeerMessageInterator extends PeerMessageIterator {
-        public BackwardPeerMessageInterator(SQLiteDatabase db, long peer, int position)  {
+        public BackwardPeerMessageInterator(SQLiteDatabase db, long peer, long position)  {
             this.cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
                     "peer = ? AND secret=? AND id > ?", new String[]{""+peer, ""+secret, ""+position},
                     null, null, "id");
@@ -56,7 +56,7 @@ public class SQLPeerMessageDB {
     }
 
     private class MiddlePeerMessageInterator extends PeerMessageIterator {
-        public MiddlePeerMessageInterator(SQLiteDatabase db, long peer, int position)  {
+        public MiddlePeerMessageInterator(SQLiteDatabase db, long peer, long position)  {
             this.cursor = db.query(TABLE_NAME, new String[]{"id", "sender", "receiver", "timestamp", "flags", "content", "secret"},
                     "peer = ? AND secret=? AND id > ? AND id < ?",
                     new String[]{""+peer, ""+secret, ""+(position - 10), "" + (position + 10)},
@@ -119,7 +119,7 @@ public class SQLPeerMessageDB {
         if (id == -1) {
             return  false;
         }
-        msg.msgLocalID = (int)id;
+        msg.msgLocalID = id;
 
         if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
             Text text = (Text)msg.content;
@@ -128,31 +128,35 @@ public class SQLPeerMessageDB {
         return true;
     }
 
-    public boolean updateContent(int msgLocalID, String content) {
+    public boolean updateContent(long msgLocalID, String content) {
         ContentValues cv = new ContentValues();
         cv.put("content", content);
         int rows = db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
         return rows == 1;
     }
 
-    public boolean acknowledgeMessage(int msgLocalID) {
+    public boolean acknowledgeMessage(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
     }
 
-    public boolean markMessageFailure(int msgLocalID) {
+    public boolean markMessageFailure(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_FAILURE);
     }
 
-    public boolean markMessageListened(int msgLocalID) {
+    public boolean markMessageListened(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean eraseMessageFailure(int msgLocalID) {
+    public boolean markMessageReaded(long msgLocalID) {
+        return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_READED);
+    }
+
+    public boolean eraseMessageFailure(long msgLocalID) {
         int f = MessageFlag.MESSAGE_FLAG_FAILURE;
         return removeFlag(msgLocalID, f);
     }
 
-    public boolean addFlag(int msgLocalID, int f) {
+    public boolean addFlag(long msgLocalID, int f) {
         Cursor cursor = db.query(TABLE_NAME, new String[]{"flags"},
                 "id=?", new String[]{""+msgLocalID},
                 null, null, null);
@@ -168,7 +172,7 @@ public class SQLPeerMessageDB {
         return true;
     }
 
-    public boolean removeFlag(int msgLocalID, int f) {
+    public boolean removeFlag(long msgLocalID, int f) {
         Cursor cursor = db.query(TABLE_NAME, new String[]{"flags"},
                 "id=?", new String[]{""+msgLocalID},
                 null, null, null);
@@ -184,7 +188,7 @@ public class SQLPeerMessageDB {
         return true;
     }
 
-    public boolean updateFlag(int msgLocalID, int flags) {
+    public boolean updateFlag(long msgLocalID, int flags) {
         ContentValues cv = new ContentValues();
         cv.put("flags", flags);
         db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
@@ -192,13 +196,13 @@ public class SQLPeerMessageDB {
     }
 
 
-    public boolean removeMessage(int msgLocalID) {
+    public boolean removeMessage(long msgLocalID) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
 
-    public boolean removeMessageIndex(int msgLocalID) {
+    public boolean removeMessageIndex(long msgLocalID) {
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
@@ -214,17 +218,17 @@ public class SQLPeerMessageDB {
     }
 
     //获取之前的消息
-    public MessageIterator newForwardMessageIterator(long uid, int firstMsgID) {
+    public MessageIterator newForwardMessageIterator(long uid, long firstMsgID) {
         return new ForwardPeerMessageInterator(db, uid, firstMsgID);
     }
 
     //获取之后的消息
-    public MessageIterator newBackwardMessageIterator(long uid, int msgID) {
+    public MessageIterator newBackwardMessageIterator(long uid, long msgID) {
         return new BackwardPeerMessageInterator(db, uid, msgID);
     }
 
     //获取前后的消息
-    public MessageIterator newMiddleMessageIterator(long uid, int msgID) {
+    public MessageIterator newMiddleMessageIterator(long uid, long msgID) {
         return new MiddlePeerMessageInterator(db, uid, msgID);
     }
 
@@ -280,7 +284,7 @@ public class SQLPeerMessageDB {
 
     private IMessage getMessage(Cursor cursor) {
         IMessage msg = new IMessage();
-        msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
+        msg.msgLocalID = cursor.getLong(cursor.getColumnIndex("id"));
         msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
         msg.receiver = cursor.getLong(cursor.getColumnIndex("receiver"));
         msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
@@ -330,7 +334,7 @@ public class SQLPeerMessageDB {
         return msg;
     }
 
-    public int getMessageId(String uuid) {
+    public long getMessageId(String uuid) {
         Cursor cursor = db.query(TABLE_NAME, new String[]{"id"},
                 "uuid = ?", new String[]{uuid}, null,null,null);
         boolean r = cursor.moveToNext();
@@ -339,7 +343,7 @@ public class SQLPeerMessageDB {
             return 0;
         }
 
-        int msgLocalId = cursor.getInt(cursor.getColumnIndex("id"));
+        long msgLocalId = cursor.getLong(cursor.getColumnIndex("id"));
         cursor.close();
         return msgLocalId;
     }

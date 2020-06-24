@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -7,42 +8,113 @@
     android:layout_marginRight="5dp"
     android:gravity="right"
     android:focusable="false"
-    android:descendantFocusability="afterDescendants"
-    >
+    android:descendantFocusability="blocksDescendants">
 
-    <FrameLayout
-        android:id="@+id/content"
+    <LinearLayout
+        android:id="@+id/content_frame"
+        android:orientation="vertical"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/chatto_bg"
-        android:layout_marginLeft="20dp"
-        >
-    </FrameLayout>
+        android:background="@drawable/chatto_bg">
+        <FrameLayout
+            android:id="@+id/content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            >
+        </FrameLayout>
+
+        <com.beetle.bauhinia.view.TagView
+            android:id="@+id/tags"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+
+            app:container_border_width="0dp"
+            app:container_background_color="#00000000"
+            app:container_border_color="@color/transparent"
+            app:container_border_radius="0dp"
+
+            app:horizontal_interval="4dp"
+            app:vertical_interval="4dp"
+
+            app:tag_background_color="@color/tag_background"
+            app:tag_border_color="@color/transparent"
+
+            app:tag_text_color="@color/tag_text"
+            app:tag_text_size="14sp"
+            app:tag_clickable="true"
+            app:tag_corner_radius="4dp"
+            app:tag_theme="none" />
+
+    </LinearLayout>
+
+
+    <Button
+        android:id="@+id/readed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:text="未读"
+        android:textSize="12sp"
+        android:textColor="@color/btn_readed"
+        android:background="@color/transparent"
+        android:layout_below="@+id/content_frame"
+        android:layout_alignRight="@+id/content_frame"
+        android:layout_marginRight="20dp" />
+
+    <ImageView
+        android:id="@+id/topic"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:src="@drawable/topic"
+        android:layout_below="@+id/content_frame"
+        android:layout_marginTop="2dp"
+        android:layout_marginLeft="4dp"
+        android:layout_alignLeft="@+id/content_frame"/>
+
+    <Button
+        android:id="@+id/reply"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
+        android:text="0条回复"
+        android:textSize="12sp"
+        android:textColor="@color/btn_readed"
+        android:background="@color/transparent"
+        android:layout_below="@+id/content_frame"
+        android:layout_toRightOf="@+id/topic"/>
 
     <ImageView
         android:id="@+id/header"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginRight="4dp"
-        android:layout_toRightOf="@+id/content"
+        android:layout_toRightOf="@+id/content_frame"
+        android:scaleType="centerCrop"
         android:src="@drawable/avatar_contact"/>
 
     <ImageView
         android:id="@+id/flag"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignBottom="@+id/content"
+        android:layout_toLeftOf="@+id/content_frame"
+        android:layout_alignBottom="@+id/content_frame"
         android:layout_marginBottom="4dp"
+        android:layout_marginRight="4dp"
         android:src="@drawable/msg_status_send_error" />
 
     <ProgressBar
         android:id="@+id/sending_progress_bar"
         android:layout_width="25dp"
         android:layout_height="25dp"
-        android:layout_alignParentLeft="true"
-        android:layout_alignBottom="@+id/content"
+        android:layout_toLeftOf="@+id/content_frame"
+        android:layout_alignBottom="@+id/content_frame"
         android:layout_marginBottom="4dp"
+        android:layout_marginRight="4dp"
         android:visibility="visible" />
 
 </RelativeLayout>

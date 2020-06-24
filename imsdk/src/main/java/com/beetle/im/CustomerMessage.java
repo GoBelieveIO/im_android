@@ -15,7 +15,7 @@ package com.beetle.im;
  */
 public class CustomerMessage {
     //未被序列化
-    public int msgLocalID;
+    public long msgLocalID;
 
     public long customerAppID;
     public long customerID;

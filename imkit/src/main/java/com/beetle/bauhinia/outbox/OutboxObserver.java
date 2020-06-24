@@ -10,4 +10,7 @@ public interface OutboxObserver {
 
     public void onVideoUploadSuccess(IMessage msg, String url, String thumbURL);
     public void onVideoUploadFail(IMessage msg);
+
+    public void onFileUploadSuccess(IMessage msg, String url);
+    public void onFileUploadFail(IMessage msg);
 }

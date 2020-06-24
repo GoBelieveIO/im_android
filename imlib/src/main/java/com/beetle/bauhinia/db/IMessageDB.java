@@ -9,11 +9,11 @@ public interface IMessageDB {
     //获取最近的消息
     MessageIterator newMessageIterator(long conversationID);
     //获取之前的消息
-    MessageIterator newForwardMessageIterator(long conversationID, int firstMsgID);
+    MessageIterator newForwardMessageIterator(long conversationID, long firstMsgID);
     //获取之后的消息
-    MessageIterator newBackwardMessageIterator(long conversationID, int msgID);
+    MessageIterator newBackwardMessageIterator(long conversationID, long msgID);
     //获取前后的消息
-    MessageIterator newMiddleMessageIterator(long conversationID, int msgID);
+    MessageIterator newMiddleMessageIterator(long conversationID, long msgID);
 
     boolean clearConversation(long conversationID);
     void saveMessageAttachment(IMessage msg, String address);

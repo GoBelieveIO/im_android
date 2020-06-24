@@ -10,13 +10,17 @@
 
 package com.beetle.bauhinia.outbox;
 
+import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.types.Audio;
 import com.beetle.bauhinia.api.types.Image;
 import com.beetle.bauhinia.db.IMessage;
+import com.beetle.bauhinia.db.message.MessageContent;
+import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.ImageMIME;
+import com.beetle.im.IMMessage;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -42,6 +46,93 @@ public abstract class Outbox {
 
     public void removeObserver(OutboxObserver ob) {
         observers.remove(ob);
+    }
+
+
+    public void sendMessage(IMessage imsg) {
+        boolean r = true;
+        if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+            com.beetle.bauhinia.db.message.Audio audio = (com.beetle.bauhinia.db.message.Audio) imsg.content;
+            imsg.setUploading(true);
+            if (imsg.secret) {
+                uploadSecretAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
+            } else {
+                uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
+            }
+        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+            com.beetle.bauhinia.db.message.Image image = (com.beetle.bauhinia.db.message.Image) imsg.content;
+            //prefix:"file:"
+            String path = image.url.substring(5);
+            imsg.setUploading(true);
+            if (imsg.secret) {
+                uploadSecretImage(imsg, path);
+            } else {
+                uploadImage(imsg, path);
+            }
+        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
+            Video video = (Video) imsg.content;
+            imsg.setUploading(true);
+            //prefix: "file:"
+            String path = video.thumbnail.substring(5);
+            String videoPath = FileCache.getInstance().getCachedFilePath(video.url);
+            if (imsg.secret) {
+                uploadSecretVideo(imsg, videoPath, path);
+            } else {
+                uploadVideo(imsg, videoPath, path);
+            }
+        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_FILE) {
+            com.beetle.bauhinia.db.message.File file = (com.beetle.bauhinia.db.message.File) imsg.content;
+            imsg.setUploading(true);
+            String filePath = FileCache.getInstance().getCachedFilePath(file.url);
+            uploadFile(imsg, filePath);
+        } else {
+            sendRawMessage(imsg, imsg.content.getRaw());
+        }
+    }
+
+
+    public boolean uploadFile(final IMessage msg, final String path) {
+        File file;
+        try {
+            file = new File(path);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        messages.add(msg);
+        String type = null;
+        String extension = MimeTypeMap.getFileExtensionFromUrl(path);
+        if (extension != null) {
+            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+        }
+        if (TextUtils.isEmpty(type)) {
+            type = "application/octet-stream";
+        }
+        TypedFile typedFile = new TypedFile(type, file);
+        IMHttpAPI.IMHttp imHttp = IMHttpAPI.Singleton();
+        imHttp.postFile(typedFile)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<com.beetle.bauhinia.api.types.File>() {
+                    @Override
+                    public void call(com.beetle.bauhinia.api.types.File f) {
+                        String newPath = FileCache.getInstance().getCachedFilePath(f.srcUrl);
+                        //避免重现下载
+                        new File(path).renameTo(new File(newPath));
+                        Outbox.this.saveFileURL(msg, f.srcUrl);
+                        Outbox.this.sendFileMessage(msg, f.srcUrl);
+                        onUploadFileSuccess(msg, f.srcUrl);
+                        messages.remove(msg);
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Outbox.this.markMessageFailure(msg);
+                        onUploadFileFail(msg);
+                        messages.remove(msg);
+                    }
+                });
+
+        return true;
     }
 
 
@@ -318,18 +409,128 @@ public abstract class Outbox {
     }
 
 
+    private void onUploadFileSuccess(IMessage msg, String url) {
+        for (OutboxObserver ob : observers) {
+            ob.onFileUploadSuccess(msg, url);
+        }
+    }
+
+    private void onUploadFileFail(IMessage msg) {
+        for (OutboxObserver ob : observers) {
+            ob.onFileUploadFail(msg);
+        }
+    }
+
+    protected void sendImageMessage(IMessage imsg, String url) {
+        com.beetle.bauhinia.db.message.Image image = (com.beetle.bauhinia.db.message.Image) imsg.content;
+        com.beetle.bauhinia.db.message.Image newImage = com.beetle.bauhinia.db.message.Image.newImage(url, image.width, image.height);
+        newImage.generateRaw(image.getUUID(), image.getReference(), image.getGroupId());
+
+        sendRawMessage(imsg, newImage.getRaw());
+    }
+
+
+    protected void sendAudioMessage(IMessage imsg, String url) {
+        com.beetle.bauhinia.db.message.Audio audio = (com.beetle.bauhinia.db.message.Audio) imsg.content;
+        com.beetle.bauhinia.db.message.Audio newAudio = com.beetle.bauhinia.db.message.Audio.newAudio(url, audio.duration);
+        newAudio.generateRaw(audio.getUUID(), audio.getReference(), audio.getGroupId());
+
+        sendRawMessage(imsg, newAudio.getRaw());
+    }
+
+
+    protected void sendVideoMessage(IMessage imsg, String url, String thumbURL) {
+        Video video = (Video) imsg.content;
+        Video newVideo = Video.newVideo(url, thumbURL, video.width, video.height, video.duration);
+        newVideo.generateRaw(video.getUUID(), video.getReference(), video.getGroupId());
+
+        sendRawMessage(imsg, newVideo.getRaw());
+    }
+
+
+    protected void sendFileMessage(IMessage imsg, String url) {
+        com.beetle.bauhinia.db.message.File file = (com.beetle.bauhinia.db.message.File) imsg.content;
+        com.beetle.bauhinia.db.message.File newFile = com.beetle.bauhinia.db.message.File.newFile(url, file.filename, file.size);
+        newFile.generateRaw(file.getUUID(), file.getReference(), file.getGroupId());
+
+        sendRawMessage(imsg, newFile.getRaw());
+    }
+
+
+    protected void saveImageURL(IMessage msg, String url) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
+            com.beetle.bauhinia.db.message.Image image = (com.beetle.bauhinia.db.message.Image) msg.content;
+            com.beetle.bauhinia.db.message.Image newImage = com.beetle.bauhinia.db.message.Image.newImage(url, image.width, image.height);
+            newImage.generateRaw(image.getUUID(), image.getReference(), image.getGroupId());
+
+            content = newImage.getRaw();
+        } else {
+            return;
+        }
+
+        updateMessageContent(msg.msgLocalID, content);
+    }
+
+    protected void saveAudioURL(IMessage msg, String url) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
+            com.beetle.bauhinia.db.message.Audio audio = (com.beetle.bauhinia.db.message.Audio) msg.content;
+            com.beetle.bauhinia.db.message.Audio newAudio = com.beetle.bauhinia.db.message.Audio.newAudio(url, audio.duration);
+            newAudio.generateRaw(audio.getUUID(), audio.getReference(), audio.getGroupId());
+            content = newAudio.getRaw();
+        } else {
+            return;
+        }
+
+        updateMessageContent(msg.msgLocalID, content);
+    }
+
+    protected void saveVideoURL(IMessage msg, String url, String thumbURL) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
+            Video video = (Video) msg.content;
+            Video newVideo = Video.newVideo(url, thumbURL, video.width, video.height, video.duration);
+            newVideo.generateRaw(video.getUUID(), video.getReference(), video.getGroupId());
+            content = newVideo.getRaw();
+        } else {
+            return;
+        }
+
+        updateMessageContent(msg.msgLocalID, content);
+    }
+
+
+    protected void saveFileURL(IMessage msg, String url) {
+        String content = "";
+        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_FILE) {
+            com.beetle.bauhinia.db.message.File file = (com.beetle.bauhinia.db.message.File) msg.content;
+            com.beetle.bauhinia.db.message.File newFile = com.beetle.bauhinia.db.message.File.newFile(url, file.filename, file.size);
+            newFile.generateRaw(file.getUUID(), file.getReference(), file.getGroupId());
+            content = newFile.getRaw();
+        } else {
+            return;
+        }
+
+        updateMessageContent(msg.msgLocalID, content);
+    }
+
+
+    protected boolean encrypt(IMMessage msg, String uuid) {
+        assert (false);
+        return false;
+    }
+
     protected String encryptFile(String path, long peerUID) {
         assert (false);
         return "";
     }
 
     abstract protected void markMessageFailure(IMessage msg);
-    abstract protected void sendImageMessage(IMessage imsg, String url);
-    abstract protected void sendAudioMessage(IMessage imsg, String url);
-    abstract protected void sendVideoMessage(IMessage imsg, String url, String thumbURL);
+
+    abstract protected void updateMessageContent(long id, String content);
+
+    abstract protected void sendRawMessage(IMessage imsg, String raw);
 
 
-    abstract protected void saveImageURL(IMessage msg, String url);
-    abstract protected void saveAudioURL(IMessage msg, String url);
-    abstract protected void saveVideoURL(IMessage msg, String url, String thumbURL);
 }

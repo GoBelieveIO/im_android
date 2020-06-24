@@ -109,7 +109,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
         for (int i = 0; i < revokeMsgs.size(); i++) {
             IMessage imsg = revokeMsgs.get(i);
             Revoke revoke = (Revoke) imsg.content;
-            int msgLocalID = db.getMessageId(revoke.msgid);
+            long msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
                 db.updateContent(msgLocalID, imsg.content.getRaw());
                 db.removeMessageIndex(msgLocalID, imsg.receiver);
@@ -120,7 +120,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
     }
 
     public boolean handleMessageACK(IMMessage im, int error) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         long gid = im.receiver;
         GroupMessageDB db = GroupMessageDB.getInstance();
         if (error == MessageACK.MESSAGE_ACK_SUCCESS) {
@@ -128,7 +128,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
                 MessageContent c = IMessage.fromRaw(im.content);
                 if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
                     Revoke r = (Revoke) c;
-                    int revokedMsgId = db.getMessageId(r.msgid);
+                    long revokedMsgId = db.getMessageId(r.msgid);
                     if (revokedMsgId > 0) {
                         db.updateContent(revokedMsgId, im.content);
                         db.removeMessageIndex(revokedMsgId, gid);
@@ -147,7 +147,7 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
     }
 
     public boolean handleMessageFailure(IMMessage im) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
          if (msgLocalID > 0) {
             GroupMessageDB db = GroupMessageDB.getInstance();
             return db.markMessageFailure(msgLocalID);

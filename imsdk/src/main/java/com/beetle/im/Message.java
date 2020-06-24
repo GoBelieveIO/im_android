@@ -153,7 +153,7 @@ public class Message {
             pos += 8;
             BytePacket.writeInt32(im.timestamp, buf, pos);
             pos += 4;
-            BytePacket.writeInt32(im.msgLocalID, buf, pos);
+            BytePacket.writeInt32(0, buf, pos);
             pos += 4;
             try {
                 byte[] c = im.content.getBytes("UTF-8");

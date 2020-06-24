@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="map_address">#fafafa</color>
+    <color name="gray_normal">#666667</color>
     <color name="btn_green_noraml">#68C270</color>
     <color name="top_bar_normal_bg">#00acff</color>
+    <color name="btn_readed">#4d98f6</color>
+    <color name="transparent">#00000000</color>
+    <color name="lightgray">#d3d3d3</color>
+    <color name="tag_background">#c9d8d5</color>
+    <color name="tag_text">#787878</color>
 </resources>

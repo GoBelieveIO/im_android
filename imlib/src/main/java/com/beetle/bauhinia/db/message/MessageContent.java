@@ -1,5 +1,7 @@
 package com.beetle.bauhinia.db.message;
 
+import android.text.TextUtils;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -23,6 +25,8 @@ public abstract class MessageContent implements Cloneable {
     public static final String REVOKE = "revoke";
     public static final String ACK = "ack";
     public static final String CLASSROOM = "classroom";
+    public static final String READED = "readed";
+    public static final String TAG = "tag";
 
     public enum MessageType {
         MESSAGE_UNKNOWN,
@@ -38,16 +42,13 @@ public abstract class MessageContent implements Cloneable {
         MESSAGE_VOIP,
         MESSAGE_GROUP_VOIP,
         MESSAGE_FILE,
-
         MESSAGE_P2P_SESSION,//建立p2p加密会话的控制消息
         MESSAGE_SECRET,
-
-        MESSAGE_REVOKE,
-
+        MESSAGE_REVOKE,//撤回消息
         MESSAGE_ACK,
-
-        MESSAGE_CLASSROOM,
-
+        MESSAGE_CLASSROOM,//群课堂
+        MESSAGE_READED, //消息已读
+        MESSAGE_TAG,//给消息打标签
         MESSAGE_TIME_BASE, //虚拟的消息，不会存入磁盘
     }
 
@@ -62,8 +63,10 @@ public abstract class MessageContent implements Cloneable {
         return stu;
     }
 
-    public String raw;
+    protected String raw;
     protected String uuid;
+    protected long groupId;//群组会话内的私聊和群组会话的已读
+    protected String reference;//引用的消息uuid
 
     public MessageType getType() {
         return MessageType.MESSAGE_UNKNOWN;
@@ -84,6 +87,22 @@ public abstract class MessageContent implements Cloneable {
         this.uuid = uuid;
     }
 
+    public long getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(long groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getReference() {
+        return reference;
+    }
+
+    public void setReference(String ref) {
+        this.reference = ref;
+    }
+
     public void generateRaw(String uuid) {
         if (uuid == null || raw == null) {
             return;
@@ -97,5 +116,44 @@ public abstract class MessageContent implements Cloneable {
             e.printStackTrace();
         }
     }
+
+    public void generateRaw(long groupId) {
+        if (raw == null) {
+            return;
+        }
+        try {
+            JSONObject obj = new JSONObject(raw);
+            obj.put("group_id", groupId);
+            this.raw = obj.toString();
+            this.groupId = groupId;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void generateRaw(String uuid, String reference, long groupId) {
+        if (raw == null) {
+            return;
+        }
+        try {
+            JSONObject obj = new JSONObject(raw);
+            if (!TextUtils.isEmpty(uuid)) {
+                obj.put("uuid", uuid);
+            }
+            if (!TextUtils.isEmpty(reference)) {
+                obj.put("reference", reference);
+            }
+            if (groupId > 0) {
+                obj.put("group_id", groupId);
+            }
+            this.raw = obj.toString();
+            this.groupId = groupId;
+            this.uuid = uuid;
+            this.reference = reference;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
 

@@ -52,14 +52,13 @@ import com.beetle.bauhinia.tools.*;
 import com.beetle.bauhinia.view.*;
 import com.beetle.im.IMService;
 import com.beetle.imkit.BuildConfig;
+
 import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
 import com.beetle.imkit.R;
 
 
 public class MessageActivity extends MessageAudioActivity implements
-        SwipeRefreshLayout.OnRefreshListener,
-        FileDownloader.FileDownloaderObserver,
-        OutboxObserver {
+        SwipeRefreshLayout.OnRefreshListener {
 
     protected static final String TAG = "imservice";
 
@@ -78,44 +77,49 @@ public class MessageActivity extends MessageAudioActivity implements
     public static final int TAKE_PICTURE = 103;
     public static final int PICK_LOCATION = 104;
     public static final int CAPTURE_CAMERA = 105;
+    public static final int SELECT_FILE = 106;
 
     private static final int IN_MSG = 0;
     private static final int OUT_MSG = 1;
 
     protected boolean isShowUserName = false;
+    protected boolean isShowReply = true;//显示回复信息
+    protected boolean isShowReaded = true;//显示未读/已读
 
-    BaseAdapter adapter;
-    ListView listview;
+    protected BaseAdapter adapter;
+    protected ListView listview;
+    protected SwipeRefreshLayout swipeRefresh;
     
     static final int ITEM_TAKE_PICTURE = 1;
     static final int ITEM_PICTURE = 2;
     static final int ITEM_LOCATION = 3;
     static final int ITEM_VIDEO_CALL = 4;
+    static final int ITEM_FILE = 5;
 
 
-    static final int ITEM_TAKE_PICTURE_ID = 0;
-    static final int ITEM_PICTURE_ID = 1;
-    static final int ITEM_LOCATION_ID = 2;
-    static final int ITEM_VIDEO_CALL_ID = 3;
-
+    protected static final int ITEM_TAKE_PICTURE_ID = 0;
+    protected static final int ITEM_PICTURE_ID = 1;
+    protected static final int ITEM_LOCATION_ID = 2;
+    protected static final int ITEM_VIDEO_CALL_ID = 3;
+    protected static final int ITEM_FILE_ID = 4;
 
     protected int[] itemStrings = { R.string.attach_take_pic, R.string.attach_picture,
-            R.string.attach_location, R.string.attach_video_call };
+            R.string.attach_location, R.string.attach_video_call, R.string.attach_file };
     protected int[] itemdrawables = { R.drawable.ease_chat_takepic_selector, R.drawable.ease_chat_image_selector,
-            R.drawable.ease_chat_location_selector,  R.drawable.ease_chat_takepic_selector};
-    protected int[] itemIds = { ITEM_TAKE_PICTURE, ITEM_PICTURE, ITEM_LOCATION, ITEM_VIDEO_CALL };
+            R.drawable.ease_chat_location_selector,  R.drawable.ease_chat_video_call_selector, R.drawable.ease_chat_file_selector};
+    protected int[] itemIds = { ITEM_TAKE_PICTURE, ITEM_PICTURE, ITEM_LOCATION, ITEM_VIDEO_CALL, ITEM_FILE };
 
-    protected boolean[] items = {true, true, true, BuildConfig.DEBUG ? true : false};
+    protected boolean[] items = {true, true, true, true, true};
 
 
-    protected MyItemClickListener extendMenuItemClickListener;
+    protected MenuItemClickListener extendMenuItemClickListener;
     protected EaseChatInputMenu inputMenu;
 
     /**
      * 扩展菜单栏item点击事件
      *
      */
-    class MyItemClickListener implements EaseChatExtendMenu.EaseChatExtendMenuItemClickListener{
+    class MenuItemClickListener implements EaseChatExtendMenu.EaseChatExtendMenuItemClickListener{
         @Override
         public void onClick(int itemId, View view) {
             switch (itemId) {
@@ -135,6 +139,9 @@ public class MessageActivity extends MessageAudioActivity implements
                 case ITEM_VIDEO_CALL:
                     call();
                     break;
+                case ITEM_FILE:
+                    getFile();
+                    break;
                 default:
                     break;
             }
@@ -152,7 +159,7 @@ public class MessageActivity extends MessageAudioActivity implements
         recordFileName = f.getAbsolutePath();
         Log.i(TAG, "record file name:" + recordFileName);
 
-        extendMenuItemClickListener = new MyItemClickListener();
+        extendMenuItemClickListener = new MenuItemClickListener();
         inputMenu = (EaseChatInputMenu)findViewById(R.id.input_menu);
         registerExtendMenuItem();
         inputMenu.init();
@@ -217,6 +224,7 @@ public class MessageActivity extends MessageAudioActivity implements
 
         SwipeRefreshLayout swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
         swipeLayout.setOnRefreshListener(this);
+        swipeRefresh = swipeLayout;
 
         listview = (ListView)findViewById(R.id.list_view);
         adapter = new ChatAdapter();
@@ -245,7 +253,7 @@ public class MessageActivity extends MessageAudioActivity implements
             public void onScrollStateChanged(AbsListView view, int scrollState) {
                 if (scrollState == SCROLL_STATE_IDLE && reachBottom) {
                     reachBottom = false;
-                    int count = loadLateData();
+                    int count = loadLaterData();
                     if (count > 0) {
                         adapter.notifyDataSetChanged();
                     }
@@ -295,6 +303,24 @@ public class MessageActivity extends MessageAudioActivity implements
     public boolean onOptionsItemSelected(MenuItem item) {
         return super.onOptionsItemSelected(item);
     }
+
+    @Override
+    public void onBackPressed() {
+        Log.i(TAG, "on back pressed");
+        //hide keyboard
+        if (getWindow().getAttributes().softInputMode != WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN) {
+            InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (getCurrentFocus() != null) {
+                inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+            }
+        }
+        inputMenu.hideExtendMenuContainer();
+        inputMenu.clearFocus();
+
+        super.onBackPressed();
+    }
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -490,17 +516,23 @@ public class MessageActivity extends MessageAudioActivity implements
                 if (msg.content instanceof Notification) {
                     rowView = new MiddleMessageView(MessageActivity.this, msgType);
                 } else  if (msg.isOutgoing) {
-                    rowView = new OutMessageView(MessageActivity.this, msgType);
+                    OutMessageView msgView = new OutMessageView(MessageActivity.this, msgType, isShowReply, isShowReaded);
+
+                    msgView.readedButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            IMessage im = (IMessage)v.getTag();
+                            Log.i(TAG, "im:" + im.msgLocalID);
+                            MessageActivity.this.openUnread(im);
+                        }
+                    });
+                    rowView = msgView;
+
                 } else {
-                    rowView = new InMessageView(MessageActivity.this, msgType, isShowUserName);
+                    rowView = new InMessageView(MessageActivity.this, msgType, isShowUserName, isShowReply);
                 }
                 if (rowView != null) {
                     View contentView = rowView.getContentView();
-                    if (msgType == MessageContent.MessageType.MESSAGE_TEXT) {
-                        MessageTextView messageTextView = (MessageTextView)rowView.getContentView();
-                        contentView = messageTextView.getTextView();
-                    }
-
                     contentView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -513,36 +545,7 @@ public class MessageActivity extends MessageAudioActivity implements
                         @Override
                         public boolean onLongClick(View v) {
                             final IMessage im = (IMessage)v.getTag();
-
-                            ArrayList<ChatQuickAction> actions = new ArrayList<ChatQuickAction>();
-
-                            if (im.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
-                                actions.add(ChatItemQuickAction.ChatQuickAction.COPY);
-                            }
-
-                            if (im.isFailure()) {
-                                actions.add(ChatQuickAction.RESEND);
-                            } else {
-                                if (im.content.getType() == MessageContent.MessageType.MESSAGE_TEXT ||
-                                        im.content.getType() == MessageContent.
-                                                MessageType.MESSAGE_IMAGE ||
-                                        im.content.getType() == MessageContent.
-                                                MessageType.MESSAGE_AUDIO ||
-                                        im.content.getType() == MessageContent.
-                                                MessageType.MESSAGE_VIDEO ||
-                                        im.content.getType() == MessageContent.
-                                                MessageType.MESSAGE_LOCATION ||
-                                        im.content.getType() == MessageContent.MessageType.MESSAGE_FILE) {
-                                    actions.add(ChatQuickAction.FORWARD);
-                                }
-                            }
-
-
-                            int now = now();
-                            if (now >= im.timestamp && (now - im.timestamp) < (REVOKE_EXPIRE-10) && im.isOutgoing) {
-                                actions.add(ChatQuickAction.REVOKE);
-                            }
-
+                            ArrayList<ChatQuickAction> actions = getLongClickActions(im);
                             if (actions.size() == 0) {
                                 return true;
                             }
@@ -550,33 +553,39 @@ public class MessageActivity extends MessageAudioActivity implements
                             ChatItemQuickAction.showAction(MessageActivity.this,
                                     actions.toArray(new ChatQuickAction[actions.size()]),
                                     new ChatItemQuickAction.ChatQuickActionResult() {
-
                                         @Override
                                         public void onSelect(ChatQuickAction action) {
-                                            switch (action) {
-                                                case COPY:
-                                                    ClipboardManager clipboard =
-                                                            (ClipboardManager)MessageActivity.this
-                                                                    .getSystemService(Context.CLIPBOARD_SERVICE);
-                                                    clipboard.setText(((Text) im.content).text);
-                                                    break;
-                                                case RESEND:
-                                                    MessageActivity.this.resend(im);
-                                                    break;
-                                                case REVOKE:
-                                                    MessageActivity.this.revoke(im);
-                                                    break;
-                                                case FORWARD:
-                                                    MessageActivity.this.forward(im);
-                                                default:
-                                                    break;
-                                            }
+                                            onActionClickListener(action, im);
                                         }
                                     }
                             );
                             return true;
                         }
                     });
+                    if (rowView.getContentFrame() != null) {
+                        View contentFrame = rowView.getContentFrame();
+                        contentFrame.setOnLongClickListener(new View.OnLongClickListener() {
+                            @Override
+                            public boolean onLongClick(View v) {
+                                final IMessage im = (IMessage)v.getTag();
+                                ArrayList<ChatQuickAction> actions = getLongClickActions(im);
+                                if (actions.size() == 0) {
+                                    return true;
+                                }
+
+                                ChatItemQuickAction.showAction(MessageActivity.this,
+                                        actions.toArray(new ChatQuickAction[actions.size()]),
+                                        new ChatItemQuickAction.ChatQuickActionResult() {
+                                            @Override
+                                            public void onSelect(ChatQuickAction action) {
+                                                onActionClickListener(action, im);
+                                            }
+                                        }
+                                );
+                                return true;
+                            }
+                        });
+                    }
                     if (msgType == MessageContent.MessageType.MESSAGE_TEXT) {
                         MessageTextView messageTextView = (MessageTextView)rowView.getContentView();
                         messageTextView.setDoubleTapListener(new MessageTextView.DoubleTapListener() {
@@ -589,6 +598,18 @@ public class MessageActivity extends MessageAudioActivity implements
                                 intent.setClass(MessageActivity.this, OverlayActivity.class);
                                 intent.putExtra("text", t.text);
                                 MessageActivity.this.startActivity(intent);
+                            }
+                        });
+                    }
+
+                    if (rowView.getReplyButton() != null) {
+                        Button replyBtn = rowView.getReplyButton();
+                        replyBtn.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                IMessage im = (IMessage)v.getTag();
+                                Log.i(TAG, "im:" + im.msgLocalID);
+                                MessageActivity.this.openReply(im);
                             }
                         });
                     }
@@ -619,86 +640,6 @@ public class MessageActivity extends MessageAudioActivity implements
     }
 
 
-    @Override
-    public void onAudioUploadSuccess(IMessage imsg, String url) {
-        Log.i(TAG, "audio upload success:" + url);
-        IMessage m = findMessage(imsg.content.getUUID());
-        if (m != null) {
-            Audio audio = (Audio)m.content;
-            m.content = Audio.newAudio(url, audio.duration, audio.getUUID());
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onAudioUploadFail(IMessage msg) {
-        Log.i(TAG, "audio upload fail");
-        IMessage m = findMessage(msg.content.getUUID());
-        if (m != null) {
-            m.setFailure(true);
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onImageUploadSuccess(IMessage msg, String url) {
-        Log.i(TAG, "image upload success:" + url);
-        IMessage m = findMessage(msg.content.getUUID());
-        if (m != null) {
-            Image image = (Image)m.content;
-            m.content = Image.newImage(url, image.width, image.height, image.getUUID());
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onImageUploadFail(IMessage msg) {
-        Log.i(TAG, "image upload fail");
-        IMessage m = findMessage(msg.content.getUUID());
-        if (m != null) {
-            m.setFailure(true);
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onVideoUploadSuccess(IMessage msg, String url, String thumbURL) {
-        Log.i(TAG, "video upload success:" + url + " thumb url:" + thumbURL);
-        IMessage m = findMessage(msg.content.getUUID());
-        if (m != null) {
-            Video video = (Video)m.content;
-            m.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID());
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onVideoUploadFail(IMessage msg) {
-        Log.i(TAG, "video upload fail");
-        IMessage m = findMessage(msg.content.getUUID());
-        if (m != null) {
-            m.setFailure(true);
-            m.setUploading(false);
-        }
-    }
-
-    @Override
-    public void onFileDownloadSuccess(IMessage msg) {
-        Log.i(TAG, "audio download success");
-        IMessage m = findMessage(msg.content.getUUID());
-        if (m != null) {
-            m.setDownloading(false);
-        }
-    }
-
-    @Override
-    public void onFileDownloadFail(IMessage msg) {
-        Log.i(TAG, "audio download fail");
-        IMessage m = findMessage(msg.content.getUUID());
-        if (m != null) {
-            m.setDownloading(false);
-        }
-    }
 
     protected void clearConversation() {
         Log.i(TAG, "clearConversation");
@@ -726,7 +667,7 @@ public class MessageActivity extends MessageAudioActivity implements
                 hasLateMore = false;
                 this.messageID = 0;
                 messages = new ArrayList<IMessage>();
-                loadConversationData();
+                loadData();
                 adapter.notifyDataSetChanged();
                 //scroll to bottom
                 if (messages.size() > 0) {
@@ -765,6 +706,15 @@ public class MessageActivity extends MessageAudioActivity implements
         } else {
             requestCameraPermission();
         }
+    }
+
+    void getFile() {
+        Intent chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
+        chooseFile.setType("*/*");
+        chooseFile.addCategory(Intent.CATEGORY_OPENABLE);
+        chooseFile.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        chooseFile = Intent.createChooser(chooseFile, "选择文件");
+        startActivityForResult(chooseFile, SELECT_FILE);
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -812,6 +762,9 @@ public class MessageActivity extends MessageAudioActivity implements
                 Log.i(TAG, "take video success:" + videoPath + " thumbnail path:" + thumbPath);
                 sendVideoMessage(videoPath, thumbPath);
             }
+        } else if (requestCode == SELECT_FILE) {
+            Uri fileUri = data.getData();
+            sendFileMessage(fileUri);
         } else {
             Log.i(TAG, "invalide request code:" + requestCode);
             return;
@@ -819,8 +772,7 @@ public class MessageActivity extends MessageAudioActivity implements
     }
 
 
-
-    void onMessageClicked(IMessage message) {
+    protected void onMessageClicked(IMessage message) {
         if (message.content instanceof Audio) {
             Audio audio = (Audio) message.content;
             if (FileCache.getInstance().isCached(audio.url)) {
@@ -840,15 +792,6 @@ public class MessageActivity extends MessageAudioActivity implements
             intent.putExtra("url", link.url);
             intent.setClass(this, WebActivity.class);
             startActivity(intent);
-        } else if (message.getType() == MessageContent.MessageType.MESSAGE_VOIP) {
-            if (message.isOutgoing) {
-                VOIP voip = (VOIP)message.content;
-                if (voip.videoEnabled) {
-                    callVideo();
-                } else {
-                    callVoice();
-                }
-            }
         } else if (message.getType() == MessageContent.MessageType.MESSAGE_FILE) {
             com.beetle.bauhinia.db.message.File f = (com.beetle.bauhinia.db.message.File)message.content;
             Intent intent = new Intent();
@@ -887,24 +830,68 @@ public class MessageActivity extends MessageAudioActivity implements
         startActivity(intent);
     }
 
-
-    protected void openClassroom(long masterID, String channelID, String micMode, long serverID) {
-
-    }
-
-    protected void callVoice() {
-
-    }
-    protected void callVideo() {
-
-    }
-    protected void call() {
-
-    }
+    protected void call() {}
 
     protected void onAt() {}
 
-    protected void forward(IMessage im) {
+    protected void forward(IMessage im) {}
+
+    protected void openUnread(IMessage im) {}
+
+    protected void openReply(IMessage message) {
+
+    }
+
+    protected ArrayList<ChatQuickAction> getLongClickActions(IMessage im) {
+        ArrayList<ChatQuickAction> actions = new ArrayList<ChatQuickAction>();
+
+        if (im.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+            actions.add(ChatItemQuickAction.ChatQuickAction.COPY);
+        }
+
+        if (im.isFailure()) {
+            actions.add(ChatQuickAction.RESEND);
+        } else {
+            if (im.content.getType() == MessageContent.MessageType.MESSAGE_TEXT ||
+                    im.content.getType() == MessageContent.
+                            MessageType.MESSAGE_IMAGE ||
+                    im.content.getType() == MessageContent.
+                            MessageType.MESSAGE_AUDIO ||
+                    im.content.getType() == MessageContent.
+                            MessageType.MESSAGE_VIDEO ||
+                    im.content.getType() == MessageContent.
+                            MessageType.MESSAGE_LOCATION ||
+                    im.content.getType() == MessageContent.MessageType.MESSAGE_FILE) {
+                actions.add(ChatQuickAction.FORWARD);
+            }
+        }
+        int now = now();
+        if (now >= im.timestamp && (now - im.timestamp) < (REVOKE_EXPIRE-10) && im.isOutgoing) {
+            actions.add(ChatQuickAction.REVOKE);
+        }
+        return actions;
+    }
+
+    protected void onActionClickListener(ChatQuickAction action, IMessage im) {
+        switch (action) {
+            case COPY:
+                ClipboardManager clipboard =
+                        (ClipboardManager)MessageActivity.this
+                                .getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.setText(((Text) im.content).text);
+                break;
+            case RESEND:
+                MessageActivity.this.resend(im);
+                break;
+            case REVOKE:
+                MessageActivity.this.revoke(im);
+                break;
+            case FORWARD:
+                MessageActivity.this.forward(im);
+            default:
+                break;
+        }
+
     }
 
 }

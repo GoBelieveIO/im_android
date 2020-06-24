@@ -7,16 +7,10 @@ import android.widget.Toast;
 
 import com.beetle.bauhinia.db.*;
 import com.beetle.bauhinia.db.message.ACK;
-import com.beetle.bauhinia.db.message.Audio;
-import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
-import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileDownloader;
-import com.beetle.bauhinia.tools.Notification;
-import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.bauhinia.outbox.PeerOutbox;
-import com.beetle.bauhinia.tools.FileCache;
 
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
@@ -26,18 +20,7 @@ import com.beetle.im.PeerMessageObserver;
 
 
 public class PeerMessageActivity extends MessageActivity implements
-        IMServiceObserver, PeerMessageObserver
-{
-
-    public static final String SEND_MESSAGE_NAME = "send_message";
-    public static final String CLEAR_MESSAGES = "clear_messages";
-    public static final String CLEAR_NEW_MESSAGES = "clear_new_messages";
-
-    public static final String SEND_SECRET_MESSAGE_NAME = "send_secret_message";
-    public static final String CLEAR_SECRET_MESSAGES = "clear_secret_messages";
-    public static final String CLEAR_SECRET_NEW_MESSAGES = "clear_secret_new_messages";
-
-
+        IMServiceObserver, PeerMessageObserver {
     protected long peerUID;
     protected String peerName;
     protected String peerAvatar;
@@ -45,11 +28,11 @@ public class PeerMessageActivity extends MessageActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (getIntent().getBooleanExtra("secret", false)) {
-            items[ITEM_VIDEO_CALL_ID] = false;
-        }
-
+        items[ITEM_VIDEO_CALL_ID] = false;
         super.onCreate(savedInstanceState);
+        isShowUserName = false;
+        isShowReaded = false;
+        isShowReply = false;
 
 
         Intent intent = getIntent();
@@ -96,7 +79,7 @@ public class PeerMessageActivity extends MessageActivity implements
 
         this.hasLateMore = this.messageID > 0;
         this.hasEarlierMore = true;
-        this.loadConversationData();
+        this.loadData();
         if (this.messages.size() > 0) {
             if (messageID > 0) {
                 int index = -1;
@@ -127,15 +110,6 @@ public class PeerMessageActivity extends MessageActivity implements
         super.onDestroy();
         Log.i(TAG, "peer message activity destory");
 
-        if (secret) {
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.peerUID, CLEAR_SECRET_NEW_MESSAGES);
-            nc.postNotification(notification);
-        } else {
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(this.peerUID, CLEAR_NEW_MESSAGES);
-            nc.postNotification(notification);
-        }
         PeerOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
         IMService.getInstance().removePeerObserver(this);
@@ -272,11 +246,9 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
-
-
     @Override
     public void onPeerMessageACK(IMMessage im, int error) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         long uid = im.receiver;
         if (peerUID != uid) {
             return;
@@ -332,7 +304,7 @@ public class PeerMessageActivity extends MessageActivity implements
 
     @Override
     public void onPeerMessageFailure(IMMessage im) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         long uid = im.receiver;
         if (peerUID != uid) {
             return;
@@ -353,83 +325,23 @@ public class PeerMessageActivity extends MessageActivity implements
         }
     }
 
-    protected boolean encrypt(IMMessage im, String uuid) {
-        return false;
-    }
-
     protected void handleP2PSession(IMessage imsg) {
 
     }
 
     @Override
     protected void sendMessage(IMessage imsg) {
-        boolean r = true;
-        if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-            Audio audio = (Audio)imsg.content;
-            imsg.setUploading(true);
-            if (secret) {
-                PeerOutbox.getInstance().uploadSecretAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
-            } else {
-                PeerOutbox.getInstance().uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
-            }
-        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-            Image image = (Image) imsg.content;
-            //prefix:"file:"
-            String path = image.url.substring(5);
-            imsg.setUploading(true);
-            if (secret) {
-                PeerOutbox.getInstance().uploadSecretImage(imsg, path);
-            } else {
-                PeerOutbox.getInstance().uploadImage(imsg, path);
-            }
-        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
-            Video video = (Video)imsg.content;
-            imsg.setUploading(true);
-            //prefix: "file:"
-            String path = video.thumbnail.substring(5);
-            String videoPath = FileCache.getInstance().getCachedFilePath(video.url);
-            if (secret) {
-                PeerOutbox.getInstance().uploadSecretVideo(imsg, videoPath, path);
-            } else {
-                PeerOutbox.getInstance().uploadVideo(imsg, videoPath, path);
-            }
-        } else {
-            IMMessage msg = new IMMessage();
-            msg.sender = imsg.sender;
-            msg.receiver = imsg.receiver;
-            msg.msgLocalID = imsg.msgLocalID;
-            msg.isText = true;
-            msg.content = imsg.content.getRaw();
-            msg.plainContent = msg.content;
-            if (secret) {
-                r = encrypt(msg, imsg.getUUID());
-            }
-
-            if (r) {
-                IMService im = IMService.getInstance();
-                im.sendPeerMessageAsync(msg);
-            }
-        }
-
-        if (secret) {
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, SEND_SECRET_MESSAGE_NAME);
-            nc.postNotification(notification);
-        } else {
-            NotificationCenter nc = NotificationCenter.defaultCenter();
-            Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
-            nc.postNotification(notification);
-        }
+        PeerOutbox.getInstance().sendMessage(imsg);
     }
 
 
     @Override
-    protected IMessage newOutMessage() {
+    protected IMessage newOutMessage(MessageContent content) {
         IMessage msg = new IMessage();
         msg.sender = this.currentUID;
         msg.receiver = this.peerUID;
         msg.secret = secret;
+        msg.content = content;
         return msg;
     }
-
 }

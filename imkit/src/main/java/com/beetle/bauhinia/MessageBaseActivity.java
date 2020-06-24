@@ -10,13 +10,14 @@
 
 package com.beetle.bauhinia;
 
+import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.media.ThumbnailUtils;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.SystemClock;
-import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Pair;
 import android.widget.Toast;
 
 import com.amap.api.services.core.LatLonPoint;
@@ -29,10 +30,7 @@ import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.IMessageDB;
 import com.beetle.bauhinia.db.MessageIterator;
 import com.beetle.bauhinia.db.message.ACK;
-import com.beetle.bauhinia.db.message.Attachment;
 import com.beetle.bauhinia.db.message.Audio;
-import com.beetle.bauhinia.db.message.GroupNotification;
-import com.beetle.bauhinia.db.message.GroupVOIP;
 import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.Location;
 import com.beetle.bauhinia.db.message.MessageContent;
@@ -40,6 +38,7 @@ import com.beetle.bauhinia.db.message.Revoke;
 import com.beetle.bauhinia.db.message.Text;
 import com.beetle.bauhinia.db.message.TimeBase;
 import com.beetle.bauhinia.db.message.Video;
+import com.beetle.bauhinia.outbox.OutboxObserver;
 import com.beetle.bauhinia.tools.AudioUtil;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.FileDownloader;
@@ -52,6 +51,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -74,7 +74,9 @@ import com.beetle.imkit.R;
  将有可能是本地备注的用户名修改为群内昵称或用户名
 
  */
-public class MessageBaseActivity extends BaseActivity {
+public class MessageBaseActivity extends BaseActivity implements
+        FileDownloader.FileDownloaderObserver,
+        OutboxObserver {
     protected static final String TAG = "imservice";
 
     //消息撤回的时限
@@ -96,29 +98,28 @@ public class MessageBaseActivity extends BaseActivity {
     }
 
 
+    protected int pageSize = PAGE_SIZE;
     protected long conversationID;//uid or groupid or storeid
     protected long currentUID;
-    protected int messageID;
+    protected long messageID;
     protected boolean hasLateMore;
     protected boolean hasEarlierMore;
     protected IMessageDB messageDB;
 
     protected ArrayList<IMessage> messages = new ArrayList<IMessage>();
-    protected HashMap<Integer, Attachment> attachments = new HashMap<Integer, Attachment>();
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
     }
 
-    protected void loadConversationData() {
+    protected void loadData() {
         messages = new ArrayList<IMessage>();
         List<IMessage> newMessages;
         if (messageID > 0) {
-            newMessages = this.loadConversationData(conversationID, messageID);
+            newMessages = this.loadConversationData(messageID);
         } else {
-            newMessages = this.loadConversationData(conversationID);
+            newMessages = this.loadConversationData();
         }
 
         //删除重复的消息,过滤掉不显示的消息
@@ -138,11 +139,7 @@ public class MessageBaseActivity extends BaseActivity {
         }
         int count = messages.size();
 
-        downloadMessageContent(messages, count);
-        updateNotificationDesc(messages, count);
-        loadUserName(messages, count);
-        checkMessageFailureFlag(messages, count);
-        checkAtName(messages, count);
+        prepareMessage(messages, count);
         resetMessageTimeBase();
     }
 
@@ -176,7 +173,7 @@ public class MessageBaseActivity extends BaseActivity {
             }
         }
 
-        List<IMessage> newMessages = this.loadEarlierData(conversationID, firstMsg.msgLocalID);
+        List<IMessage> newMessages = this.loadEarlierData(firstMsg.msgLocalID);
         int count = newMessages.size();
 
         if (count == 0) {
@@ -201,16 +198,12 @@ public class MessageBaseActivity extends BaseActivity {
             }
         }
 
-        updateNotificationDesc(messages, count);
-        downloadMessageContent(messages, count);
-        loadUserName(messages, count);
-        checkMessageFailureFlag(messages, count);
-        checkAtName(messages, count);
+        prepareMessage(messages, count);
         resetMessageTimeBase();
         return newCount;
     }
 
-    protected int loadLateData() {
+    protected int loadLaterData() {
         int newCount = 0;
         if (!this.hasLateMore || messageID == 0) {
             return newCount;
@@ -229,7 +222,7 @@ public class MessageBaseActivity extends BaseActivity {
         }
 
         IMessage msg = messages.get(messages.size() - 1);
-        List<IMessage> newMessages = this.loadLateData(conversationID, msg.msgLocalID);
+        List<IMessage> newMessages = this.loadLaterData(msg.msgLocalID);
         int count = newMessages.size();
 
         if (count == 0) {
@@ -248,11 +241,7 @@ public class MessageBaseActivity extends BaseActivity {
                 continue;
             }
 
-            downloadMessageContent(m);
-            updateNotificationDesc(m);
-            loadUserName(m);
-            checkMessageFailureFlag(m);
-            checkAtName(messages, count);
+            prepareMessage(m);
             messages.add(m);
             newCount++;
             if (!TextUtils.isEmpty(msg.getUUID())) {
@@ -264,40 +253,33 @@ public class MessageBaseActivity extends BaseActivity {
     }
 
 
-    protected ArrayList<IMessage> loadConversationData(long conversationID) {
+    private List<IMessage> loadConversationData() {
         ArrayList<IMessage> messages = new ArrayList<IMessage>();
         int count = 0;
-        MessageIterator iter = messageDB.newMessageIterator(conversationID);
+        MessageIterator iter = createMessageIterator();
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
                 break;
             }
-            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
-                Attachment attachment = (Attachment)msg.content;
-                attachments.put(attachment.msg_id, attachment);
-            } else {
-                msg.isOutgoing = (msg.sender == currentUID);
-                messages.add(0, msg);
-                if (++count >= PAGE_SIZE) {
-                    break;
-                }
+
+            msg.isOutgoing = (msg.sender == currentUID);
+            messages.add(0, msg);
+            if (++count >= pageSize) {
+                break;
             }
         }
-
         return messages;
     }
 
-    protected List<IMessage> loadConversationData(long conversationID, int messageID) {
+    private List<IMessage> loadConversationData(long messageID) {
         HashSet<String> uuidSet = new HashSet<String>();
         ArrayList<IMessage> messages = new ArrayList<IMessage>();
 
-        int pageSize;
         int count = 0;
         MessageIterator iter;
 
-        iter = messageDB.newMiddleMessageIterator(conversationID, messageID);
-        pageSize = 2*PAGE_SIZE;
+        iter = createMiddleMessageIterator(messageID);
 
         while (iter != null) {
             IMessage msg = iter.next();
@@ -313,73 +295,52 @@ public class MessageBaseActivity extends BaseActivity {
             if (!TextUtils.isEmpty(msg.getUUID())) {
                 uuidSet.add(msg.getUUID());
             }
-
-            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
-                Attachment attachment = (Attachment)msg.content;
-                attachments.put(attachment.msg_id, attachment);
-            } else {
-                msg.isOutgoing = (msg.sender == currentUID);
-                messages.add(0, msg);
-                if (++count >= pageSize) {
-                    break;
-                }
+            msg.isOutgoing = (msg.sender == currentUID);
+            messages.add(0, msg);
+            if (++count >= pageSize*2) {
+                break;
             }
         }
 
         return messages;
     }
 
-    protected List<IMessage> loadEarlierData(long conversationID, int messageID) {
+    private List<IMessage> loadEarlierData(long messageID) {
         ArrayList<IMessage> messages = new ArrayList<IMessage>();
         int count = 0;
-        MessageIterator iter = messageDB.newForwardMessageIterator(conversationID, messageID);
+        MessageIterator iter = createForwardMessageIterator(messageID);
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
                 break;
             }
-
-            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
-                Attachment attachment = (Attachment)msg.content;
-                attachments.put(attachment.msg_id, attachment);
-            } else{
-                msg.isOutgoing = (msg.sender == currentUID);
-                messages.add(0, msg);
-                if (++count >= PAGE_SIZE) {
-                    break;
-                }
+            msg.isOutgoing = (msg.sender == currentUID);
+            messages.add(0, msg);
+            if (++count >= pageSize) {
+                break;
             }
         }
         return messages;
     }
 
-
-    protected List<IMessage> loadLateData(long conversationID, int messageID) {
+    private List<IMessage> loadLaterData(long messageID) {
         ArrayList<IMessage> messages = new ArrayList<IMessage>();
         int count = 0;
-        MessageIterator iter = messageDB.newBackwardMessageIterator(conversationID, messageID);
+        MessageIterator iter = createBackwardMessageIterator(messageID);
         while (true) {
             IMessage msg = iter.next();
             if (msg == null) {
                 break;
             }
 
-            if (msg.content.getType() == MessageContent.MessageType.MESSAGE_ATTACHMENT) {
-                Attachment attachment = (Attachment)msg.content;
-                attachments.put(attachment.msg_id, attachment);
-            } else{
-                msg.isOutgoing = (msg.sender == currentUID);
-                messages.add(msg);
-                if (++count >= PAGE_SIZE) {
-                    break;
-                }
+            msg.isOutgoing = (msg.sender == currentUID);
+            messages.add(msg);
+            if (++count >= pageSize) {
+                break;
             }
         }
         return messages;
     }
-
-
-
 
     //加载消息发送者的名称和头像信息
     protected void loadUserName(IMessage msg) {
@@ -405,12 +366,6 @@ public class MessageBaseActivity extends BaseActivity {
         }
     }
 
-    protected void loadUserName(ArrayList<IMessage> messages, int count) {
-        for (int i = 0; i < messages.size(); i++) {
-            IMessage msg = messages.get(i);
-            loadUserName(msg);
-        }
-    }
 
     void checkMessageFailureFlag(IMessage msg) {
         if (msg.isOutgoing) {
@@ -421,82 +376,8 @@ public class MessageBaseActivity extends BaseActivity {
         }
     }
 
-    void checkMessageFailureFlag(ArrayList<IMessage> messages, int count) {
-        for (int i = 0; i < count; i++) {
-            IMessage m = messages.get(i);
-            checkMessageFailureFlag(m);
-        }
-    }
-
-
-    protected void updateNotificationDesc(ArrayList<IMessage> messages, int count) {
-        for (int i = 0; i < count; i++) {
-            IMessage m = messages.get(i);
-            updateNotificationDesc(m);
-        }
-    }
-
     protected void updateNotificationDesc(IMessage imsg) {
-        if (imsg.getType() == MessageContent.MessageType.MESSAGE_GROUP_NOTIFICATION) {
-            GroupNotification notification = (GroupNotification) imsg.content;
-            if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_CREATED) {
-                if (notification.master == currentUID) {
-                    notification.description = getString(R.string.message_create_group, notification.groupName);
-                } else {
-                    notification.description = getString(R.string.message_me_join_group, notification.groupName);
-                }
-            } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_DISBAND) {
-                notification.description = getString(R.string.message_group_disbanded);
-            } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_MEMBER_ADDED) {
-                MessageActivity.User u = getUser(notification.member);
-                if (TextUtils.isEmpty(u.name)) {
-                    notification.description = getString(R.string.message_join_group, u.identifier);
-                    imsg.setDownloading(true);
-                    final IMessage fmsg = imsg;
-                    asyncGetUser(notification.member, new MessageActivity.GetUserCallback() {
-                        @Override
-                        public void onUser(MessageActivity.User u) {
-                            GroupNotification notification = (GroupNotification) fmsg.content;
-                            notification.description = getString(R.string.message_join_group, u.name);
-                            fmsg.setDownloading(false);
-                        }
-                    });
-                } else {
-                    notification.description = getString(R.string.message_join_group, u.name);
-                }
-            } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_MEMBER_LEAVED) {
-                MessageActivity.User u = getUser(notification.member);
-                if (TextUtils.isEmpty(u.name)) {
-                    notification.description = getString(R.string.message_leave_group, u.identifier);
-                    imsg.setDownloading(true);
-                    final IMessage fmsg = imsg;
-                    asyncGetUser(notification.member, new MessageActivity.GetUserCallback() {
-                        @Override
-                        public void onUser(MessageActivity.User u) {
-                            GroupNotification notification = (GroupNotification) fmsg.content;
-                            notification.description = getString(R.string.message_leave_group, u.name);
-                            fmsg.setDownloading(false);
-                        }
-                    });
-                } else {
-                    notification.description = getString(R.string.message_leave_group, u.name);
-                }
-            } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_NAME_UPDATED) {
-                notification.description = getString(R.string.message_change_group_name, notification.groupName);
-            } else if (notification.notificationType == GroupNotification.NOTIFICATION_GROUP_NOTICE_UPDATED) {
-                notification.description = getString(R.string.message_group_notice, notification.notice);
-            }
-        } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_GROUP_VOIP) {
-            GroupVOIP groupVOIP = (GroupVOIP)imsg.content;
-
-            if (!groupVOIP.finished) {
-                MessageActivity.User u = this.getUser(groupVOIP.initiator);
-                String name = !TextUtils.isEmpty(u.name) ? u.name : u.identifier;
-                groupVOIP.description = getString(R.string.message_group_call_start, name);
-            } else {
-                groupVOIP.description = getString(R.string.message_group_call_finished);
-            }
-        } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+        if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke)imsg.content;
             if (imsg.isOutgoing) {
                 revoke.description = getString(R.string.message_revoked, getString(R.string.you));
@@ -571,11 +452,6 @@ public class MessageBaseActivity extends BaseActivity {
             msg.setDownloading(downloader.isDownloading(msg));
         } else if (msg.content.getType() == MessageContent.MessageType.MESSAGE_LOCATION) {
             Location loc = (Location)msg.content;
-            Attachment attachment = attachments.get(msg.msgLocalID);
-            if (attachment != null) {
-                loc.address = attachment.address;
-            }
-
             if (TextUtils.isEmpty(loc.address)) {
                 queryLocation(msg);
             }
@@ -592,22 +468,28 @@ public class MessageBaseActivity extends BaseActivity {
         }
     }
 
-    protected void downloadMessageContent(ArrayList<IMessage> messages, int count) {
+    protected void checkAtName(IMessage message) {
+
+    }
+
+    protected void sendReaded(IMessage message) {
+
+    }
+
+    protected void prepareMessage(ArrayList<IMessage> messages, int count) {
         for (int i = 0; i < count; i++) {
             IMessage msg = messages.get(i);
-            downloadMessageContent(msg);
+            prepareMessage(msg);
         }
     }
 
-    protected void checkAtName(ArrayList<IMessage> messages, int count) {
-        for (int i = 0; i < count; i++) {
-            IMessage msg = messages.get(i);
-            checkAtName(msg);
-        }
-    }
-
-    protected void checkAtName(IMessage messages) {
-
+    protected void prepareMessage(IMessage message) {
+        loadUserName(message);
+        downloadMessageContent(message);
+        updateNotificationDesc(message);
+        checkMessageFailureFlag(message);
+        checkAtName(message);
+        sendReaded(message);
     }
 
     protected void saveMessageAttachment(IMessage msg, String address) {
@@ -762,22 +644,75 @@ public class MessageBaseActivity extends BaseActivity {
     }
 
     protected void sendImageMessage(Bitmap bmp) {
+        //https://www.jianshu.com/p/5b77da571a5c
         double w = bmp.getWidth();
         double h = bmp.getHeight();
-        double newHeight = 640.0;
-        double newWidth = newHeight*w/h;
+        double rate = w > h ? w/h : h/w;
+        int scalePolicy = -1;// 0 origin, 1 max 1280, 2  min 800
+        if (w <= 1280 && h <= 1280) {
+            scalePolicy = 0;
+        } else if (w > 1280) {
+            if (rate <= 2) {
+                //max 1280
+                scalePolicy = 1;
+            } else {
+                if (h <= 1280){
+                    scalePolicy = 0;
+                } else if (h > 1280) {
+                    //min 800
+                    scalePolicy = 2;
+                }
+            }
+        } else if (h > 1280) {
+            if (rate <= 2) {
+                //max 1280
+                scalePolicy = 1;
+            } else {
+                //w <= 1280
+                scalePolicy = 0;
+            }
+        }
 
-
-        Bitmap bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
+        double newHeight = 0;
+        double newWidth = 0;
+        Bitmap bigBMP;
+        if (scalePolicy == 0) {
+            bigBMP = bmp;
+            newWidth = bmp.getWidth();
+            newHeight = bmp.getHeight();
+        } else if (scalePolicy == 1) {
+            if (w > h) {
+                newWidth = 1280;
+                newHeight = 1280/rate;
+            } else {
+                newHeight = 1280;
+                newWidth = 1280/rate;
+            }
+            bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
+        } else if (scalePolicy == 2) {
+            if (w > h) {
+                newWidth = 800*rate;
+                newHeight = 800;
+            } else {
+                newHeight = 800*rate;
+                newWidth = 800;
+            }
+            bigBMP = Bitmap.createScaledBitmap(bmp, (int)newWidth, (int)newHeight, true);
+        } else {
+            Log.w(TAG, "invalid scale policy, width:" + w + " height:" + h);
+            bigBMP = bmp;
+            newWidth = bmp.getWidth();
+            newHeight = bmp.getHeight();
+        }
 
         double sw = 256.0;
         double sh = 256.0*h/w;
 
         Bitmap thumbnail = Bitmap.createScaledBitmap(bmp, (int)sw, (int)sh, true);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        bigBMP.compress(Bitmap.CompressFormat.JPEG, 100, os);
+        bigBMP.compress(Bitmap.CompressFormat.JPEG, 50, os);
         ByteArrayOutputStream os2 = new ByteArrayOutputStream();
-        thumbnail.compress(Bitmap.CompressFormat.JPEG, 100, os2);
+        thumbnail.compress(Bitmap.CompressFormat.JPEG, 50, os2);
 
         String originURL = localImageURL();
         String thumbURL = localImageURL();
@@ -833,8 +768,62 @@ public class MessageBaseActivity extends BaseActivity {
         sendMessageContent(loc);
     }
 
+    protected void sendFileMessage(Uri uri) {
+        try {
+            InputStream in = getContentResolver().openInputStream(uri);
+            Pair<String, Long> fileInfo = getFileInfo(uri);
+
+            String filename = fileInfo.first;
+            long fileSize = fileInfo.second;
+            if (TextUtils.isEmpty(filename)) {
+                Log.i(TAG, "can't get filename");
+                return;
+            }
+            String ext = "";
+            int index = filename.lastIndexOf(".");
+            if (index != -1) {
+                ext = filename.substring(index);
+            }
+
+            final String fileURL = localFileURL(ext);
+
+            FileCache.getInstance().storeFile(fileURL, in);
+
+            File f = new File(FileCache.getInstance().getCachedFilePath(fileURL));
+
+            int size = (int)(f.length());
+
+            Log.i(TAG, "file size:" + size + " filename:" + filename);
+
+            sendMessageContent(com.beetle.bauhinia.db.message.File.newFile(fileURL, filename, size));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Pair<String, Long> getFileInfo(Uri uri) {
+        Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+
+        if (cursor.getCount() <= 0) {
+            cursor.close();
+            return null;
+        }
+
+
+        cursor.moveToFirst();
+
+        String fileName = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+
+        long size = cursor.getLong(cursor.getColumnIndexOrThrow(OpenableColumns.SIZE));
+
+        cursor.close();
+
+        Pair<String, Long> pair = Pair.create(fileName, size);
+        return pair;
+    }
+
     protected void sendMessageContent(MessageContent content) {
-        IMessage imsg = this.newOutMessage();
+        IMessage imsg = this.newOutMessage(content);
 
         imsg.setContent(content);
         imsg.timestamp = now();
@@ -847,13 +836,122 @@ public class MessageBaseActivity extends BaseActivity {
 
             if (TextUtils.isEmpty(loc.address)) {
                 queryLocation(imsg);
-            } else {
-                saveMessageAttachment(imsg, loc.address);
             }
         }
 
         sendMessage(imsg);
         insertMessage(imsg);
+    }
+
+
+    @Override
+    public void onAudioUploadSuccess(IMessage imsg, String url) {
+        Log.i(TAG, "audio upload success:" + url);
+        IMessage m = findMessage(imsg.content.getUUID());
+        if (m != null) {
+            Audio audio = (Audio)m.content;
+            Audio newAudio = Audio.newAudio(url, audio.duration);
+            newAudio.generateRaw(audio.getUUID(), audio.getReference(), audio.getGroupId());
+            m.content = newAudio;
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onAudioUploadFail(IMessage msg) {
+        Log.i(TAG, "audio upload fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setFailure(true);
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onImageUploadSuccess(IMessage msg, String url) {
+        Log.i(TAG, "image upload success:" + url);
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            Image image = (Image)m.content;
+            Image newImage = Image.newImage(url, image.width, image.height);
+            newImage.generateRaw(image.getUUID(), image.getReference(), image.getGroupId());
+            m.content = newImage;
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onImageUploadFail(IMessage msg) {
+        Log.i(TAG, "image upload fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setFailure(true);
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onVideoUploadSuccess(IMessage msg, String url, String thumbURL) {
+        Log.i(TAG, "video upload success:" + url + " thumb url:" + thumbURL);
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            Video video = (Video)m.content;
+            Video newVideo = Video.newVideo(url, thumbURL, video.width, video.height, video.duration);
+            newVideo.generateRaw(video.getUUID(), video.getReference(), video.getGroupId());
+            m.content = newVideo;
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onVideoUploadFail(IMessage msg) {
+        Log.i(TAG, "video upload fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setFailure(true);
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onFileUploadSuccess(IMessage msg, String url) {
+        Log.i(TAG, "file upload success:" + url);
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            com.beetle.bauhinia.db.message.File file = (com.beetle.bauhinia.db.message.File)m.content;
+            com.beetle.bauhinia.db.message.File newFile = com.beetle.bauhinia.db.message.File.newFile(url, file.filename, file.size);
+            newFile.generateRaw(file.getUUID(), file.getReference(), file.getGroupId());
+            m.content = newFile;
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onFileUploadFail(IMessage msg) {
+        Log.i(TAG, "file upload fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setFailure(true);
+            m.setUploading(false);
+        }
+    }
+
+    @Override
+    public void onFileDownloadSuccess(IMessage msg) {
+        Log.i(TAG, "audio download success");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setDownloading(false);
+        }
+    }
+
+    @Override
+    public void onFileDownloadFail(IMessage msg) {
+        Log.i(TAG, "audio download fail");
+        IMessage m = findMessage(msg.content.getUUID());
+        if (m != null) {
+            m.setDownloading(false);
+        }
     }
 
     protected void revoke(IMessage msg) {
@@ -872,8 +970,8 @@ public class MessageBaseActivity extends BaseActivity {
             return;
         }
 
-        IMessage imsg = this.newOutMessage();
         Revoke revoke = Revoke.newRevoke(msg.getUUID());
+        IMessage imsg = this.newOutMessage(revoke);
         imsg.setContent(revoke);
         imsg.timestamp = now();
         imsg.isOutgoing = true;
@@ -886,7 +984,8 @@ public class MessageBaseActivity extends BaseActivity {
         this.sendMessage(msg);
     }
 
-    protected IMessage newOutMessage() {
+
+    protected IMessage newOutMessage(MessageContent content) {
         assert(false);
         return null;
     }
@@ -895,7 +994,7 @@ public class MessageBaseActivity extends BaseActivity {
         assert(false);
     }
 
-    protected IMessage findMessage(int msgLocalID) {
+    protected IMessage findMessage(long msgLocalID) {
         for (IMessage imsg : messages) {
             if (imsg.msgLocalID == msgLocalID) {
                 return imsg;
@@ -937,7 +1036,10 @@ public class MessageBaseActivity extends BaseActivity {
                         continue;
                     }
                     String url = "file:" + path;
-                    msg.content = Image.newImage(url, image.width, image.height, image.getUUID());
+                    Image newImage = Image.newImage(url, image.width, image.height);
+                    newImage.generateRaw(image.getUUID(), image.getReference(), image.getGroupId());
+                    msg.content = newImage;
+
                     images.add(msg);
                 } else {
                     images.add(msg);
@@ -946,6 +1048,11 @@ public class MessageBaseActivity extends BaseActivity {
         }
         Collections.reverse(images);
         return images;
+    }
+
+    protected String localFileURL(String ext) {
+        UUID uuid = UUID.randomUUID();
+        return "http://localhost/videos/"+ uuid.toString() + ext;
     }
 
     protected String localVideoURL() {
@@ -993,5 +1100,25 @@ public class MessageBaseActivity extends BaseActivity {
 
     protected MessageIterator getMessageIterator() {
         return null;
+    }
+
+    protected MessageIterator createMessageIterator() {
+        MessageIterator iter = messageDB.newMessageIterator(conversationID);
+        return iter;
+    }
+
+    protected MessageIterator createForwardMessageIterator(long messageID) {
+        MessageIterator iter = messageDB.newForwardMessageIterator(conversationID, messageID);
+        return iter;
+    }
+
+    protected MessageIterator createBackwardMessageIterator(long messageID) {
+        MessageIterator iter = messageDB.newBackwardMessageIterator(conversationID, messageID);
+        return iter;
+    }
+
+    protected MessageIterator createMiddleMessageIterator(long messageID) {
+        MessageIterator iter = messageDB.newMiddleMessageIterator(conversationID, messageID);
+        return iter;
     }
 }

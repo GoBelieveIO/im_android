@@ -11,7 +11,9 @@
 package com.beetle.bauhinia.view;
 
 import android.content.Context;
+import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import com.beetle.bauhinia.db.message.File;
 
@@ -20,11 +22,17 @@ import com.beetle.bauhinia.db.IMessage;
 import com.beetle.imlib.R;
 
 public class MessageFileView extends MessageContentView {
+    protected ProgressBar uploadingProgressBar;
+    protected View maskView;
 
     public MessageFileView(Context context) {
         super(context);
         int contentLayout = R.layout.chat_content_file;
         inflater.inflate(contentLayout, this);
+
+        uploadingProgressBar = (ProgressBar)findViewById(R.id.progress_bar);
+
+        maskView = findViewById(R.id.mask);
     }
 
     public void setMessage(IMessage msg) {
@@ -43,13 +51,21 @@ public class MessageFileView extends MessageContentView {
             imageView.setImageResource(R.drawable.file);
         }
 
-
         TextView titleView = (TextView)findViewById(R.id.title);
         titleView.setText(fileMsg.filename);
 
         TextView contentView = (TextView)findViewById(R.id.descreption);
         contentView.setText(formatSize(fileMsg.size));
 
+        boolean uploading = msg.getUploading();
+        boolean downloading = msg.getDownloading();
+        if (uploading || downloading) {
+            maskView.setVisibility(View.VISIBLE);
+            uploadingProgressBar.setVisibility(View.VISIBLE);
+        } else {
+            maskView.setVisibility(View.GONE);
+            uploadingProgressBar.setVisibility(View.GONE);
+        }
         requestLayout();
     }
 
@@ -68,6 +84,17 @@ public class MessageFileView extends MessageContentView {
     @Override
     public void propertyChange(PropertyChangeEvent event) {
         super.propertyChange(event);
-
+        if (event.getPropertyName().equals("uploading") ||
+                event.getPropertyName().equals("downloading")) {
+            boolean uploading = this.message.getUploading();
+            boolean downloading = this.message.getDownloading();
+            if (uploading || downloading) {
+                maskView.setVisibility(View.VISIBLE);
+                uploadingProgressBar.setVisibility(View.VISIBLE);
+            } else {
+                maskView.setVisibility(View.GONE);
+                uploadingProgressBar.setVisibility(View.GONE);
+            }
+        }
     }
 }

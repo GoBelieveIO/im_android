@@ -57,7 +57,7 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
             return true;
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;
-            int msgLocalID = db.getMessageId(revoke.msgid);
+            long msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
                 db.updateContent(msgLocalID, msg.content);
                 db.removeMessageIndex(msgLocalID);
@@ -91,7 +91,7 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
             return true;
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;
-            int msgLocalID = db.getMessageId(revoke.msgid);
+            long msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
                 db.removeMessage(msgLocalID);
             }
@@ -107,12 +107,12 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
     @Override
     public boolean handleMessageACK(CustomerMessage msg) {
         CustomerMessageDB db = CustomerMessageDB.getInstance();
-        int msgLocalID = msg.msgLocalID;
+        long msgLocalID = msg.msgLocalID;
         if (msgLocalID == 0) {
             MessageContent c = IMessage.fromRaw(msg.content);
             if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
                 Revoke r = (Revoke)c;
-                int revokedMsgId = db.getMessageId(r.msgid);
+                long revokedMsgId = db.getMessageId(r.msgid);
                 if (revokedMsgId > 0) {
                     db.updateContent(revokedMsgId, msg.content);
                     db.removeMessageIndex(revokedMsgId);

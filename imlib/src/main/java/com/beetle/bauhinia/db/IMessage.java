@@ -6,7 +6,58 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.util.ArrayList;
+import java.util.List;
 
+
+/*
+ raw format
+ {
+    "text":"文本",
+    "image":"image url",
+    "image2": {
+        "url":"image url",
+        "width":"宽度(整数)",
+        "height":"高度(整数)"
+    }
+    "audio": {
+        "url":"audio url",
+        "duration":"时长(整数)"
+    }
+    "location":{
+        "latitude":"纬度(浮点数)",
+        "longitude":"经度(浮点数)"
+    }
+    "notification":"群组通知内容"
+    "link":{
+        "image":"图片url",
+        "url":"跳转url",
+        "title":"标题"
+    }
+    "video":{
+         "url":"视频url",
+         "thumbnail":"视频缩略图url",
+         "width":"宽度(整数)",
+         "height":"高度(整数)",
+         "duration":"时长(整数)"
+     }
+     "file":{
+         "url":"文件url",
+         "filename":"文件名称",
+         "size":"文件大小"
+     }
+     "revoke": {
+        "msgid": "被撤回消息的uuid"
+     }
+     "classroom": {
+         "master_id": "群课堂发起人(整数)",
+         "channel_id": "频道id",
+         "server_id": "频道对应的服务器id(整数)"
+     }
+     "readed":{
+         "msgid":"已读消息uuid"
+     }
+}*/
 
 /**
  * Created by houxh on 14-7-22.
@@ -15,13 +66,18 @@ import java.beans.PropertyChangeSupport;
 public class IMessage implements Cloneable {
     static Gson gson = new GsonBuilder().create();
 
-    public int msgLocalID;
+    public long msgLocalID;
     public int flags;
     public long sender;
     public long receiver;
     public MessageContent content;
+    public ArrayList<String> tags;
     public int timestamp;//单位秒
     public boolean secret;//点对点加密
+
+    public int readerCount;//群组消息已读数量
+    public int receiverCount;//未存储到数据库
+    public int referenceCount;//被引用的次数
 
     //以下字段未保存在文件中
     public boolean isOutgoing; //当前用户发出的消息
@@ -31,6 +87,10 @@ public class IMessage implements Cloneable {
     private boolean playing;
     private boolean downloading;
     private boolean geocoding;
+
+    public IMessage() {
+        tags = new ArrayList<>();
+    }
 
     @Override
     public Object clone() {
@@ -82,15 +142,25 @@ public class IMessage implements Cloneable {
                 content = gson.fromJson(element.get(MessageContent.VIDEO), Video.class);
             } else if (element.has(MessageContent.REVOKE)) {
                 content = gson.fromJson(element.get(MessageContent.REVOKE), Revoke.class);
+            } else if (element.has(MessageContent.READED)) {
+                content = gson.fromJson(element.get(MessageContent.READED), Readed.class);
             } else if (element.has(MessageContent.ACK)) {
                 content = gson.fromJson(element.get(MessageContent.ACK), ACK.class);
             } else if (element.has(MessageContent.CLASSROOM)) {
                 content = gson.fromJson(element.get(MessageContent.CLASSROOM), Classroom.class);
+            } else if (element.has(MessageContent.TAG)) {
+                content = gson.fromJson(element.get(MessageContent.TAG), Tag.class);
             } else {
                 content = new Unknown();
             }
             if (element.has("uuid")) {
                 content.setUUID(element.get("uuid").getAsString());
+            }
+            if (element.has("group_id")) {
+                content.setGroupId(element.get("group_id").getAsLong());
+            }
+            if (element.has("reference")) {
+                content.setReference(element.get("reference").getAsString());
             }
         } catch (Exception e) {
             content = new Unknown();
@@ -111,6 +181,14 @@ public class IMessage implements Cloneable {
     public String getUUID() {
         if (this.content != null) {
             return this.content.getUUID() != null ? this.content.getUUID() : "";
+        } else {
+            return "";
+        }
+    }
+
+    public String getReference() {
+        if (this.content != null) {
+            return this.content.getReference() != null ? this.content.getReference() : "";
         } else {
             return "";
         }
@@ -208,6 +286,7 @@ public class IMessage implements Cloneable {
         return (flags & MessageFlag.MESSAGE_FLAG_LISTENED) != 0;
     }
 
+
     public void setListened(boolean listened) {
         boolean old = isListened();
         if (listened) {
@@ -217,6 +296,22 @@ public class IMessage implements Cloneable {
         }
         changeSupport.firePropertyChange("listened", old, listened);
     }
+
+
+    public void setReaded(boolean readed) {
+        boolean old = isReaded();
+        if (readed) {
+            flags = flags | MessageFlag.MESSAGE_FLAG_READED;
+        } else {
+            flags = flags & (~MessageFlag.MESSAGE_FLAG_READED);
+        }
+        changeSupport.firePropertyChange("readed", old, readed);
+    }
+
+    public boolean isReaded() {
+        return (flags & MessageFlag.MESSAGE_FLAG_READED) != 0;
+    }
+
 
     public boolean getGeocoding() {
         return this.geocoding;
@@ -246,6 +341,45 @@ public class IMessage implements Cloneable {
 
     public String getSenderAvatar() {
         return this.senderAvatar;
+    }
+
+    public int getReaderCount() {
+        return this.readerCount;
+    }
+
+    public void setReaderCount(int count) {
+        int old = this.readerCount;
+        this.readerCount = count;
+        changeSupport.firePropertyChange("readerCount", old, this.readerCount);
+    }
+
+    public int getReferenceCount() {
+        return this.referenceCount;
+    }
+
+    public void setReferenceCount(int count) {
+        int old = this.referenceCount;
+        this.referenceCount = count;
+        changeSupport.firePropertyChange("referenceCount", old, this.referenceCount);
+    }
+
+    public void addTag(String tag) {
+        if (!tags.contains(tag)) {
+            tags.add(tag);
+            changeSupport.firePropertyChange("tags", null, this.tags);
+        }
+    }
+
+    public void deleteTag(String tag) {
+        if (tags.contains(tag)) {
+            tags.remove(tag);
+            changeSupport.firePropertyChange("tags", null, this.tags);
+        }
+    }
+
+
+    public List<String> getTags() {
+        return this.tags;
     }
 
 }

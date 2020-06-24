@@ -75,7 +75,7 @@ dependencies {
     implementation 'com.commit451:PhotoView:1.2.5'
     implementation 'cjt.library.wheel:camera:1.1.9'
     implementation 'com.linkedin.android.spyglass:spyglass:2.0.1'
-
+    implementation 'co.lujun:androidtagview:1.1.7'
 
 //    implementation 'com.google.code.gson:gson:2.8.5'
 //    implementation 'com.squareup.picasso:picasso:2.71828'

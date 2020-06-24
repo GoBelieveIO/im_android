@@ -23,7 +23,6 @@ import android.widget.*;
 import androidx.appcompat.widget.Toolbar;
 
 import com.beetle.bauhinia.CustomerMessageActivity;
-import com.beetle.bauhinia.GroupMessageActivity;
 import com.beetle.bauhinia.PeerMessageActivity;
 import com.beetle.bauhinia.db.CustomerMessageDB;
 import com.beetle.bauhinia.db.EPeerMessageDB;
@@ -44,13 +43,11 @@ import com.beetle.bauhinia.db.message.Secret;
 import com.beetle.bauhinia.db.message.Text;
 import com.beetle.bauhinia.db.message.VOIP;
 import com.beetle.bauhinia.db.message.Video;
-import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.im.GroupMessageObserver;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.im.IMServiceObserver;
 import com.beetle.bauhinia.activity.BaseActivity;
-import com.beetle.bauhinia.tools.Notification;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -71,8 +68,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         PeerMessageObserver,
         GroupMessageObserver,
         SystemMessageObserver,
-        AdapterView.OnItemClickListener,
-         NotificationCenter.NotificationCenterObserver {
+        AdapterView.OnItemClickListener {
     private static final String TAG = "beetle";
 
     private List<Conversation> conversations;
@@ -156,12 +152,6 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
         loadConversations();
         initWidget();
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        nc.addObserver(this, PeerMessageActivity.SEND_MESSAGE_NAME);
-        nc.addObserver(this, PeerMessageActivity.CLEAR_MESSAGES);
-        nc.addObserver(this, GroupMessageActivity.SEND_MESSAGE_NAME);
-        nc.addObserver(this, GroupMessageActivity.CLEAR_MESSAGES);
     }
 
     @Override
@@ -172,8 +162,6 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         im.removePeerObserver(this);
         im.removeGroupObserver(this);
         im.removeSystemObserver(this);
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        nc.removeObserver(this);
         Log.i(TAG, "message list activity destroyed");
     }
 
@@ -485,7 +473,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     public void onPeerMessageACK(IMMessage im, int error) {
         Log.i(TAG, "message ack on main");
 
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         long uid = im.receiver;
         if (msgLocalID == 0) {
             MessageContent c = IMessage.fromRaw(im.plainContent);
@@ -584,7 +572,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
 
     @Override
     public void onGroupMessageACK(IMMessage im, int error) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         long gid = im.receiver;
         if (msgLocalID == 0) {
             MessageContent c = IMessage.fromRaw(im.content);
@@ -664,73 +652,7 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
         }
     }
 
-    @Override
-    public void onNotification(Notification notification) {
-        if (notification.name.equals(PeerMessageActivity.SEND_MESSAGE_NAME)) {
-            IMessage imsg = (IMessage) notification.obj;
 
-            int pos = findConversationPosition(imsg.receiver, Conversation.CONVERSATION_PEER);
-            Conversation conversation = null;
-            if (pos == -1) {
-                conversation = newPeerConversation(imsg.receiver);
-            } else {
-                conversation = conversations.get(pos);
-            }
-
-            conversation.message = imsg;
-            updateConversationDetail(conversation);
-
-            if (pos == -1) {
-                conversations.add(0, conversation);
-                adapter.notifyDataSetChanged();
-            } else if (pos > 0){
-                conversations.remove(pos);
-                conversations.add(0, conversation);
-                adapter.notifyDataSetChanged();
-            } else {
-                //pos == 0
-            }
-
-        } else if (notification.name.equals(PeerMessageActivity.CLEAR_MESSAGES)) {
-            Long peerUID = (Long)notification.obj;
-            Conversation conversation = findConversation(peerUID, Conversation.CONVERSATION_PEER);
-            if (conversation != null) {
-                conversations.remove(conversation);
-                adapter.notifyDataSetChanged();
-            }
-        } else if (notification.name.equals(GroupMessageActivity.SEND_MESSAGE_NAME)) {
-            IMessage imsg = (IMessage) notification.obj;
-            int pos = findConversationPosition(imsg.receiver, Conversation.CONVERSATION_GROUP);
-            Conversation conversation = null;
-            if (pos == -1) {
-                conversation = newGroupConversation(imsg.receiver);
-            } else {
-                conversation = conversations.get(pos);
-            }
-
-            conversation.message = imsg;
-            updateConversationDetail(conversation);
-
-            if (pos == -1) {
-                conversations.add(0, conversation);
-                adapter.notifyDataSetChanged();
-            } else if (pos > 0){
-                conversations.remove(pos);
-                conversations.add(0, conversation);
-                adapter.notifyDataSetChanged();
-            } else {
-                //pos == 0
-            }
-
-        }  else if (notification.name.equals(GroupMessageActivity.CLEAR_MESSAGES)) {
-            Long groupID = (Long)notification.obj;
-            Conversation conversation = findConversation(groupID, Conversation.CONVERSATION_GROUP);
-            if (conversation != null) {
-                conversations.remove(conversation);
-                adapter.notifyDataSetChanged();
-            }
-        }
-    }
 
     @Override
     public void onSystemMessage(String sm) {

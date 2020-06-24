@@ -9,17 +9,11 @@ import com.beetle.bauhinia.db.GroupMessageDB;
 import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.MessageIterator;
-import com.beetle.bauhinia.db.message.Audio;
 import com.beetle.bauhinia.db.message.GroupNotification;
-import com.beetle.bauhinia.db.message.Image;
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Revoke;
-import com.beetle.bauhinia.db.message.Video;
 import com.beetle.bauhinia.tools.FileDownloader;
-import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.outbox.GroupOutbox;
-import com.beetle.bauhinia.tools.Notification;
-import com.beetle.bauhinia.tools.NotificationCenter;
 import com.beetle.im.GroupMessageObserver;
 import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
@@ -34,22 +28,19 @@ import java.util.List;
  */
 public class GroupMessageActivity extends MessageActivity implements
         IMServiceObserver, GroupMessageObserver {
-
-    public static final String SEND_MESSAGE_NAME = "send_group_message";
-    public static final String CLEAR_MESSAGES = "clear_group_messages";
-    public static final String CLEAR_NEW_MESSAGES = "clear_group_new_messages";
-
-
     protected long groupID;
     protected String groupName;
 
     public GroupMessageActivity() {
         super();
         isShowUserName = true;
+        isShowReaded = false;
+        isShowReply = false;
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        items[ITEM_VIDEO_CALL_ID] = false;
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
@@ -79,7 +70,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
         this.hasLateMore = this.messageID > 0;
         this.hasEarlierMore = true;
-        this.loadConversationData();
+        this.loadData();
 
         if (this.messages.size() > 0) {
             if (messageID > 0) {
@@ -111,16 +102,11 @@ public class GroupMessageActivity extends MessageActivity implements
         super.onDestroy();
         Log.i(TAG, "peer message activity destory");
 
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(this.groupID, CLEAR_NEW_MESSAGES);
-        nc.postNotification(notification);
-
         GroupOutbox.getInstance().removeObserver(this);
         IMService.getInstance().removeObserver(this);
         IMService.getInstance().removeGroupObserver(this);
         FileDownloader.getInstance().removeObserver(this);
     }
-
 
     @Override
     protected MessageIterator getMessageIterator() {
@@ -198,7 +184,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
     @Override
     public void onGroupMessageACK(IMMessage im, int error) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         long gid = im.receiver;
         if (gid != groupID) {
             return;
@@ -246,7 +232,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
     @Override
     public void onGroupMessageFailure(IMMessage im) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         long gid = im.receiver;
         if (gid != groupID) {
             return;
@@ -293,39 +279,7 @@ public class GroupMessageActivity extends MessageActivity implements
 
     @Override
     protected void sendMessage(IMessage imsg) {
-        boolean r = true;
-        if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-            GroupOutbox ob = GroupOutbox.getInstance();
-            Audio audio = (Audio)imsg.content;
-            imsg.setUploading(true);
-            ob.uploadAudio(imsg, FileCache.getInstance().getCachedFilePath(audio.url));
-        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-            Image image = (Image) imsg.content;
-            //prefix:"file:"
-            String path = image.url.substring(5);
-            imsg.setUploading(true);
-            GroupOutbox.getInstance().uploadImage(imsg, path);
-        } else if (imsg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
-            Video video = (Video)imsg.content;
-            imsg.setUploading(true);
-            //prefix: "file:"
-            String path = video.thumbnail.substring(5);
-            String videoPath = FileCache.getInstance().getCachedFilePath(video.url);
-            GroupOutbox.getInstance().uploadVideo(imsg, videoPath, path);
-        } else {
-            IMMessage msg = new IMMessage();
-            msg.sender = imsg.sender;
-            msg.receiver = imsg.receiver;
-            msg.content = imsg.content.getRaw();
-            msg.msgLocalID = imsg.msgLocalID;
-            msg.isText = true;
-            IMService im = IMService.getInstance();
-            im.sendGroupMessageAsync(msg);
-        }
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(imsg, SEND_MESSAGE_NAME);
-        nc.postNotification(notification);
+        GroupOutbox.getInstance().sendMessage(imsg);
     }
 
 
@@ -334,20 +288,15 @@ public class GroupMessageActivity extends MessageActivity implements
         super.clearConversation();
         GroupMessageDB db = GroupMessageDB.getInstance();
         db.clearConversation(this.groupID);
-
-        NotificationCenter nc = NotificationCenter.defaultCenter();
-        Notification notification = new Notification(this.groupID, CLEAR_MESSAGES);
-        nc.postNotification(notification);
     }
 
-
     @Override
-    protected IMessage newOutMessage() {
+    protected IMessage newOutMessage(MessageContent content) {
         IMessage msg = new IMessage();
         msg.sender = currentUID;
         msg.receiver = groupID;
+        msg.receiverCount = 0;
+        msg.content = content;
         return msg;
     }
-
-
 }

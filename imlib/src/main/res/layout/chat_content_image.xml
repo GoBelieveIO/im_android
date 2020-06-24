@@ -3,15 +3,14 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    >
+    android:layout_gravity="center_horizontal">
 
     <ImageView
         android:layout_width="wrap_content"
-        android:layout_height="140dip"
+        android:layout_height="160dp"
         android:id="@+id/image"
         android:adjustViewBounds="true"
-        android:scaleType="fitCenter"
-        />
+        android:scaleType="fitCenter"/>
     <View
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

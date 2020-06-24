@@ -23,7 +23,7 @@ public class SQLCustomerMessageDB {
             this.cursor = db.rawQuery(sql, new String[]{""+storeID});
         }
 
-        public CustomerMessageIterator(SQLiteDatabase db, long storeID, int lastMsgID) {
+        public CustomerMessageIterator(SQLiteDatabase db, long storeID, long lastMsgID) {
             String sql = "SELECT  id, customer_id, customer_appid, store_id, seller_id, timestamp, flags, is_support, content FROM customer_message WHERE store_id = ? AND id < ? ORDER BY id DESC";
             this.cursor = db.rawQuery(sql, new String[]{""+storeID, ""+lastMsgID});
         }
@@ -87,7 +87,7 @@ public class SQLCustomerMessageDB {
         return this.db;
     }
 
-    private boolean insertFTS(int msgLocalID, String text) {
+    private boolean insertFTS(long msgLocalID, String text) {
         String t = tokenizer(text);
         ContentValues values = new ContentValues();
         values.put("docid", msgLocalID);
@@ -116,7 +116,7 @@ public class SQLCustomerMessageDB {
 
             return  false;
         }
-        msg.msgLocalID = (int)id;
+        msg.msgLocalID = id;
 
         if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
             Text text = (Text)msg.content;
@@ -125,7 +125,7 @@ public class SQLCustomerMessageDB {
         return true;
     }
 
-    public boolean updateContent(int msgLocalID, String content) {
+    public boolean updateContent(long msgLocalID, String content) {
         ContentValues cv = new ContentValues();
         cv.put("content", content);
         int rows = db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
@@ -133,24 +133,24 @@ public class SQLCustomerMessageDB {
     }
 
 
-    public boolean acknowledgeMessage(int msgLocalID) {
+    public boolean acknowledgeMessage(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
     }
 
-    public boolean markMessageFailure(int msgLocalID) {
+    public boolean markMessageFailure(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_FAILURE);
     }
 
-    public boolean markMessageListened(int msgLocalID) {
+    public boolean markMessageListened(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean eraseMessageFailure(int msgLocalID) {
+    public boolean eraseMessageFailure(long msgLocalID) {
         int f = MessageFlag.MESSAGE_FLAG_FAILURE;
         return removeFlag(msgLocalID, f);
     }
 
-    public boolean addFlag(int msgLocalID, int f) {
+    public boolean addFlag(long msgLocalID, int f) {
         String sql = "SELECT flags FROM customer_message WHERE id=?";
         Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
         if (cursor.moveToNext()) {
@@ -165,7 +165,7 @@ public class SQLCustomerMessageDB {
         return true;
     }
 
-    public boolean removeFlag(int msgLocalID, int f) {
+    public boolean removeFlag(long msgLocalID, int f) {
         String sql = "SELECT flags FROM customer_message WHERE id=?";
         Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
         if (cursor.moveToNext()) {
@@ -179,20 +179,20 @@ public class SQLCustomerMessageDB {
         return true;
     }
 
-    public boolean updateFlag(int msgLocalID, int flags) {
+    public boolean updateFlag(long msgLocalID, int flags) {
         ContentValues cv = new ContentValues();
         cv.put("flags", flags);
         db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
         return true;
     }
 
-    public boolean removeMessage(int msgLocalID) {
+    public boolean removeMessage(long msgLocalID) {
         db.delete(TABLE_NAME, "id = ?", new String[]{""+msgLocalID});
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
 
-    public boolean removeMessageIndex(int msgLocalID) {
+    public boolean removeMessageIndex(long msgLocalID) {
         db.delete(FTS_TABLE_NAME, "rowid = ?", new String[]{""+msgLocalID});
         return true;
     }
@@ -207,15 +207,15 @@ public class SQLCustomerMessageDB {
         return new CustomerMessageIterator(db, storeID);
     }
 
-    public MessageIterator newForwardMessageIterator(long storeID, int firstMsgID) {
+    public MessageIterator newForwardMessageIterator(long storeID, long firstMsgID) {
         return new CustomerMessageIterator(db, storeID, firstMsgID);
     }
 
-    public MessageIterator newBackwardMessageIterator(long storeID, int msgID) {
+    public MessageIterator newBackwardMessageIterator(long storeID, long msgID) {
         return null;
     }
 
-    public MessageIterator newMiddleMessageIterator(long storeID, int msgID) {
+    public MessageIterator newMiddleMessageIterator(long storeID, long msgID) {
         return null;
     }
 
@@ -261,7 +261,7 @@ public class SQLCustomerMessageDB {
 
     private ICustomerMessage getMessage(Cursor cursor) {
         ICustomerMessage msg = new ICustomerMessage();
-        msg.msgLocalID = cursor.getInt(cursor.getColumnIndex("id"));
+        msg.msgLocalID = cursor.getLong(cursor.getColumnIndex("id"));
         msg.customerID = cursor.getLong(cursor.getColumnIndex("customer_id"));
         msg.customerAppID = cursor.getLong(cursor.getColumnIndex("customer_appid"));
         msg.storeID = cursor.getLong(cursor.getColumnIndex("store_id"));
@@ -285,7 +285,7 @@ public class SQLCustomerMessageDB {
         return msg;
     }
 
-    public int getMessageId(String uuid) {
+    public long getMessageId(String uuid) {
         Cursor cursor = db.query(TABLE_NAME, new String[]{"id"},
                 "uuid = ?", new String[]{uuid}, null,null,null);
         boolean r = cursor.moveToNext();
@@ -294,7 +294,7 @@ public class SQLCustomerMessageDB {
             return 0;
         }
 
-        int msgLocalId = cursor.getInt(cursor.getColumnIndex("id"));
+        long msgLocalId = cursor.getLong(cursor.getColumnIndex("id"));
         cursor.close();
         return msgLocalId;
     }

@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="product_fotos_get_from">Get photo from:</string>
+
+    <string name="im_title_choose">选择操作</string>
+    <string name="im_btn_forward">转发</string>
+    <string name="im_btn_resend">重发</string>
+    <string name="im_btn_copy">复制</string>
+    <string name="im_btn_del">删除</string>
+    <string name="im_btn_revoke">撤回</string>
+    <string name="im_btn_reply">回复</string>
+    <string name="im_btn_tag">标签</string>
 
     <string name="button_pushtotalk">按住说话</string>
     <string name="button_send">发送</string>
@@ -14,14 +22,13 @@
     <string name="attach_location">位置</string>
     <string name="attach_voice_call">语音电话</string>
     <string name="attach_video_call">视频通话</string>
+    <string name="attach_file">文件</string>
 
-    <string name="im_title_choose">选择操作</string>
-    <string name="im_btn_forward">转发</string>
-    <string name="im_btn_resend">重发</string>
-    <string name="im_btn_copy">复制</string>
-    <string name="im_btn_del">删除</string>
-    <string name="im_btn_revoke">撤回</string>
-
+    <string name="gallery_image_saved_to">图片已保存至</string>
+    <string name="gallery_save_to_phone">保存至手机</string>
+    <string name="gallery_image_save_failed">图片保存失败</string>
+    <string name="gallery_chat_files">聊天文件</string>
+    <string name="not_enough_storage_space">存储空间不足</string>
 
     <string name="message_create_group">你创建了\"%s\"群组</string>
     <string name="message_me_join_group">你加入了"%s"群组</string>
@@ -36,20 +43,31 @@
 
     <string name="message_revoked">%s撤回了一条消息</string>
 
+    <string name="you">你</string>
+
+
     <string name="message_not_friend">你还不是他（她）朋友</string>
     <string name="message_refuesed">消息已发出，但被对方拒收了。</string>
     <string name="message_not_my_friend">对方已不是你的朋友</string>
 
-    <string name="voice_record_duration_warning">录音时间太短了</string>
 
     <string name="video_record_duration_warning">拍摄时间太短了</string>
     <string name="unsupported_video_encoding_warning">不支持的视频编码</string>
 
-    <string name="you">你</string>
+    <string name="voice_record_duration_warning">录音时间太短了</string>
+
+    <string name="file_size_limit_warning">文件大小不能超过%dM</string>
 
     <string name="revoke_timed_out">超过两分钟，消息撤回失败</string>
 
     <string name="revoke_connection_disconnect">网络连接断开，撤回失败</string>
 
     <string name="revoke_failure">撤回失败</string>
+
+    <string name="conversation_encrypt_flag">(密)</string>
+
+    <string name="message_readed">已读</string>
+    <string name="message_unread">未读</string>
+    <string name="message_unread_count">%d人未读</string>
+    <string name="message_readed_count">%d人已读</string>
 </resources>

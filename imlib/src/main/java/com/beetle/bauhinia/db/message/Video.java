@@ -13,7 +13,7 @@ public class Video  extends MessageContent{
 
     public MessageType getType() { return MessageType.MESSAGE_VIDEO; }
 
-    public static Video newVideo(String url, String thumbnail, int width, int height, int duration, String uuid) {
+    private static Video newVideo(String url, String thumbnail, int width, int height, int duration, String uuid) {
         Video video = new Video();
 
         JsonObject content = new JsonObject();

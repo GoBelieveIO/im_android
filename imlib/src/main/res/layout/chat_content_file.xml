@@ -3,47 +3,72 @@
 <androidx.constraintlayout.widget.ConstraintLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-        android:layout_height="wrap_content" tools:layout_editor_absoluteY="81dp">
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:layout_editor_absoluteY="81dp">
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                  android:orientation="vertical" app:layout_constraintEnd_toEndOf="parent"
-                  android:layout_marginRight="64dip"
-                     android:id="@+id/linearLayout"
-                  app:layout_constraintBottom_toBottomOf="parent" android:layout_marginBottom="8dp"
-                  app:layout_constraintTop_toTopOf="parent" android:layout_marginTop="8dp">
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
         <TextView
                 android:id="@+id/title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="11122222test111"
+                android:maxWidth="160dp"
+                android:ellipsize="end"
+                android:text="11122222te"
                 android:maxLines="2"/>
-
-
         <TextView
                 android:id="@+id/descreption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="33333"
-
-        />
-
+                android:text="33333"/>
     </LinearLayout>
 
     <ImageView
             android:layout_width="wrap_content"
-            android:layout_height="48dip"
+            android:layout_height="48dp"
             android:adjustViewBounds="true"
             android:id="@+id/image"
             android:scaleType="fitCenter"
-
             app:srcCompat="@drawable/word"
+            app:layout_constraintStart_toEndOf="@+id/linearLayout"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             android:layout_marginStart="8dp"/>
 
+    <View
+        android:id="@+id/mask"
+        android:background="#80ffffff"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="visible"
+        app:layout_constraintStart_toStartOf="@+id/linearLayout"
+        app:layout_constraintEnd_toEndOf="@+id/image"
+        app:layout_constraintTop_toTopOf="@+id/image"
+        app:layout_constraintBottom_toBottomOf="@+id/image"
+        />
 
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        style="?android:attr/progressBarStyleSmall"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:visibility="visible"
+        app:layout_constraintStart_toStartOf="@+id/linearLayout"
+        app:layout_constraintEnd_toEndOf="@+id/image"
+        app:layout_constraintTop_toTopOf="@+id/image"
+        app:layout_constraintBottom_toBottomOf="@+id/image"
+        />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

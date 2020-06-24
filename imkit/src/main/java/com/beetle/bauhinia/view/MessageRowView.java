@@ -1,19 +1,11 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia.view;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import java.beans.PropertyChangeEvent;
@@ -27,7 +19,9 @@ import com.beetle.imkit.R;
 public class MessageRowView extends FrameLayout implements PropertyChangeListener {
     protected IMessage message;
     protected MessageContentView contentView;
-
+    protected View contentFrame;
+    protected Button replyButton;
+    protected ImageView topicView;
 
     public MessageRowView(Context context) {
         super(context);
@@ -69,12 +63,17 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
             case MESSAGE_VIDEO:
                 v = new MessageVideoView(context);
                 break;
+            case MESSAGE_CLASSROOM:
+                v = new MessageClassroomView(context);
+                break;
             default:
                 v = new MessageUnknownView(context);
                 break;
         }
 
         if (v != null) {
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER_VERTICAL);
+            v.setLayoutParams(params);
             contentView = v;
             viewGroup.addView(v);
         }
@@ -88,12 +87,14 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
         this.message = msg;
         this.message.addPropertyChangeListener(this);
 
-        if (contentView != null) {
-            contentView.setMessage(msg);
-        }
-
+        this.contentView.setMessage(msg);
         this.contentView.setTag(this.message);
-
+        if (this.contentFrame != null) {
+            this.contentFrame.setTag(this.message);
+        }
+        if (this.replyButton != null) {
+            this.replyButton.setTag(this.message);
+        }
 
         ImageView headerView = (ImageView)findViewById(R.id.header);
         String avatar = msg.getSenderAvatar();
@@ -111,6 +112,14 @@ public class MessageRowView extends FrameLayout implements PropertyChangeListene
 
     public View getContentView() {
         return contentView;
+    }
+
+    public View getContentFrame() {
+        return contentFrame;
+    }
+
+    public Button getReplyButton() {
+        return replyButton;
     }
 
     @Override

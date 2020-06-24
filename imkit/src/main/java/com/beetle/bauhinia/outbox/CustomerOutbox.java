@@ -27,53 +27,17 @@ public class CustomerOutbox extends Outbox {
     }
 
     @Override
+    protected void updateMessageContent(long id, String content) {
+        CustomerMessageDB.getInstance().updateContent(id, content);
+    }
+
+    @Override
     protected void markMessageFailure(IMessage msg) {
         CustomerMessageDB.getInstance().markMessageFailure(msg.msgLocalID);
     }
 
     @Override
-    protected void saveImageURL(IMessage msg, String url) {
-        String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-            Image image = (Image) msg.content;
-            content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
-        } else {
-            return;
-        }
-
-        CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
-    }
-
-    @Override
-    protected void saveAudioURL(IMessage msg, String url) {
-        String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-            Audio audio = (Audio)msg.content;
-            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-        } else {
-            return;
-        }
-
-        CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
-    }
-
-    @Override
-    protected void saveVideoURL(IMessage msg, String url, String thumbURL) {
-        String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
-            Video video = (Video)msg.content;
-            content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
-        } else {
-            return;
-        }
-
-        CustomerMessageDB.getInstance().updateContent(msg.msgLocalID, content);
-    }
-
-
-    @Override
-    protected void sendImageMessage(IMessage imsg, String url) {
-
+    protected void sendRawMessage(IMessage imsg, String raw) {
         ICustomerMessage cm = (ICustomerMessage)imsg;
 
         CustomerMessage msg = new CustomerMessage();
@@ -82,48 +46,11 @@ public class CustomerOutbox extends Outbox {
         msg.customerID = cm.customerID;
         msg.storeID = cm.storeID;
         msg.sellerID = cm.sellerID;
-
-        Image image = (Image)imsg.content;
-        msg.content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
+        msg.content = raw;
 
         IMService im = IMService.getInstance();
         im.sendCustomerMessageAsync(msg);
     }
 
-    @Override
-    protected void sendAudioMessage(IMessage imsg, String url) {
-        ICustomerMessage cm = (ICustomerMessage)imsg;
-        Audio audio = (Audio)imsg.content;
-
-        CustomerMessage msg = new CustomerMessage();
-        msg.msgLocalID = imsg.msgLocalID;
-        msg.customerAppID = cm.customerAppID;
-        msg.customerID = cm.customerID;
-        msg.storeID = cm.storeID;
-        msg.sellerID = cm.sellerID;
-
-        msg.content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-
-        IMService im = IMService.getInstance();
-        im.sendCustomerMessageAsync(msg);
-    }
-
-
-    @Override
-    protected void sendVideoMessage(IMessage imsg, String url, String thumbURL) {
-
-        ICustomerMessage cm = (ICustomerMessage)imsg;
-        Video video = (Video)imsg.content;
-        CustomerMessage msg = new CustomerMessage();
-        msg.msgLocalID = imsg.msgLocalID;
-        msg.customerAppID = cm.customerAppID;
-        msg.customerID = cm.customerID;
-        msg.storeID = cm.storeID;
-        msg.sellerID = cm.sellerID;
-        msg.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
-
-        IMService im = IMService.getInstance();
-        im.sendCustomerMessageAsync(msg);
-    }
 
 }

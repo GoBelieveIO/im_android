@@ -11,7 +11,7 @@ public  class Audio extends MessageContent {
     public long duration;
 
 
-    public static Audio newAudio(String url, long duration, String uuid) {
+    private static Audio newAudio(String url, long duration, String uuid) {
         Audio audio = new Audio();
 
 

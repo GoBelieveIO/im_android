@@ -27,91 +27,23 @@ public class GroupOutbox extends Outbox{
     }
 
     @Override
-    protected void sendImageMessage(IMessage imsg, String url) {
-        IMMessage msg = new IMMessage();
-        msg.sender = imsg.sender;
-        msg.receiver = imsg.receiver;
-
-        Image image = (Image)imsg.content;
-        msg.content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
-        msg.msgLocalID = imsg.msgLocalID;
-
-        IMService im = IMService.getInstance();
-        im.sendGroupMessage(msg);
-    }
-
-    @Override
-    protected void sendAudioMessage(IMessage imsg, String url) {
-        Audio audio = (Audio)imsg.content;
-
+    protected void sendRawMessage(IMessage imsg, String raw) {
         IMMessage msg = new IMMessage();
         msg.sender = imsg.sender;
         msg.receiver = imsg.receiver;
         msg.msgLocalID = imsg.msgLocalID;
-        msg.content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-
+        msg.content = raw;
         IMService im = IMService.getInstance();
         im.sendGroupMessageAsync(msg);
     }
 
     @Override
-    protected void sendVideoMessage(IMessage imsg, String url, String thumbURL) {
-        Video video = (Video)imsg.content;
-
-        IMMessage msg = new IMMessage();
-        msg.sender = imsg.sender;
-        msg.receiver = imsg.receiver;
-        msg.msgLocalID = imsg.msgLocalID;
-        msg.content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
-
-        IMService im = IMService.getInstance();
-        im.sendGroupMessageAsync(msg);
+    protected void updateMessageContent(long id, String content) {
+        GroupMessageDB.getInstance().updateContent(id, content);
     }
-
-
 
     @Override
     protected void markMessageFailure(IMessage msg) {
         GroupMessageDB.getInstance().markMessageFailure(msg.msgLocalID);
     }
-
-    @Override
-    protected void saveImageURL(IMessage msg, String url) {
-        String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
-            Image image = (Image) msg.content;
-            content = Image.newImage(url, image.width, image.height, image.getUUID()).getRaw();
-        } else {
-            return;
-        }
-
-        GroupMessageDB.getInstance().updateContent(msg.msgLocalID, content);
-    }
-
-    @Override
-    protected void saveAudioURL(IMessage msg, String url) {
-        String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
-            Audio audio = (Audio)msg.content;
-            content = Audio.newAudio(url, audio.duration, audio.getUUID()).getRaw();
-        } else {
-            return;
-        }
-
-        GroupMessageDB.getInstance().updateContent(msg.msgLocalID, content);
-    }
-
-    @Override
-    protected void saveVideoURL(IMessage msg, String url, String thumbURL) {
-        String content = "";
-        if (msg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
-            Video video = (Video)msg.content;
-            content = Video.newVideo(url, thumbURL, video.width, video.height, video.duration, video.getUUID()).getRaw();
-        } else {
-            return;
-        }
-
-        GroupMessageDB.getInstance().updateContent(msg.msgLocalID, content);
-    }
-
 }

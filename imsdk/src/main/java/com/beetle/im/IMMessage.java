@@ -15,7 +15,7 @@ package com.beetle.im;
  */
 
 public class IMMessage {
-    public int msgLocalID;
+    public long msgLocalID;
     public boolean secret;//点对点加密消息
     public String plainContent;
     public long sender;
@@ -25,6 +25,8 @@ public class IMMessage {
 
     //文本消息
     public boolean isText;
+    ////避免在observer&handler中重复构造content对象
+    public Object contentObj;
 
     //是否由当前用户在当前设备所发出
     public boolean isSelf;

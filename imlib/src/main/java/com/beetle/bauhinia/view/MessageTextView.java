@@ -52,10 +52,12 @@ public class MessageTextView extends MessageContentView {
 
         mGestureDetector = new GestureDetector(context, new GestureListener());
         textView = (TextView)findViewById(R.id.text);
+
         textView.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 mGestureDetector.onTouchEvent(event);
+
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
                     time = System.currentTimeMillis();
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
@@ -89,12 +91,6 @@ public class MessageTextView extends MessageContentView {
             } else {
                 content.setText(text.text);
             }
-        }
-
-        if (msg.isOutgoing) {
-            textView.setBackgroundResource(R.drawable.chatto_bg);
-        } else {
-            textView.setBackgroundResource(R.drawable.chatfrom_bg);
         }
         requestLayout();
     }

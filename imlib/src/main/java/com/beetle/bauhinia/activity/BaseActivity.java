@@ -105,4 +105,13 @@ public class BaseActivity extends AppCompatActivity {
 
         return false;
     }
+
+    protected void showBack(boolean show) {
+        actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(show);
+            actionBar.show();
+        }
+    }
+
 }

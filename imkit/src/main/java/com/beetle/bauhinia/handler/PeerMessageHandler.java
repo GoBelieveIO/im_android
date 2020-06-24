@@ -80,7 +80,7 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
         } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
             Revoke revoke = (Revoke) imsg.content;
 
-            int msgLocalID = db.getMessageId(revoke.msgid);
+            long msgLocalID = db.getMessageId(revoke.msgid);
             if (msgLocalID > 0) {
                 db.updateContent(msgLocalID, msg.content);
                 db.removeMessageIndex(msgLocalID);
@@ -95,7 +95,7 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
     }
 
     public boolean handleMessageACK(IMMessage im, int error) {
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         PeerMessageDB db = PeerMessageDB.getInstance();
 
         if (error == MessageACK.MESSAGE_ACK_SUCCESS) {
@@ -103,7 +103,7 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
                 MessageContent c = IMessage.fromRaw(im.plainContent);
                 if (c.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
                     Revoke r = (Revoke) c;
-                    int revokedMsgId = db.getMessageId(r.msgid);
+                    long revokedMsgId = db.getMessageId(r.msgid);
                     if (revokedMsgId > 0) {
                         db.updateContent(revokedMsgId, im.plainContent);
                         db.removeMessageIndex(revokedMsgId);
@@ -134,8 +134,7 @@ public class PeerMessageHandler implements com.beetle.im.PeerMessageHandler {
     }
 
     public boolean handleMessageFailure(IMMessage im) {
-        long uid = im.receiver;
-        int msgLocalID = im.msgLocalID;
+        long msgLocalID = im.msgLocalID;
         if (msgLocalID > 0) {
             PeerMessageDB db = PeerMessageDB.getInstance();
             return db.markMessageFailure(msgLocalID);

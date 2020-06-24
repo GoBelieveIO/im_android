@@ -25,6 +25,7 @@ public class MiddleMessageView extends MessageRowView {
         inflater.inflate(R.layout.chat_container_center, this);
         ViewGroup group = (ViewGroup)findViewById(R.id.content);
         addContent(type, group);
+        contentFrame = group;
     }
 
     public void setMessage(IMessage msg) {

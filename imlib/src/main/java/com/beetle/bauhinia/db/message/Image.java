@@ -10,12 +10,8 @@ public class Image extends MessageContent {
     public MessageType getType() {
         return MessageType.MESSAGE_IMAGE;
     }
-
-
-
-
-
-    public static Image newImage(String url, int width, int height, String uuid) {
+    
+    private static Image newImage(String url, int width, int height, String uuid) {
         Image image = new Image();
 
         JsonObject content = new JsonObject();
