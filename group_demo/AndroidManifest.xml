@@ -15,6 +15,7 @@
 
     <application
         android:name=".IMDemoApplication"
+        android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name">

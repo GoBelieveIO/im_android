@@ -34,19 +34,13 @@ import com.beetle.bauhinia.handler.PeerMessageHandler;
 import com.beetle.bauhinia.handler.SyncKeyHandler;
 import com.beetle.im.IMService;
 
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -211,18 +205,22 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                     }
                 }
             }.execute();
-
         }
     }
 
     private String login(long uid) {
         //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务
-        String URL = "http://demo.gobelieve.io";
+        String api_url = "http://demo.gobelieve.io";
         
-        String uri = String.format("%s/auth/token", URL);
+        String uri = String.format("%s/auth/token", api_url);
         try {
-            HttpClient getClient = new DefaultHttpClient();
-            HttpPost request = new HttpPost(uri);
+            URL url = new URL(uri);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json; utf-8");
+            connection.setDoOutput(true);
+            connection.setUseCaches(false);
+
             JSONObject json = new JSONObject();
             json.put("uid", uid);
             int PLATFORM_ANDROID = 2;
@@ -230,19 +228,21 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                     Settings.Secure.ANDROID_ID);
             json.put("platform_id", PLATFORM_ANDROID);
             json.put("device_id", androidID);
-            StringEntity s = new StringEntity(json.toString());
-            s.setContentEncoding((Header) new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
-            request.setEntity(s);
+            String data = json.toString();
 
-            HttpResponse response = getClient.execute(request);
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK){
-                System.out.println("login failure code is:"+statusCode);
+            try(OutputStream os = connection.getOutputStream()){
+                byte[] input = data.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200){
+                System.out.println("login failure code is:" + responseCode);
                 return null;
             }
-            int len = (int)response.getEntity().getContentLength();
+            int len = connection.getHeaderFieldInt("Content-Length", 64*1024);
             byte[] buf = new byte[len];
-            InputStream inStream = response.getEntity().getContent();
+            InputStream inStream = connection.getInputStream();
+
             int pos = 0;
             while (pos < len) {
                 int n = inStream.read(buf, pos, len - pos);

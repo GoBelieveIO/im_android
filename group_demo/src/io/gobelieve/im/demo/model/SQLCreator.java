@@ -26,7 +26,7 @@ public class SQLCreator {
 
     public final static String PEER_MESSAGE = "CREATE TABLE \"peer_message\" ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `peer` INTEGER NOT NULL, `secret` INTEGER DEFAULT 0, `sender` INTEGER NOT NULL, `receiver` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `flags` INTEGER NOT NULL, `content` TEXT, `uuid` TEXT );";
 
-    public final static String GROUP_MESSAGE = "CREATE TABLE \"group_message\" ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `sender` INTEGER NOT NULL, `group_id` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `flags` INTEGER NOT NULL, `content` TEXT, `uuid` TEXT );";
+    public final static String GROUP_MESSAGE = "CREATE TABLE \"group_message\" ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `sender` INTEGER NOT NULL, `group_id` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `flags` INTEGER NOT NULL, `reader_count` INTEGER DEFAULT 0, `content` TEXT, `uuid` TEXT, `reference_count` INTEGER DEFAULT 0, `reference` TEXT,  `tags` TEXT  );";
 
     public final static String CUSTOMER_MESSAGE = "CREATE TABLE \"customer_message\" ( `id` INTEGER PRIMARY KEY AUTOINCREMENT, `customer_id` INTEGER NOT NULL, `customer_appid` INTEGER NOT NULL, `store_id` INTEGER NOT NULL, `seller_id` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `flags` INTEGER NOT NULL, `is_support` INTEGER NOT NULL, `content` TEXT, `uuid` TEXT );";
 

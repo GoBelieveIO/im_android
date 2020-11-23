@@ -11,9 +11,6 @@
 package io.gobelieve.im.demo;
 
 import android.app.Application;
-import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
 import android.os.HandlerThread;
 import android.provider.Settings;
@@ -28,14 +25,8 @@ import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 import com.beetle.bauhinia.toolbar.emoticon.EmoticonManager;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
-
 
 
 /**
@@ -53,29 +44,6 @@ public class IMDemoApplication extends Application {
     public String getDeviceToken() {
         return mDeviceToken;
     }
-
-
-    private static final String DATABASE_NAME = "gobelieve.db";
-    private static final int DATABASE_VERSION = 1;
-    private static class DatabaseHelper extends SQLiteOpenHelper {
-
-        DatabaseHelper(Context context) {
-            super(context, DATABASE_NAME, null, DATABASE_VERSION);
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase sqlitedatabase, int oldVersion, int newVersion) {
-            Log.d("demo", "update database");
-
-        }
-    }
-
-
 
 
     @Override
@@ -116,25 +84,6 @@ public class IMDemoApplication extends Application {
         //表情资源初始化
         EmoticonManager.getInstance().init(this);
     }
-
-    private void copyDataBase(String asset, String path) throws IOException
-    {
-        InputStream mInput = this.getAssets().open(asset);
-        OutputStream mOutput = new FileOutputStream(path);
-        byte[] mBuffer = new byte[1024];
-        int mLength;
-        while ((mLength = mInput.read(mBuffer))>0)
-        {
-            mOutput.write(mBuffer, 0, mLength);
-        }
-        mOutput.flush();
-        mOutput.close();
-        mInput.close();
-    }
-
-
-
-
 
     private void refreshHost() {
         new AsyncTask<Void, Integer, Integer>() {
