@@ -16,6 +16,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -23,6 +24,9 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.FileProvider;
+
 import com.beetle.bauhinia.activity.BaseActivity;
 import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.bauhinia.tools.FileDownloader;
@@ -121,12 +125,21 @@ public class MessageFileActivity extends BaseActivity {
         }.execute();
     }
 
-    public static void openFile(Context context, String filename, File url) throws IOException {
-        // Create URI
-        File file = url;
-        Uri uri = Uri.fromFile(file);
 
+    public static void openFile(Context context, String filename, File url) throws IOException {
         Intent intent = new Intent(Intent.ACTION_VIEW);
+
+        File file = url;
+        Uri uri;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            String authority = context.getPackageName() + ".fileprovider";
+            uri = FileProvider.getUriForFile(context, authority, file);
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } else {
+            uri = Uri.fromFile(file);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+
         // Check what kind of file you are trying to open, by comparing the url with extensions.
         // When the if condition is matched, plugin sets the correct intent (mime) type,
         // so Android knew what application to use to open the file
@@ -172,9 +185,9 @@ public class MessageFileActivity extends BaseActivity {
             intent.setDataAndType(uri, "*/*");
         }
 
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
+
 
 
 }

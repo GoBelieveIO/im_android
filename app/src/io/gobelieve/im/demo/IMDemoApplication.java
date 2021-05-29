@@ -12,6 +12,7 @@ package io.gobelieve.im.demo;
 
 import android.app.Application;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.HandlerThread;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -25,6 +26,7 @@ import com.beetle.bauhinia.tools.FileCache;
 import com.beetle.im.IMService;
 import com.beetle.bauhinia.toolbar.emoticon.EmoticonManager;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -71,7 +73,23 @@ public class IMDemoApplication extends Application {
 
         //可以在登录成功后，设置每个用户不同的消息存储目录
         FileCache fc = FileCache.getInstance();
-        fc.setDir(this.getDir("cache", MODE_PRIVATE));
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            //can write external storage
+            String path = getExternalFilesDir(null).getAbsolutePath();
+            File dir1 = new File(path, "download");
+            if (!dir1.exists()) {
+                dir1.mkdirs();
+            }
+            fc.setDir(dir1);
+            Log.i(TAG, "file cache:" + dir1.getAbsolutePath());
+        } else {
+            File f = new File(getFilesDir(), "cache");
+            if (!f.exists()) {
+                f.mkdir();
+            }
+            fc.setDir(f);
+            Log.i(TAG, "file cache:" + this.getDir("cache", MODE_PRIVATE).getAbsolutePath());
+        }
 
         mIMService.setPeerMessageHandler(PeerMessageHandler.getInstance());
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
