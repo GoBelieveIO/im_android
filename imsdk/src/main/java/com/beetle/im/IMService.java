@@ -196,6 +196,11 @@ public class IMService {
     public void setHost(String host) {
         this.host = host;
     }
+    public void setHostIP(String ip) {
+        this.host = ip;
+        this.hostIP = ip;
+        this.timestamp = 0;
+    }
     public void setToken(String token) {
         this.token = token;
     }
@@ -976,7 +981,7 @@ public class IMService {
             return;
         }
 
-        if (now() - timestamp > 5*60) {
+        if (now() - timestamp > 5*60 && timestamp > 0) {
             refreshHost();
         }
 
