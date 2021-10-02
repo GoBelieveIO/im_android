@@ -1,7 +1,5 @@
 package com.beetle.bauhinia.db.message;
 
-
-import com.beetle.bauhinia.db.IMessage;
 import com.google.gson.JsonObject;
 
 public  class VOIP extends MessageContent {

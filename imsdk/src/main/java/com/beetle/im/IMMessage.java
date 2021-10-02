@@ -23,10 +23,14 @@ public class IMMessage {
     public int timestamp;
     public String content;
 
-    //文本消息
-    public boolean isText;
     ////避免在observer&handler中重复构造content对象
     public Object contentObj;
+
+    //群组已读消息，通过点对点消息来发送
+    public long groupID;
+
+    //会话未读数减一
+    public boolean decrementUnread;
 
     //是否由当前用户在当前设备所发出
     public boolean isSelf;

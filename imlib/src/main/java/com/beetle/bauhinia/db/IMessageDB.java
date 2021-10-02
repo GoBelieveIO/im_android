@@ -15,7 +15,7 @@ public interface IMessageDB {
     //获取前后的消息
     MessageIterator newMiddleMessageIterator(long conversationID, long msgID);
 
-    boolean clearConversation(long conversationID);
+    boolean clearConversation(String conversationID);
     void saveMessageAttachment(IMessage msg, String address);
     void saveMessage(IMessage imsg);
     void removeMessage(IMessage imsg);

@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.beetle.bauhinia.db.message.MessageContent;
 import com.beetle.bauhinia.db.message.Text;
@@ -104,11 +105,12 @@ public class SQLPeerMessageDB {
 
 
     public boolean insertMessage(IMessage msg, long uid) {
+        int s = msg.secret ? 1 : secret;
         ContentValues values = new ContentValues();
         values.put("peer", uid);
         values.put("sender", msg.sender);
         values.put("receiver", msg.receiver);
-        values.put("secret", secret);
+        values.put("secret", s);
         values.put("timestamp", msg.timestamp);
         values.put("flags", msg.flags);
         if (!TextUtils.isEmpty(msg.getUUID())) {
@@ -122,6 +124,7 @@ public class SQLPeerMessageDB {
         msg.msgLocalID = id;
 
         if (msg.content.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+            Log.i("goubuli", "inserts text message:" + msg.content);
             Text text = (Text)msg.content;
             insertFTS((int)id, text.text);
         }
@@ -135,19 +138,19 @@ public class SQLPeerMessageDB {
         return rows == 1;
     }
 
-    public boolean acknowledgeMessage(long msgLocalID) {
+    public int acknowledgeMessage(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
     }
 
-    public boolean markMessageFailure(long msgLocalID) {
+    public int markMessageFailure(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_FAILURE);
     }
 
-    public boolean markMessageListened(long msgLocalID) {
+    public int markMessageListened(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean markMessageReaded(long msgLocalID) {
+    public int markMessageReaded(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_READED);
     }
 
@@ -156,20 +159,23 @@ public class SQLPeerMessageDB {
         return removeFlag(msgLocalID, f);
     }
 
-    public boolean addFlag(long msgLocalID, int f) {
+    public int addFlag(long msgLocalID, int f) {
+        int r = 0;
         Cursor cursor = db.query(TABLE_NAME, new String[]{"flags"},
                 "id=?", new String[]{""+msgLocalID},
                 null, null, null);
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
-            flags |= f;
+            if ((flags & f) == 0) {
+                flags |= f;
 
-            ContentValues cv = new ContentValues();
-            cv.put("flags", flags);
-            db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
+                ContentValues cv = new ContentValues();
+                cv.put("flags", flags);
+                r = db.update(TABLE_NAME, cv, "id = ?", new String[]{"" + msgLocalID});
+            }
         }
         cursor.close();
-        return true;
+        return r;
     }
 
     public boolean removeFlag(long msgLocalID, int f) {

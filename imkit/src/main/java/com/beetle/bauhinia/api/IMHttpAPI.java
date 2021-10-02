@@ -15,6 +15,7 @@ import com.beetle.bauhinia.api.body.PostDeviceToken;
 import com.beetle.bauhinia.api.types.Audio;
 import com.beetle.bauhinia.api.types.File;
 import com.beetle.bauhinia.api.types.Image;
+import com.beetle.bauhinia.api.types.Supporter;
 import com.google.gson.Gson;
 
 import retrofit.RequestInterceptor;
@@ -22,10 +23,12 @@ import retrofit.RestAdapter;
 
 import retrofit.converter.GsonConverter;
 import retrofit.http.Body;
+import retrofit.http.GET;
 import retrofit.http.Header;
 import retrofit.http.Multipart;
 import retrofit.http.POST;
 import retrofit.http.Part;
+import retrofit.http.Query;
 import retrofit.mime.TypedFile;
 import rx.Observable;
 
@@ -95,5 +98,8 @@ public class IMHttpAPI {
         @Multipart
         @POST("/files")
         Observable<File> postFile(@Part("file") TypedFile file);
+
+        @GET("/supporters")
+        Observable<Supporter> getSupporter(@Query("store_id") long storeId);
     };
 }

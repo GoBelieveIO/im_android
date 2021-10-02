@@ -16,17 +16,20 @@ import java.util.ArrayList;
 public class SQLCustomerMessageDB {
 
     private class CustomerMessageIterator implements MessageIterator{
-        private Cursor cursor;
+        protected Cursor cursor;
+
+        public CustomerMessageIterator() {}
 
         public CustomerMessageIterator(SQLiteDatabase db, long storeID) {
-            String sql = "SELECT  id, customer_id, customer_appid, store_id, seller_id, timestamp, flags, is_support, content FROM customer_message WHERE store_id = ? ORDER BY id DESC";
+            String sql = "SELECT id, peer_appid, peer, store_id, sender_appid, sender, receiver_appid, receiver, timestamp, flags, content FROM customer_message WHERE store_id = ? ORDER BY id DESC";
             this.cursor = db.rawQuery(sql, new String[]{""+storeID});
         }
 
         public CustomerMessageIterator(SQLiteDatabase db, long storeID, long lastMsgID) {
-            String sql = "SELECT  id, customer_id, customer_appid, store_id, seller_id, timestamp, flags, is_support, content FROM customer_message WHERE store_id = ? AND id < ? ORDER BY id DESC";
+            String sql = "SELECT id, peer_appid, peer, store_id, sender_appid, sender, receiver_appid, receiver, timestamp, flags, content FROM customer_message WHERE store_id = ? AND id < ? ORDER BY id DESC";
             this.cursor = db.rawQuery(sql, new String[]{""+storeID, ""+lastMsgID});
         }
+
 
         public IMessage next() {
             if (cursor == null) {
@@ -43,34 +46,19 @@ public class SQLCustomerMessageDB {
         }
     }
 
-    public class CustomerConversationIterator implements ConversationIterator {
-        private SQLiteDatabase db;
-        private Cursor cursor;
-
-        public CustomerConversationIterator(SQLiteDatabase db) {
-            this.db = db;
-            this.cursor = db.rawQuery("SELECT MAX(id) as id, store_id FROM customer_message GROUP BY store_id", null);
+    private class CustomerPeerMessageIterator extends CustomerMessageIterator {
+        public CustomerPeerMessageIterator(SQLiteDatabase db, long peerAppID, long peer) {
+            String sql = "SELECT id, peer_appid, peer, store_id, sender_appid, sender, receiver_appid, receiver, timestamp, flags, content FROM customer_message WHERE peer_appid = ? AND peer = ? ORDER BY id DESC";
+            this.cursor = db.rawQuery(sql, new String[]{""+peerAppID, ""+peer});
         }
 
-
-
-        public IMessage next() {
-            if (cursor == null) {
-                return null;
-            }
-
-            boolean r = cursor.moveToNext();
-            if (!r) {
-                cursor.close();
-                cursor = null;
-                return null;
-            }
-
-            long id = cursor.getLong(cursor.getColumnIndex("id"));
-            IMessage msg = getMessage(id);
-            return msg;
+        public CustomerPeerMessageIterator(SQLiteDatabase db, long peerAppID, long peer, long lastMsgID) {
+            String sql = "SELECT id, peer_appid, peer, store_id, sender_appid, sender, receiver_appid, receiver, timestamp, flags, content FROM customer_message WHERE peer_appid = ? AND peer = ? AND id < ? ORDER BY id DESC";
+            this.cursor = db.rawQuery(sql, new String[]{""+peerAppID, ""+peer, ""+lastMsgID});
         }
     }
+
+
 
 
     private static final String TABLE_NAME = "customer_message";
@@ -97,16 +85,18 @@ public class SQLCustomerMessageDB {
     }
 
 
-    public boolean insertMessage(IMessage m) {
+    public boolean insertMessage(IMessage m, long peerAppID, long peer) {
         ICustomerMessage msg = (ICustomerMessage)m;
         ContentValues values = new ContentValues();
-        values.put("customer_id", msg.customerID);
-        values.put("customer_appid", msg.customerAppID);
-        values.put("store_id", msg.storeID);
-        values.put("seller_id", msg.sellerID);
+        values.put("peer_appid", peerAppID);
+        values.put("peer", peer);
+        values.put("sender_appid", msg.senderAppID);
+        values.put("sender", msg.sender);
+        values.put("store_id", msg.getStoreId());
+        values.put("receiver_appid", msg.receiverAppID);
+        values.put("receiver", msg.receiver);
         values.put("timestamp", msg.timestamp);
         values.put("flags", msg.flags);
-        values.put("is_support", msg.isSupport ? 1 : 0);
         if (!TextUtils.isEmpty(msg.getUUID())) {
             values.put("uuid", msg.getUUID());
         }
@@ -203,6 +193,11 @@ public class SQLCustomerMessageDB {
         return true;
     }
 
+    public boolean clearConversation(long appid, long uid) {
+        db.delete(TABLE_NAME, "peer_appid = ? AND peer = ?", new String[]{""+appid, ""+uid});
+        return true;
+    }
+
     public MessageIterator newMessageIterator(long storeID) {
         return new CustomerMessageIterator(db, storeID);
     }
@@ -219,9 +214,23 @@ public class SQLCustomerMessageDB {
         return null;
     }
 
-    public ConversationIterator newConversationIterator() {
-        return new CustomerConversationIterator(db);
+
+    public MessageIterator newCustomerPeerMessageIterator(long appid, long uid) {
+        return new CustomerPeerMessageIterator(db, appid, uid);
     }
+
+    public MessageIterator newCustomerPeerForwardMessageIterator(long appid, long uid, long firstMsgID) {
+        return new CustomerPeerMessageIterator(db, appid, uid, firstMsgID);
+    }
+
+    public MessageIterator newCustomerPeerBackwardMessageIterator(long appid, long uid, long msgID) {
+        return null;
+    }
+
+    public MessageIterator newCustomerPeerMiddleMessageIterator(long appid, long uid, long msgID) {
+        return null;
+    }
+
 
     private String tokenizer(String key) {
         StringBuilder builder = new StringBuilder();
@@ -262,20 +271,19 @@ public class SQLCustomerMessageDB {
     private ICustomerMessage getMessage(Cursor cursor) {
         ICustomerMessage msg = new ICustomerMessage();
         msg.msgLocalID = cursor.getLong(cursor.getColumnIndex("id"));
-        msg.customerID = cursor.getLong(cursor.getColumnIndex("customer_id"));
-        msg.customerAppID = cursor.getLong(cursor.getColumnIndex("customer_appid"));
-        msg.storeID = cursor.getLong(cursor.getColumnIndex("store_id"));
-        msg.sellerID = cursor.getLong(cursor.getColumnIndex("seller_id"));
+        msg.senderAppID = cursor.getLong(cursor.getColumnIndex("sender_appid"));
+        msg.sender = cursor.getLong(cursor.getColumnIndex("sender"));
+        msg.receiverAppID = cursor.getLong(cursor.getColumnIndex("receiver_appid"));
+        msg.receiver = cursor.getLong(cursor.getColumnIndex("receiver"));
         msg.timestamp = cursor.getInt(cursor.getColumnIndex("timestamp"));
         msg.flags = cursor.getInt(cursor.getColumnIndex("flags"));
-        msg.isSupport = cursor.getInt(cursor.getColumnIndex("is_support")) == 1;
         String content = cursor.getString(cursor.getColumnIndex("content"));
         msg.setContent(content);
         return msg;
     }
 
     public ICustomerMessage getMessage(long id) {
-        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "customer_id", "customer_appid", "store_id", "seller_id", "timestamp", "flags", "is_support", "content"},
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender_appid", "sender", "store_id", "receiver_appid", "receiver", "timestamp", "flags", "content"},
                 "id = ?", new String[]{""+id}, null, null, null);
         ICustomerMessage msg = null;
         if (cursor.moveToNext()) {
@@ -300,7 +308,7 @@ public class SQLCustomerMessageDB {
     }
 
     public ICustomerMessage getMessage(String uuid) {
-        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "customer_id", "customer_appid", "store_id", "seller_id", "timestamp", "flags", "is_support", "content"},
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender_appid", "sender", "store_id", "receiver_appid", "receiver", "timestamp", "flags", "content"},
                 "uuid = ?", new String[]{uuid}, null, null, null);
         ICustomerMessage msg = null;
         if (cursor.moveToNext()) {
@@ -311,8 +319,20 @@ public class SQLCustomerMessageDB {
     }
 
     public ICustomerMessage getLastMessage(long storeID) {
-        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "customer_id", "customer_appid", "store_id", "seller_id", "timestamp", "flags", "is_support", "content"},
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender_appid", "sender", "store_id", "receiver_appid", "receiver", "timestamp", "flags", "content"},
                 "store_id = ?", new String[]{""+storeID}, null, null, "id DESC");
+        ICustomerMessage msg = null;
+        if (cursor.moveToNext()) {
+            msg = getMessage(cursor);
+        }
+        cursor.close();
+        return msg;
+
+    }
+
+    public ICustomerMessage getLastMessage(long appid, long uid) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"id", "sender_appid", "sender", "store_id", "receiver_appid", "receiver", "timestamp", "flags", "content"},
+                "peer_appid = ? AND peer = ?", new String[]{""+appid, "" + uid}, null, null, "id DESC");
         ICustomerMessage msg = null;
         if (cursor.moveToNext()) {
             msg = getMessage(cursor);

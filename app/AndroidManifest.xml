@@ -90,6 +90,18 @@
             </intent-filter>
         </activity>
 
+
+
+        <activity
+            android:name="com.beetle.bauhinia.GroupMessageActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize|stateHidden"
+            android:theme="@style/imkit.ActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name="com.beetle.bauhinia.CustomerMessageActivity"
             android:exported="true"

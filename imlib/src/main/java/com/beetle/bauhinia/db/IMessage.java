@@ -150,6 +150,8 @@ public class IMessage implements Cloneable {
                 content = gson.fromJson(element.get(MessageContent.CLASSROOM), Classroom.class);
             } else if (element.has(MessageContent.TAG)) {
                 content = gson.fromJson(element.get(MessageContent.TAG), Tag.class);
+            } else if (element.has(MessageContent.CONFERENCE)) {
+                content = gson.fromJson(element.get(MessageContent.CONFERENCE), Conference.class);
             } else {
                 content = new Unknown();
             }
@@ -162,6 +164,22 @@ public class IMessage implements Cloneable {
             if (element.has("reference")) {
                 content.setReference(element.get("reference").getAsString());
             }
+            if(element.has("store_id")) {
+                content.setStoreId(element.get("store_id").getAsLong());
+            }
+            if (element.has("store_name")) {
+                content.setStoreName(element.get("store_name").getAsString());
+            }
+            if (element.has("session_id")) {
+                content.setSessionId(element.get("session_id").getAsString());
+            }
+            if (element.has("name")) {
+                content.setName(element.get("name").getAsString());
+            }
+            if (element.has("app_name")) {
+                content.setAppName(element.get("app_name").getAsString());
+            }
+
         } catch (Exception e) {
             content = new Unknown();
         }
@@ -176,6 +194,14 @@ public class IMessage implements Cloneable {
 
     public void setContent(MessageContent content) {
         this.content = content;
+    }
+
+    public long getStoreId() {
+        if (this.content != null) {
+            return this.content.getStoreId();
+        } else {
+            return 0;
+        }
     }
 
     public String getUUID() {

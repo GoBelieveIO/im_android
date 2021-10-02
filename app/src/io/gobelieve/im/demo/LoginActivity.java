@@ -22,15 +22,18 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.beetle.bauhinia.CustomerMessageActivity;
+import com.beetle.bauhinia.GroupMessageActivity;
 import com.beetle.bauhinia.PeerMessageActivity;
 import com.beetle.bauhinia.api.IMHttpAPI;
 import com.beetle.bauhinia.api.body.PostDeviceToken;
 import com.beetle.bauhinia.db.CustomerMessageDB;
-import com.beetle.bauhinia.db.EPeerMessageDB;
 import com.beetle.bauhinia.db.GroupMessageDB;
-import com.beetle.bauhinia.handler.GroupMessageHandler;
+import com.beetle.bauhinia.db.EPeerMessageDB;
 import com.beetle.bauhinia.db.PeerMessageDB;
+import com.beetle.bauhinia.handler.GroupMessageHandler;
 import com.beetle.bauhinia.handler.PeerMessageHandler;
+import com.beetle.bauhinia.handler.CustomerMessageHandler;
 import com.beetle.bauhinia.handler.SyncKeyHandler;
 import com.beetle.im.IMService;
 
@@ -55,6 +58,13 @@ import rx.functions.Action1;
  */
 public class LoginActivity extends BaseActivity implements View.OnClickListener {
     private final String TAG = "demo";
+
+    private static final long APP_ID = 7;
+
+    private static final boolean TEST_PEER = false;
+    private static final boolean TEST_GROUP = false;
+    private static final boolean TEST_CUSTOMER = true;
+
     private EditText mEtAccount;
     private EditText mEtTargetAccount;
 
@@ -69,6 +79,13 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
         Button btnLogin = (Button) findViewById(R.id.btn_login);
         mEtAccount = (EditText) findViewById(R.id.et_username);
         mEtTargetAccount = (EditText) findViewById(R.id.et_target_username);
+        if (TEST_PEER) {
+            mEtTargetAccount.setHint("接受用户id");
+        } else if (TEST_GROUP) {
+            mEtTargetAccount.setHint("群组id(15)");
+        } else if (TEST_CUSTOMER) {
+            mEtTargetAccount.setHint("商店id(7)");
+        }
         btnLogin.setOnClickListener(this);
     }
 
@@ -100,6 +117,8 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
 
         PeerMessageHandler.getInstance().setUID(sender);
         GroupMessageHandler.getInstance().setUID(sender);
+        CustomerMessageHandler.getInstance().setUID(sender);
+        CustomerMessageHandler.getInstance().setAppId(APP_ID);
         IMHttpAPI.setToken(token);
         IMService.getInstance().setToken(token);
 
@@ -140,17 +159,33 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                     });
         }
 
-        if (receiver == 0) {
-            Intent intent = new Intent(this, MessageListActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra("current_uid", sender);
-            startActivity(intent);
-        } else {
+        if (TEST_PEER) {
             Intent intent = new Intent(this, PeerMessageActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra("peer_uid", receiver);
             intent.putExtra("peer_name", "测试");
             intent.putExtra("current_uid", sender);
+            startActivity(intent);
+        } else if (TEST_GROUP) {
+            Intent intent = new Intent(this, GroupMessageActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra("group_id", receiver);
+            intent.putExtra("group_name", "测试群");
+            intent.putExtra("current_uid", sender);
+            startActivity(intent);
+        } else if (TEST_CUSTOMER) {
+            Intent intent = new Intent(this, CustomerMessageActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra("store_id", receiver);
+            intent.putExtra("app_id", APP_ID);
+            intent.putExtra("current_uid", sender);
+            intent.putExtra("peer_app_id", 0L);
+            intent.putExtra("peer_uid", 0L);
+            intent.putExtra("peer_app_name", "");
+            intent.putExtra("peer_name", "");
+            intent.putExtra("store_name", "测试商店");
+            intent.putExtra("app_name", "demo");
+            intent.putExtra("name", "测试用户");
             startActivity(intent);
         }
         finish();
@@ -171,12 +206,18 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
                 return;
             }
 
-
             long receiver = 0;
             if (mEtTargetAccount.getText().toString().length() > 0) {
                 receiver = Long.parseLong(mEtTargetAccount.getText().toString());
                 if (receiver <= 0) {
-                    receiver = 0;
+                    if (TEST_PEER) {
+                        Toast.makeText(this, "输入接受者id", Toast.LENGTH_SHORT).show();
+                    } else if (TEST_GROUP) {
+                        Toast.makeText(this, "输入群组id", Toast.LENGTH_SHORT).show();
+                    } else if (TEST_CUSTOMER) {
+                        Toast.makeText(this, "输入商店id", Toast.LENGTH_SHORT).show();
+                    }
+                    return;
                 }
             }
 
@@ -211,7 +252,7 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
     private String login(long uid) {
         //调用app自身的登陆接口获取im服务必须的access token,之后可将token保存在本地供下次直接登录IM服务
         String api_url = "http://demo.gobelieve.io";
-        
+
         String uri = String.format("%s/auth/token", api_url);
         try {
             URL url = new URL(uri);

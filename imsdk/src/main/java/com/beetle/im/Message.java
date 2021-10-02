@@ -40,8 +40,6 @@ class Command{
     public static final int MSG_ROOM_IM = 20;
     public static final int MSG_SYSTEM = 21;
     public static final int MSG_CUSTOMER_SERVICE = 23;
-    public static final int MSG_CUSTOMER = 24;
-    public static final int MSG_CUSTOMER_SUPPORT = 25;
 
     public static final int MSG_SYNC = 26;
     public static final int MSG_SYNC_BEGIN = 27;
@@ -57,6 +55,8 @@ class Command{
     public static final int MSG_GROUP_SYNC_KEY = 35;
 
     public static final int MSG_METADATA = 37;
+
+    public static final int MSG_CUSTOMER = 64;
 }
 
 class Flag {
@@ -173,15 +173,15 @@ public class Message {
             pos += 4;
             buf[pos++] = (byte)ack.status;
             return Arrays.copyOf(buf, HEAD_SIZE+5);
-        } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
+        } else if (cmd == Command.MSG_CUSTOMER) {
             CustomerMessage cs = (CustomerMessage) body;
-            BytePacket.writeInt64(cs.customerAppID, buf, pos);
+            BytePacket.writeInt64(cs.senderAppID, buf, pos);
             pos += 8;
-            BytePacket.writeInt64(cs.customerID, buf, pos);
+            BytePacket.writeInt64(cs.sender, buf, pos);
             pos += 8;
-            BytePacket.writeInt64(cs.storeID, buf, pos);
+            BytePacket.writeInt64(cs.receiverAppID, buf, pos);
             pos += 8;
-            BytePacket.writeInt64(cs.sellerID, buf, pos);
+            BytePacket.writeInt64(cs.receiver, buf, pos);
             pos += 8;
             BytePacket.writeInt32(cs.timestamp, buf, pos);
             pos += 4;
@@ -307,15 +307,15 @@ public class Message {
             } catch (Exception e) {
                 return false;
             }
-        } else if (cmd == Command.MSG_CUSTOMER || cmd == Command.MSG_CUSTOMER_SUPPORT) {
+        } else if (cmd == Command.MSG_CUSTOMER) {
             CustomerMessage cs = new CustomerMessage();
-            cs.customerAppID = BytePacket.readInt64(data, pos);
+            cs.senderAppID = BytePacket.readInt64(data, pos);
             pos += 8;
-            cs.customerID = BytePacket.readInt64(data, pos);
+            cs.sender = BytePacket.readInt64(data, pos);
             pos += 8;
-            cs.storeID = BytePacket.readInt64(data, pos);
+            cs.receiverAppID = BytePacket.readInt64(data, pos);
             pos += 8;
-            cs.sellerID = BytePacket.readInt64(data, pos);
+            cs.receiver = BytePacket.readInt64(data, pos);
             pos += 8;
             cs.timestamp = BytePacket.readInt32(data, pos);
             pos += 4;

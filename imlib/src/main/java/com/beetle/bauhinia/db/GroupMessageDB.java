@@ -16,6 +16,10 @@ public class GroupMessageDB extends SQLGroupMessageDB implements IMessageDB {
     }
 
 
+    public boolean clearConversation(String conversationID) {
+        long groupId = Long.parseLong(conversationID);
+        return clearConversation(groupId);
+    }
 
     public void saveMessageAttachment(IMessage msg, String address) {
         Location loc = (Location)msg.content;

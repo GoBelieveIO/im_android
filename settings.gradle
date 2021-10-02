@@ -1,1 +1,1 @@
-include  ':asynctcp', ':imsdk', ':imlib', ':imkit',  ':app', ':group_demo'
+include  ':asynctcp', ':imsdk', ':imlib', ':imkit', ':app'

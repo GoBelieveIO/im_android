@@ -6,8 +6,6 @@ import com.beetle.bauhinia.db.message.Location;
  * Created by houxh on 16/1/18.
  */
 public class CustomerMessageDB extends SQLCustomerMessageDB implements IMessageDB {
-    public static final boolean SQL_ENGINE_DB = true;
-    
     private static CustomerMessageDB instance = new CustomerMessageDB();
 
     public static CustomerMessageDB getInstance() {
@@ -16,6 +14,11 @@ public class CustomerMessageDB extends SQLCustomerMessageDB implements IMessageD
 
 
 
+    public boolean clearConversation(String conversationID) {
+        long storeId = Long.parseLong(conversationID);
+        return clearConversation(storeId);
+    }
+
     public void saveMessageAttachment(IMessage msg, String address) {
         Location loc = (Location)msg.content;
         loc = Location.newLocation(loc.latitude, loc.longitude, address);
@@ -23,7 +26,9 @@ public class CustomerMessageDB extends SQLCustomerMessageDB implements IMessageD
     }
 
     public void saveMessage(IMessage imsg) {
-        this.insertMessage(imsg);
+        assert(imsg.isOutgoing);
+        ICustomerMessage m = (ICustomerMessage)imsg;
+        this.insertMessage(imsg, m.receiverAppID, m.receiver);
     }
 
     public void removeMessage(IMessage imsg) {

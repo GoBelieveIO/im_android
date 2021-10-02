@@ -24,6 +24,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.text.ClipboardManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -50,6 +51,7 @@ import com.beetle.bauhinia.toolbar.EaseChatExtendMenu;
 import com.beetle.bauhinia.toolbar.EaseChatInputMenu;
 import com.beetle.bauhinia.tools.*;
 import com.beetle.bauhinia.view.*;
+import com.beetle.im.IMMessage;
 import com.beetle.im.IMService;
 import com.beetle.imkit.BuildConfig;
 
@@ -57,7 +59,7 @@ import com.beetle.bauhinia.ChatItemQuickAction.ChatQuickAction;
 import com.beetle.imkit.R;
 
 
-public class MessageActivity extends MessageAudioActivity implements
+abstract public class MessageActivity extends MessageAudioActivity implements
         SwipeRefreshLayout.OnRefreshListener {
 
     protected static final String TAG = "imservice";
@@ -83,7 +85,7 @@ public class MessageActivity extends MessageAudioActivity implements
     private static final int OUT_MSG = 1;
 
     protected boolean isShowUserName = false;
-    protected boolean isShowReply = true;//显示回复信息
+    protected boolean isShowReply = true;//显示回复信息标志
     protected boolean isShowReaded = true;//显示未读/已读
 
     protected BaseAdapter adapter;
@@ -183,11 +185,12 @@ public class MessageActivity extends MessageAudioActivity implements
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         try {
-                            v.setPressed(true);
                             if (!checkRecordPermission()) {
                                 //用户需要再次操作
+                                v.setPressed(false);
                                 requestRecordPermission();
                             } else {
+                                v.setPressed(true);
                                 MessageActivity.this.startRecord();
                             }
                         } catch (Exception e) {
@@ -443,9 +446,10 @@ public class MessageActivity extends MessageAudioActivity implements
         public static int FILE = 16;
         public static int VIDEO = 18;
         public static int CLASSROOM = 20;
+        public static int CONFERENCE = 22;
 
     }
-    private static int VIEW_TYPE_COUNT = 22;
+    private static int VIEW_TYPE_COUNT = 24;
 
     class ChatAdapter extends BaseAdapter implements ContentTypes {
         @Override
@@ -495,6 +499,8 @@ public class MessageActivity extends MessageAudioActivity implements
                 media = VIDEO;
             } else if (msg.content instanceof Classroom) {
                 media = CLASSROOM;
+            } else if (msg.content instanceof Conference) {
+                media = CONFERENCE;
             } else {
                 media = UNKNOWN;
             }
@@ -517,7 +523,6 @@ public class MessageActivity extends MessageAudioActivity implements
                     rowView = new MiddleMessageView(MessageActivity.this, msgType);
                 } else  if (msg.isOutgoing) {
                     OutMessageView msgView = new OutMessageView(MessageActivity.this, msgType, isShowReply, isShowReaded);
-
                     msgView.readedButton.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -529,48 +534,47 @@ public class MessageActivity extends MessageAudioActivity implements
                     rowView = msgView;
 
                 } else {
-                    rowView = new InMessageView(MessageActivity.this, msgType, isShowUserName, isShowReply);
+                    InMessageView msgView = new InMessageView(MessageActivity.this, msgType, isShowUserName, isShowReply);
+                    rowView = msgView;
                 }
                 if (rowView != null) {
-                    View contentView = rowView.getContentView();
-                    contentView.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            IMessage im = (IMessage)v.getTag();
-                            Log.i(TAG, "im:" + im.msgLocalID);
-                            MessageActivity.this.onMessageClicked(im);
-                        }
-                    });
-                    contentView.setOnLongClickListener(new View.OnLongClickListener() {
-                        @Override
-                        public boolean onLongClick(View v) {
-                            final IMessage im = (IMessage)v.getTag();
-                            ArrayList<ChatQuickAction> actions = getLongClickActions(im);
-                            if (actions.size() == 0) {
+                    if (rowView.getContentFrame() != null) {
+                        final View contentFrame = rowView.getContentFrame();
+                        final GestureDetector detector = new GestureDetector(MessageActivity.this, new GestureDetector.SimpleOnGestureListener() {
+                            @Override
+                            public boolean onDown(MotionEvent e) {
+                                //return true for MotionEvent.ACTION_UP
                                 return true;
                             }
 
-                            ChatItemQuickAction.showAction(MessageActivity.this,
-                                    actions.toArray(new ChatQuickAction[actions.size()]),
-                                    new ChatItemQuickAction.ChatQuickActionResult() {
-                                        @Override
-                                        public void onSelect(ChatQuickAction action) {
-                                            onActionClickListener(action, im);
-                                        }
-                                    }
-                            );
-                            return true;
-                        }
-                    });
-                    if (rowView.getContentFrame() != null) {
-                        View contentFrame = rowView.getContentFrame();
-                        contentFrame.setOnLongClickListener(new View.OnLongClickListener() {
                             @Override
-                            public boolean onLongClick(View v) {
-                                final IMessage im = (IMessage)v.getTag();
+                            public boolean onDoubleTap(MotionEvent e) {
+                                IMessage im = (IMessage)contentFrame.getTag();
+                                if (im.getType() == MessageContent.MessageType.MESSAGE_TEXT) {
+                                    Text t = (Text) im.content;
+                                    Log.i(TAG, "double click:" + t.text);
+                                    Intent intent = new Intent();
+                                    intent.setClass(MessageActivity.this, OverlayActivity.class);
+                                    intent.putExtra("text", t.text);
+                                    MessageActivity.this.startActivity(intent);
+                                }
+                                return true;
+                            }
+
+                            @Override
+                            public boolean onSingleTapConfirmed(MotionEvent e) {
+                                IMessage im = (IMessage)contentFrame.getTag();
+                                Log.i(TAG, "im:" + im.msgLocalID);
+                                MessageActivity.this.onMessageClicked(im);
+                                return true;
+                            }
+
+                            @Override
+                            public void onLongPress(MotionEvent e) {
+                                final IMessage im = (IMessage)contentFrame.getTag();
                                 ArrayList<ChatQuickAction> actions = getLongClickActions(im);
                                 if (actions.size() == 0) {
-                                    return true;
+                                    return;
                                 }
 
                                 ChatItemQuickAction.showAction(MessageActivity.this,
@@ -582,22 +586,13 @@ public class MessageActivity extends MessageAudioActivity implements
                                             }
                                         }
                                 );
-                                return true;
                             }
                         });
-                    }
-                    if (msgType == MessageContent.MessageType.MESSAGE_TEXT) {
-                        MessageTextView messageTextView = (MessageTextView)rowView.getContentView();
-                        messageTextView.setDoubleTapListener(new MessageTextView.DoubleTapListener() {
-                            @Override
-                            public void onDoubleTap(MessageTextView v) {
-                                Text t = (Text)v.getMessage().content;
-                                Log.i(TAG, "double click:" + t.text);
 
-                                Intent intent = new Intent();
-                                intent.setClass(MessageActivity.this, OverlayActivity.class);
-                                intent.putExtra("text", t.text);
-                                MessageActivity.this.startActivity(intent);
+                        contentFrame.setOnTouchListener(new View.OnTouchListener() {
+                            @Override
+                            public boolean onTouch(View v, MotionEvent event) {
+                                return detector.onTouchEvent(event);
                             }
                         });
                     }
@@ -770,6 +765,7 @@ public class MessageActivity extends MessageAudioActivity implements
             return;
         }
     }
+
 
 
     protected void onMessageClicked(IMessage message) {

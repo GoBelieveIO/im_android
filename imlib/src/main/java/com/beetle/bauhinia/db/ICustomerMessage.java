@@ -7,9 +7,6 @@ package com.beetle.bauhinia.db;
 
 
 public class ICustomerMessage  extends IMessage {
-    public long customerAppID;
-    public long customerID;
-    public long storeID;
-    public long sellerID;
-    public boolean isSupport;//是否发自客服人员
+    public long senderAppID;
+    public long receiverAppID;
 }

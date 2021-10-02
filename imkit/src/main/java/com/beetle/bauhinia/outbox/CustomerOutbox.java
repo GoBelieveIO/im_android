@@ -42,10 +42,10 @@ public class CustomerOutbox extends Outbox {
 
         CustomerMessage msg = new CustomerMessage();
         msg.msgLocalID = imsg.msgLocalID;
-        msg.customerAppID = cm.customerAppID;
-        msg.customerID = cm.customerID;
-        msg.storeID = cm.storeID;
-        msg.sellerID = cm.sellerID;
+        msg.senderAppID = cm.senderAppID;
+        msg.sender = cm.sender;
+        msg.receiverAppID = cm.receiverAppID;
+        msg.receiver = cm.receiver;
         msg.content = raw;
 
         IMService im = IMService.getInstance();

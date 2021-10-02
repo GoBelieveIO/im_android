@@ -1,13 +1,3 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia.activity;
 
 import android.animation.ObjectAnimator;
@@ -28,13 +18,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amap.api.location.AMapLocation;
+import com.amap.api.location.AMapLocationClient;
+import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
-import com.amap.api.location.LocationManagerProxy;
-import com.amap.api.location.LocationProviderProxy;
+//import com.amap.api.location.LocationManagerProxy;
+//import com.amap.api.location.LocationProviderProxy;
 import com.amap.api.maps2d.AMap;
 import com.amap.api.maps2d.CameraUpdateFactory;
+import com.amap.api.maps2d.LocationSource;
 import com.amap.api.maps2d.MapView;
+import com.amap.api.maps2d.model.BitmapDescriptorFactory;
 import com.amap.api.maps2d.model.LatLng;
+import com.amap.api.maps2d.model.MyLocationStyle;
+import com.amap.api.services.core.AMapException;
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
@@ -47,7 +43,7 @@ import java.lang.ref.WeakReference;
 /**
  * AMapV1地图demo总汇
  */
-public class LocationPickerActivity extends BaseActivity implements GeocodeSearch.OnGeocodeSearchListener, AMapLocationListener {
+public class LocationPickerActivity extends BaseActivity implements GeocodeSearch.OnGeocodeSearchListener, AMapLocationListener, LocationSource {
     private static final int MSG_LOCATION_TIMEOUT = 1000;
     private MapView mapView;
 
@@ -55,9 +51,10 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
     private View pin;
     private TextView label;
     private GeocodeSearch mGeocodeSearch;
-    private LocationManagerProxy mLocationManagerProxy;
-    private MyHandler mMyHandler;
 
+    private OnLocationChangedListener mListener;
+    private AMapLocationClient mlocationClient;
+    private AMapLocationClientOption mLocationOption;
 
     double longitude = 0;
     double latitude = 0;
@@ -104,8 +101,7 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
         mGeocodeSearch = new GeocodeSearch(this);
         mGeocodeSearch.setOnGeocodeSearchListener(this);
 
-        // 定位当前位置
-        getLocation();
+        setUpMap();
     }
 
     @Override
@@ -190,107 +186,99 @@ public class LocationPickerActivity extends BaseActivity implements GeocodeSearc
 
     @Override
     public void onRegeocodeSearched(RegeocodeResult result, int rCode) {
-        if (rCode == 0 && result != null && result.getRegeocodeAddress() != null) {
-            String address;
-            if (result.getRegeocodeAddress().getPois() != null && result.getRegeocodeAddress().getPois().size() > 0) {
-                address = result.getRegeocodeAddress().getPois().get(0).getTitle();
+        if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+            if (result != null && result.getRegeocodeAddress() != null
+                    && result.getRegeocodeAddress().getFormatAddress() != null) {
+                String addressName = result.getRegeocodeAddress().getFormatAddress();
+                setLocation(latitude, longitude, addressName);
+
             } else {
-                address = result.getRegeocodeAddress().getFormatAddress();
+                setLocation(latitude, longitude, "");
             }
-            setLocation(latitude, longitude, address);
-        } else {
-            // 定位失败;
         }
+
     }
 
     @Override
     public void onGeocodeSearched(GeocodeResult geocodeResult, int i) {
     }
 
-
-    public void getLocation() {
-        mLocationManagerProxy = LocationManagerProxy.getInstance(this);
-        /*
-         * mAMapLocManager.setGpsEnable(false);//
-		 * 1.0.2版本新增方法，设置true表示混合定位中包含gps定位，false表示纯网络定位，默认是true Location
-		 * API定位采用GPS和网络混合定位方式
-		 * ，第一个参数是定位provider，第二个参数时间最短是2000毫秒，第三个参数距离间隔单位是米，第四个参数是定位监听者
-		 */
-        mLocationManagerProxy.requestLocationData(LocationProviderProxy.AMapNetwork, 2000, 10, this);
-
-        sendMsg(MSG_LOCATION_TIMEOUT, 12000);// 设置超过12秒还没有定位到就停止定位
+    /**
+     * 设置一些amap的属性
+     */
+    private void setUpMap() {
+        aMap.setLocationSource(this);// 设置定位监听
+        aMap.getUiSettings().setMyLocationButtonEnabled(true);// 设置默认定位按钮是否显示
+        aMap.setMyLocationEnabled(true);// 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
+        setupLocationStyle();
     }
 
-    private void sendMsg(int what, int delayMS) {
-        if (mMyHandler == null) {
-            mMyHandler = new MyHandler(this);
+    private void setupLocationStyle(){
+
+    }
+
+    /**
+     * 激活定位
+     */
+    @Override
+    public void activate(OnLocationChangedListener listener) {
+        mListener = listener;
+        if (mlocationClient == null) {
+            mlocationClient = new AMapLocationClient(this);
+            mLocationOption = new AMapLocationClientOption();
+            //设置定位监听
+            mlocationClient.setLocationListener(this);
+            //设置为高精度定位模式
+            mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
+            //设置定位参数
+            mlocationClient.setLocationOption(mLocationOption);
+            // 此方法为每隔固定时间会发起一次定位请求，为了减少电量消耗或网络流量消耗，
+            // 注意设置合适的定位时间的间隔（最小间隔支持为2000ms），并且在合适时间调用stopLocation()方法来取消定位请求
+            // 在定位结束后，在合适的生命周期调用onDestroy()方法
+            // 在单次定位情况下，定位无论成功与否，都无需调用stopLocation()方法移除请求，定位sdk内部会移除
+            mlocationClient.startLocation();
         }
-        mMyHandler.sendEmptyMessageDelayed(what, delayMS);
     }
+
+    /**
+     * 停止定位
+     */
+    @Override
+    public void deactivate() {
+        mListener = null;
+        if (mlocationClient != null) {
+            mlocationClient.stopLocation();
+            mlocationClient.onDestroy();
+        }
+        mlocationClient = null;
+    }
+
 
     /*======== 定位回调 begin ======== */
     @Override
     public void onLocationChanged(AMapLocation aMapLocation) {
         if (aMapLocation != null) {
             setLocation(aMapLocation.getLatitude(), aMapLocation.getLongitude(), aMapLocation.getAddress());
+
+            if (mListener != null && aMapLocation.getErrorCode() == 0) {
+                mListener.onLocationChanged(aMapLocation);// 显示系统小蓝点
+                aMap.moveCamera(CameraUpdateFactory.zoomTo(18));
+            }
+
         } else {
             setLocation(0, 0, null);
         }
-        stopLocation(false);
+        stopLocation();
     }
 
-    @Override
-    public void onLocationChanged(Location location) {
+    private void stopLocation() {
 
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
-    /*======== 定位回调 end ======== */
-
-    private static class MyHandler extends Handler {
-
-        private final WeakReference<LocationPickerActivity> mWeakReference;
-
-        public MyHandler(LocationPickerActivity locationUtil) {
-            this.mWeakReference = new WeakReference<LocationPickerActivity>(locationUtil);
+        if (mlocationClient != null) {
+            mlocationClient.stopLocation();
+            mlocationClient.onDestroy();
+            mlocationClient = null;
         }
 
-        @Override
-        public void handleMessage(Message msg) {
-            LocationPickerActivity locationUtil = mWeakReference.get();
-            if (locationUtil != null) {
-                switch (msg.what) {
-                    case MSG_LOCATION_TIMEOUT:
-                        locationUtil.stopLocation(true);
-                        break;
-                }
-            }
-        }
-    }
-
-    private void stopLocation(boolean isTimeout) {
-        if (isTimeout && mLocationManagerProxy != null) {
-            // 超时并仍在定位
-            Toast.makeText(this, "超时", Toast.LENGTH_SHORT).show();
-        }
-        if (mLocationManagerProxy != null) {
-            mLocationManagerProxy.removeUpdates(this);
-            mLocationManagerProxy.destory();
-        }
-        mLocationManagerProxy = null;
     }
 
     private void queryLocation() {

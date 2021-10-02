@@ -1,7 +1,9 @@
 package com.beetle.bauhinia;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -28,6 +30,7 @@ import java.util.List;
  */
 public class GroupMessageActivity extends MessageActivity implements
         IMServiceObserver, GroupMessageObserver {
+    protected long currentUID;
     protected long groupID;
     protected String groupName;
 
@@ -62,7 +65,6 @@ public class GroupMessageActivity extends MessageActivity implements
         }
 
         messageID = intent.getIntExtra("message_id", 0);
-        this.conversationID = groupID;
 
         getSupportActionBar().setTitle(groupName);
 
@@ -108,10 +110,6 @@ public class GroupMessageActivity extends MessageActivity implements
         FileDownloader.getInstance().removeObserver(this);
     }
 
-    @Override
-    protected MessageIterator getMessageIterator() {
-        return GroupMessageDB.getInstance().newMessageIterator(groupID);
-    }
 
     @Override
     public void onConnectState(IMService.ConnectState state) {
@@ -276,6 +274,67 @@ public class GroupMessageActivity extends MessageActivity implements
         insertMessage(imsg);
     }
 
+    @Override
+    protected User getUser(long uid) {
+        User u = new User();
+        u.uid = uid;
+        u.name = null;
+        u.avatarURL = "";
+        u.identifier = String.format("name:%d", uid);
+        return u;
+    }
+
+    @Override
+    protected void asyncGetUser(long uid, GetUserCallback cb) {
+        final long fuid = uid;
+        final GetUserCallback fcb = cb;
+        new AsyncTask<Void, Integer, User>() {
+            @Override
+            protected User doInBackground(Void... urls) {
+                User u = new User();
+                u.uid = fuid;
+                u.name = String.format("name:%d", fuid);
+                u.avatarURL = "";
+                u.identifier = String.format("name:%d", fuid);
+                return u;
+            }
+            @Override
+            protected void onPostExecute(User result) {
+                fcb.onUser(result);
+            }
+        }.execute();
+    }
+
+
+    @Override
+    protected MessageIterator createMessageIterator() {
+        MessageIterator iter = GroupMessageDB.getInstance().newMessageIterator(groupID);
+        return iter;
+    }
+
+    @Override
+    protected MessageIterator createForwardMessageIterator(long messageID) {
+        MessageIterator iter = GroupMessageDB.getInstance().newForwardMessageIterator(groupID, messageID);
+        return iter;
+    }
+
+    @Override
+    protected MessageIterator createBackwardMessageIterator(long messageID) {
+        MessageIterator iter = GroupMessageDB.getInstance().newBackwardMessageIterator(groupID, messageID);
+        return iter;
+    }
+
+    @Override
+    protected MessageIterator createMiddleMessageIterator(long messageID) {
+        MessageIterator iter = GroupMessageDB.getInstance().newMiddleMessageIterator(groupID, messageID);
+        return iter;
+    }
+
+
+    @Override
+    protected boolean getMessageOutgoing(IMessage msg) {
+        return (msg.sender == currentUID);
+    }
 
     @Override
     protected void sendMessage(IMessage imsg) {

@@ -20,6 +20,16 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
         return instance;
     }
 
+    //当前用户id
+    private long uid;
+    private long appid;
+    public void setUID(long uid) {
+        this.uid = uid;
+    }
+    public void setAppId(long appid) {
+        this.appid = appid;
+    }
+
     private void repairFailureMessage(String uuid) {
         //纠正消息标志位
         CustomerMessageDB db = CustomerMessageDB.getInstance();
@@ -36,39 +46,8 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
             }
         }
     }
-    @Override
-    public boolean handleCustomerSupportMessage(CustomerMessage msg) {
-        CustomerMessageDB db = CustomerMessageDB.getInstance();
-        ICustomerMessage imsg = new ICustomerMessage();
 
-        imsg.timestamp = msg.timestamp;
-        imsg.customerAppID = msg.customerAppID;
-        imsg.customerID = msg.customerID;
-        imsg.storeID = msg.storeID;
-        imsg.sellerID = msg.sellerID;
-        imsg.sender = msg.customerID;
-        imsg.receiver = msg.storeID;
-        imsg.isSupport = true;
-        imsg.setContent(msg.content);
 
-        if (msg.isSelf) {
-            //纠正消息标志位
-            repairFailureMessage(imsg.getUUID());
-            return true;
-        } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-            Revoke revoke = (Revoke) imsg.content;
-            long msgLocalID = db.getMessageId(revoke.msgid);
-            if (msgLocalID > 0) {
-                db.updateContent(msgLocalID, msg.content);
-                db.removeMessageIndex(msgLocalID);
-            }
-            return true;
-        } else {
-            boolean r = db.insertMessage(imsg);
-            msg.msgLocalID = imsg.msgLocalID;
-            return r;
-        }
-    }
 
     @Override
     public boolean handleMessage(CustomerMessage msg) {
@@ -76,15 +55,23 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
         ICustomerMessage imsg = new ICustomerMessage();
 
         imsg.timestamp = msg.timestamp;
-        imsg.customerAppID = msg.customerAppID;
-        imsg.customerID = msg.customerID;
-        imsg.storeID = msg.storeID;
-        imsg.sellerID = msg.sellerID;
-        imsg.sender = msg.customerID;
-        imsg.receiver = msg.storeID;
-        imsg.isSupport = false;
+        imsg.senderAppID = msg.senderAppID;
+        imsg.sender = msg.sender;
+
+        imsg.receiverAppID = msg.receiverAppID;
+        imsg.receiver = msg.receiver;
         imsg.setContent(msg.content);
 
+        long peerAppID;
+        long peer;
+        if (msg.senderAppID == this.appid && msg.sender == this.uid) {
+            imsg.flags = MessageFlag.MESSAGE_FLAG_ACK;
+            peerAppID = msg.receiverAppID;
+            peer = msg.receiver;
+        } else {
+            peerAppID = msg.senderAppID;
+            peer = msg.sender;
+        }
 
         if (msg.isSelf) {
             repairFailureMessage(imsg.getUUID());
@@ -97,8 +84,7 @@ public class CustomerMessageHandler implements com.beetle.im.CustomerMessageHand
             }
             return true;
         } else {
-
-            boolean r = db.insertMessage(imsg);
+            boolean r = db.insertMessage(imsg, peerAppID, peer);
             msg.msgLocalID = imsg.msgLocalID;
             return r;
         }

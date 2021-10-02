@@ -20,6 +20,7 @@ import android.util.Log;
 import android.util.Pair;
 import android.widget.Toast;
 
+import com.amap.api.services.core.AMapException;
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
@@ -74,7 +75,7 @@ import com.beetle.imkit.R;
  将有可能是本地备注的用户名修改为群内昵称或用户名
 
  */
-public class MessageBaseActivity extends BaseActivity implements
+abstract public class MessageBaseActivity extends BaseActivity implements
         FileDownloader.FileDownloaderObserver,
         OutboxObserver {
     protected static final String TAG = "imservice";
@@ -83,6 +84,7 @@ public class MessageBaseActivity extends BaseActivity implements
     public static final int REVOKE_EXPIRE = 120;
 
     public static final int PAGE_SIZE = 10;
+    public static final int FILE_SIZE_LIMIT = 16*1024*1024;
 
     //app 启动时间戳，app启动时初始化
     public static int uptime;
@@ -99,8 +101,8 @@ public class MessageBaseActivity extends BaseActivity implements
 
 
     protected int pageSize = PAGE_SIZE;
-    protected long conversationID;//uid or groupid or storeid
-    protected long currentUID;
+    protected String conversationID;//uid or groupid or storeid
+
     protected long messageID;
     protected boolean hasLateMore;
     protected boolean hasEarlierMore;
@@ -263,7 +265,6 @@ public class MessageBaseActivity extends BaseActivity implements
                 break;
             }
 
-            msg.isOutgoing = (msg.sender == currentUID);
             messages.add(0, msg);
             if (++count >= pageSize) {
                 break;
@@ -295,7 +296,6 @@ public class MessageBaseActivity extends BaseActivity implements
             if (!TextUtils.isEmpty(msg.getUUID())) {
                 uuidSet.add(msg.getUUID());
             }
-            msg.isOutgoing = (msg.sender == currentUID);
             messages.add(0, msg);
             if (++count >= pageSize*2) {
                 break;
@@ -314,7 +314,6 @@ public class MessageBaseActivity extends BaseActivity implements
             if (msg == null) {
                 break;
             }
-            msg.isOutgoing = (msg.sender == currentUID);
             messages.add(0, msg);
             if (++count >= pageSize) {
                 break;
@@ -332,8 +331,6 @@ public class MessageBaseActivity extends BaseActivity implements
             if (msg == null) {
                 break;
             }
-
-            msg.isOutgoing = (msg.sender == currentUID);
             messages.add(msg);
             if (++count >= pageSize) {
                 break;
@@ -341,6 +338,8 @@ public class MessageBaseActivity extends BaseActivity implements
         }
         return messages;
     }
+
+
 
     //加载消息发送者的名称和头像信息
     protected void loadUserName(IMessage msg) {
@@ -409,14 +408,15 @@ public class MessageBaseActivity extends BaseActivity implements
         GeocodeSearch mGeocodeSearch = new GeocodeSearch(this);
         mGeocodeSearch.setOnGeocodeSearchListener(new GeocodeSearch.OnGeocodeSearchListener() {
             @Override
-            public void onRegeocodeSearched(RegeocodeResult regeocodeResult, int i) {
-                if (i == 0 && regeocodeResult != null && regeocodeResult.getRegeocodeAddress() != null
-                        && regeocodeResult.getRegeocodeAddress().getFormatAddress() != null) {
-                    String address = regeocodeResult.getRegeocodeAddress().getFormatAddress();
-                    Log.i(TAG, "address:" + address);
-                    loc.address = address;
-
-                    saveMessageAttachment(msg, address);
+            public void onRegeocodeSearched(RegeocodeResult result, int rCode) {
+                if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+                    if (result != null && result.getRegeocodeAddress() != null
+                            && result.getRegeocodeAddress().getFormatAddress() != null) {
+                        String address = result.getRegeocodeAddress().getFormatAddress();
+                        Log.i(TAG, "address:" + address);
+                        loc.address = address;
+                        saveMessageAttachment(msg, address);
+                    }
                 } else {
                     // 定位失败;
                 }
@@ -484,6 +484,8 @@ public class MessageBaseActivity extends BaseActivity implements
     }
 
     protected void prepareMessage(IMessage message) {
+        message.isOutgoing = getMessageOutgoing(message);
+
         loadUserName(message);
         downloadMessageContent(message);
         updateNotificationDesc(message);
@@ -779,6 +781,11 @@ public class MessageBaseActivity extends BaseActivity implements
                 Log.i(TAG, "can't get filename");
                 return;
             }
+            if (fileSize > FILE_SIZE_LIMIT) {
+                String warning = String.format(getString(R.string.file_size_limit_warning), FILE_SIZE_LIMIT/(1024*1024));
+                Toast.makeText(this, warning, Toast.LENGTH_SHORT).show();
+                return;
+            }
             String ext = "";
             int index = filename.lastIndexOf(".");
             if (index != -1) {
@@ -984,15 +991,14 @@ public class MessageBaseActivity extends BaseActivity implements
         this.sendMessage(msg);
     }
 
+    abstract protected boolean getMessageOutgoing(IMessage msg);
+    abstract protected IMessage newOutMessage(MessageContent content);
+    abstract protected void sendMessage(IMessage imsg);
+    abstract protected MessageIterator createMessageIterator();
+    abstract protected MessageIterator createForwardMessageIterator(long messageID);
+    abstract protected MessageIterator createBackwardMessageIterator(long messageID);
+    abstract protected MessageIterator createMiddleMessageIterator(long messageID);
 
-    protected IMessage newOutMessage(MessageContent content) {
-        assert(false);
-        return null;
-    }
-
-    protected void sendMessage(IMessage imsg) {
-        assert(false);
-    }
 
     protected IMessage findMessage(long msgLocalID) {
         for (IMessage imsg : messages) {
@@ -1020,7 +1026,7 @@ public class MessageBaseActivity extends BaseActivity implements
     protected ArrayList<IMessage> getImageMessages() {
         ArrayList<IMessage> images = new ArrayList<IMessage>();
 
-        MessageIterator iter = getMessageIterator();
+        MessageIterator iter = createMessageIterator();
         while (iter != null) {
             IMessage msg = iter.next();
             if (msg == null) {
@@ -1098,27 +1104,5 @@ public class MessageBaseActivity extends BaseActivity implements
     }
 
 
-    protected MessageIterator getMessageIterator() {
-        return null;
-    }
 
-    protected MessageIterator createMessageIterator() {
-        MessageIterator iter = messageDB.newMessageIterator(conversationID);
-        return iter;
-    }
-
-    protected MessageIterator createForwardMessageIterator(long messageID) {
-        MessageIterator iter = messageDB.newForwardMessageIterator(conversationID, messageID);
-        return iter;
-    }
-
-    protected MessageIterator createBackwardMessageIterator(long messageID) {
-        MessageIterator iter = messageDB.newBackwardMessageIterator(conversationID, messageID);
-        return iter;
-    }
-
-    protected MessageIterator createMiddleMessageIterator(long messageID) {
-        MessageIterator iter = messageDB.newMiddleMessageIterator(conversationID, messageID);
-        return iter;
-    }
 }

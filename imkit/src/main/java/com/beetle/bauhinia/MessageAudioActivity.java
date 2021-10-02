@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.TimerTask;
 
-public class MessageAudioActivity extends MessageBaseActivity {
+abstract public class MessageAudioActivity extends MessageBaseActivity {
     IMessage playingMessage;
 
     //录音相关
@@ -64,13 +64,17 @@ public class MessageAudioActivity extends MessageBaseActivity {
 
 
     protected void showReleaseToCancelHint() {
-        recordingText.setText(getString(R.string.release_to_cancel));
-        recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
+        if (recordingText != null) {
+            recordingText.setText(getString(R.string.release_to_cancel));
+            recordingText.setBackgroundResource(R.drawable.ease_recording_text_hint_bg);
+        }
     }
 
     protected void showMoveUpToCancelHint() {
-        recordingText.setText(getString(R.string.move_up_to_cancel));
-        recordingText.setBackgroundColor(Color.TRANSPARENT);
+        if (recordingText != null) {
+            recordingText.setText(getString(R.string.move_up_to_cancel));
+            recordingText.setBackgroundColor(Color.TRANSPARENT);
+        }
     }
 
     protected void showRecordDialog() {

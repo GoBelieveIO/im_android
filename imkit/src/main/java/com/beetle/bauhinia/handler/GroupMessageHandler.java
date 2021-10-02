@@ -7,7 +7,9 @@ import com.beetle.bauhinia.db.IMessage;
 import com.beetle.bauhinia.db.MessageFlag;
 import com.beetle.bauhinia.db.message.GroupNotification;
 import com.beetle.bauhinia.db.message.MessageContent;
+import com.beetle.bauhinia.db.message.Readed;
 import com.beetle.bauhinia.db.message.Revoke;
+import com.beetle.bauhinia.db.message.Tag;
 import com.beetle.im.IMMessage;
 import com.beetle.im.MessageACK;
 
@@ -62,7 +64,10 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
 
         ArrayList<IMessage> imsgs = new ArrayList<>();
         ArrayList<IMMessage> insertedMsgs = new ArrayList<>();
-        ArrayList<IMessage> revokeMsgs = new ArrayList<>();
+
+        ArrayList<IMessage> controlMsgs = new ArrayList<>();
+        ArrayList<IMMessage> cmsgs = new ArrayList<>();
+
         for (IMMessage msg : msgs) {
             IMessage imsg = new IMessage();
             imsg.sender = msg.sender;
@@ -83,13 +88,20 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
 
             if (msg.sender == this.uid) {
                 imsg.flags = MessageFlag.MESSAGE_FLAG_ACK;
+                imsg.isOutgoing = true;
             }
+
+            //避免在observer中重复构造content对象
+            msg.contentObj = imsg.content;
 
             if (msg.isSelf) {
                 assert(msg.sender == uid);
                 repairFailureMessage(imsg.getUUID());
-            } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
-                revokeMsgs.add(imsg);
+            } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE ||
+                    imsg.getType() == MessageContent.MessageType.MESSAGE_TAG ||
+                    imsg.getType() == MessageContent.MessageType.MESSAGE_READED) {
+                controlMsgs.add(imsg);
+                cmsgs.add(msg);
             } else {
                 imsgs.add(imsg);
                 insertedMsgs.add(msg);
@@ -106,13 +118,38 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
             msg.msgLocalID = m.msgLocalID;
         }
 
-        for (int i = 0; i < revokeMsgs.size(); i++) {
-            IMessage imsg = revokeMsgs.get(i);
-            Revoke revoke = (Revoke) imsg.content;
-            long msgLocalID = db.getMessageId(revoke.msgid);
-            if (msgLocalID > 0) {
-                db.updateContent(msgLocalID, imsg.content.getRaw());
-                db.removeMessageIndex(msgLocalID, imsg.receiver);
+        for (int i = 0; i < controlMsgs.size(); i++) {
+            IMessage imsg = controlMsgs.get(i);
+            IMMessage im = cmsgs.get(i);
+
+            if (imsg.getType() == MessageContent.MessageType.MESSAGE_REVOKE) {
+                Revoke revoke = (Revoke) imsg.content;
+                long msgLocalID = db.getMessageId(revoke.msgid);
+                if (msgLocalID > 0) {
+                    db.updateContent(msgLocalID, imsg.content.getRaw());
+                    db.removeMessageIndex(msgLocalID, imsg.receiver);
+                }
+            } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_TAG) {
+                Tag tag = (Tag) imsg.content;
+                long msgLocalID = db.getMessageId(tag.msgid);
+                if (msgLocalID > 0){
+                    if (!TextUtils.isEmpty(tag.addTag)) {
+                        db.addMessageTag(msgLocalID, tag.addTag);
+                    } else if (!TextUtils.isEmpty(tag.deleteTag)) {
+                        db.removeMessageTag(msgLocalID, tag.deleteTag);
+                    }
+                }
+            } else if (imsg.getType() == MessageContent.MessageType.MESSAGE_READED) {
+                Readed readed = (Readed) imsg.content;
+                long msgLocalID = GroupMessageDB.getInstance().getMessageId(readed.msgid);
+                if (msgLocalID > 0) {
+                    if (imsg.isOutgoing) {
+                        int rowsAffected = GroupMessageDB.getInstance().markMessageReaded(msgLocalID);
+                        im.decrementUnread = rowsAffected > 0;
+                    } else {
+                        GroupMessageDB.getInstance().addMessageReader(msgLocalID, imsg.sender);
+                    }
+                }
             }
         }
 
@@ -133,24 +170,33 @@ public class GroupMessageHandler implements com.beetle.im.GroupMessageHandler {
                         db.updateContent(revokedMsgId, im.content);
                         db.removeMessageIndex(revokedMsgId, gid);
                     }
+                } else if (c.getType() == MessageContent.MessageType.MESSAGE_TAG) {
+                    Tag tag = (Tag) c;
+                    long msgId = db.getMessageId(tag.msgid);
+                    if (msgId > 0) {
+                        if (!TextUtils.isEmpty(tag.addTag)) {
+                            db.addMessageTag(msgId, tag.addTag);
+                        } else if (!TextUtils.isEmpty(tag.deleteTag)) {
+                            db.removeMessageTag(msgId, tag.deleteTag);
+                        }
+                    }
                 }
-                return true;
             } else {
-                return db.acknowledgeMessage(msgLocalID);
+                db.acknowledgeMessage(msgLocalID);
             }
         } else {
             if (msgLocalID > 0) {
-                return db.markMessageFailure(msgLocalID);
+                db.markMessageFailure(msgLocalID);
             }
-            return true;
         }
+        return true;
     }
 
     public boolean handleMessageFailure(IMMessage im) {
         long msgLocalID = im.msgLocalID;
-         if (msgLocalID > 0) {
+        if (msgLocalID > 0) {
             GroupMessageDB db = GroupMessageDB.getInstance();
-            return db.markMessageFailure(msgLocalID);
+            db.markMessageFailure(msgLocalID);
         }
         return true;
     }

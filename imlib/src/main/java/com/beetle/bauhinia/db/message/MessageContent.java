@@ -2,6 +2,8 @@ package com.beetle.bauhinia.db.message;
 
 import android.text.TextUtils;
 
+import com.google.gson.annotations.SerializedName;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -27,6 +29,7 @@ public abstract class MessageContent implements Cloneable {
     public static final String CLASSROOM = "classroom";
     public static final String READED = "readed";
     public static final String TAG = "tag";
+    public static final String CONFERENCE = "conference";
 
     public enum MessageType {
         MESSAGE_UNKNOWN,
@@ -38,7 +41,7 @@ public abstract class MessageContent implements Cloneable {
         MESSAGE_GROUP_NOTIFICATION,
         MESSAGE_LINK,
         MESSAGE_ATTACHMENT,
-        MESSAGE_HEADLINE,
+        MESSAGE_HEADLINE, //成为好友提示
         MESSAGE_VOIP,
         MESSAGE_GROUP_VOIP,
         MESSAGE_FILE,
@@ -49,6 +52,8 @@ public abstract class MessageContent implements Cloneable {
         MESSAGE_CLASSROOM,//群课堂
         MESSAGE_READED, //消息已读
         MESSAGE_TAG,//给消息打标签
+        MESSAGE_CONFERENCE,//视频会议
+
         MESSAGE_TIME_BASE, //虚拟的消息，不会存入磁盘
     }
 
@@ -67,6 +72,15 @@ public abstract class MessageContent implements Cloneable {
     protected String uuid;
     protected long groupId;//群组会话内的私聊和群组会话的已读
     protected String reference;//引用的消息uuid
+
+    //客服会话
+    protected long storeId;
+    protected String sessionId;
+
+    protected String name;
+    protected String appName;
+    protected String storeName;
+
 
     public MessageType getType() {
         return MessageType.MESSAGE_UNKNOWN;
@@ -93,6 +107,49 @@ public abstract class MessageContent implements Cloneable {
 
     public void setGroupId(long groupId) {
         this.groupId = groupId;
+    }
+
+
+
+    public long getStoreId() {
+        return storeId;
+    }
+
+    public void setStoreId(long storeId) {
+        this.storeId = storeId;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
+    }
+
+    public String getAppName() {
+        return appName;
+    }
+
+    public void setStoreName(String storeName) {
+        this.storeName = storeName;
+    }
+
+    public String getStoreName() {
+        return storeName;
     }
 
     public String getReference() {
@@ -150,6 +207,39 @@ public abstract class MessageContent implements Cloneable {
             this.groupId = groupId;
             this.uuid = uuid;
             this.reference = reference;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void generateRaw(long storeId, String sessionId, String storeName, String name, String appName) {
+        if (raw == null) {
+            return;
+        }
+        try {
+            JSONObject obj = new JSONObject(raw);
+            if (!TextUtils.isEmpty(sessionId)) {
+                obj.put("session_id", reference);
+            }
+            if (storeId > 0) {
+                obj.put("store_id", storeId);
+            }
+            if (!TextUtils.isEmpty(storeName)) {
+                obj.put("store_name", storeName);
+            }
+            if (!TextUtils.isEmpty(name)) {
+                obj.put("name", name);
+            }
+            if (!TextUtils.isEmpty(appName)) {
+                obj.put("app_name", appName);
+            }
+
+            this.raw = obj.toString();
+            this.sessionId = sessionId;
+            this.storeId = storeId;
+            this.storeName = storeName;
+            this.name = name;
+            this.appName = appName;
         } catch (JSONException e) {
             e.printStackTrace();
         }

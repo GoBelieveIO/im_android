@@ -213,19 +213,19 @@ public class SQLGroupMessageDB  {
     }
 
 
-    public boolean acknowledgeMessage(long msgLocalID) {
+    public int acknowledgeMessage(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_ACK);
     }
 
-    public boolean markMessageFailure(long msgLocalID) {
+    public int markMessageFailure(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_FAILURE);
     }
 
-    public boolean markMessageListened(long msgLocalID) {
+    public int markMessageListened(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_LISTENED);
     }
 
-    public boolean markMessageReaded(long msgLocalID) {
+    public int markMessageReaded(long msgLocalID) {
         return addFlag(msgLocalID,  MessageFlag.MESSAGE_FLAG_READED);
     }
 
@@ -234,24 +234,27 @@ public class SQLGroupMessageDB  {
         return removeFlag(msgLocalID, f);
     }
 
-    public boolean addFlag(long msgLocalID, int f) {
+    public int addFlag(long msgLocalID, int f) {
+        int r = 0;
         String sql = "SELECT flags FROM group_message WHERE id=?";
         Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
-            flags |= f;
+            if ((flags & f) == 0) {
+                flags |= f;
 
-            ContentValues cv = new ContentValues();
-            cv.put("flags", flags);
-            db.update(TABLE_NAME, cv, "id = ?", new String[]{""+msgLocalID});
+                ContentValues cv = new ContentValues();
+                cv.put("flags", flags);
+                r = db.update(TABLE_NAME, cv, "id = ?", new String[]{"" + msgLocalID});
+            }
         }
         cursor.close();
-        return true;
+        return r;
     }
 
-    public boolean removeFlag(long msgLocalID, int f) {
-        String sql = "SELECT flags FROM group_message WHERE id=?";
-        Cursor cursor = db.rawQuery(sql, new String[]{""+msgLocalID});
+    private boolean removeFlag(long msgLocalID, int f) {
+        Cursor cursor = db.query(TABLE_NAME, new String[]{"flags"},
+                "id = ?", new String[]{""+msgLocalID}, null, null, null);
         if (cursor.moveToNext()) {
             int flags = cursor.getInt(cursor.getColumnIndex("flags"));
             flags &= ~f;

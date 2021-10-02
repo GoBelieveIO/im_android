@@ -1,29 +1,13 @@
-/*                                                                            
-  Copyright (c) 2014-2019, GoBelieve     
-    All rights reserved.		    				     			
- 
-  This source code is licensed under the BSD-style license found in the
-  LICENSE file in the root directory of this source tree. An additional grant
-  of patent rights can be found in the PATENTS file in the same directory.
-*/
-
-
 package com.beetle.bauhinia.activity;
 
 import android.content.Context;
 import android.content.Intent;
-import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationListener;
-import com.amap.api.location.LocationManagerProxy;
-import com.amap.api.location.LocationProviderProxy;
 import com.amap.api.maps2d.AMap;
 import com.amap.api.maps2d.CameraUpdateFactory;
 import com.amap.api.maps2d.MapView;
@@ -31,6 +15,7 @@ import com.amap.api.maps2d.model.BitmapDescriptorFactory;
 import com.amap.api.maps2d.model.LatLng;
 import com.amap.api.maps2d.model.Marker;
 import com.amap.api.maps2d.model.MarkerOptions;
+import com.amap.api.services.core.AMapException;
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.geocoder.GeocodeResult;
 import com.amap.api.services.geocoder.GeocodeSearch;
@@ -38,21 +23,17 @@ import com.amap.api.services.geocoder.RegeocodeAddress;
 import com.amap.api.services.geocoder.RegeocodeQuery;
 import com.amap.api.services.geocoder.RegeocodeResult;
 
-import java.lang.ref.WeakReference;
-
 import com.beetle.bauhinia.tools.MapUtil;
 import com.beetle.imkit.R;
 /**
  * AMapV1地图demo总汇
  */
 public class MapActivity extends BaseActivity implements GeocodeSearch.OnGeocodeSearchListener, AMapLocationListener {
-    private static final int MSG_LOCATION_TIMEOUT = 1000;
     private MapView mapView;
 
     private AMap aMap;
     private GeocodeSearch mGeocodeSearch;
-    private LocationManagerProxy mLocationManagerProxy;
-    private MyHandler mMyHandler;
+
 
     TextView addressView;
     TextView townshipView;
@@ -90,8 +71,7 @@ public class MapActivity extends BaseActivity implements GeocodeSearch.OnGeocode
         addressView = (TextView)findViewById(R.id.address);
         townshipView = (TextView)findViewById(R.id.township);
 
-        // 定位当前位置
-        //getLocation();
+        setLocation(latitude, longitude, "");
 
         // 根据经纬度定位
         queryLocation();
@@ -158,15 +138,16 @@ public class MapActivity extends BaseActivity implements GeocodeSearch.OnGeocode
 
     @Override
     public void onRegeocodeSearched(RegeocodeResult result, int rCode) {
-        if (rCode == 0 && result != null && result.getRegeocodeAddress() != null
-                && result.getRegeocodeAddress().getFormatAddress() != null) {
-            setLocation(latitude, longitude, result.getRegeocodeAddress().getFormatAddress());
-            RegeocodeAddress addr = result.getRegeocodeAddress();
-            poiname = addr.getFormatAddress();
-            addressView.setText(addr.getFormatAddress());
-            townshipView.setText(addr.getTownship());
-        } else {
-            // 定位失败;
+
+        if (rCode == AMapException.CODE_AMAP_SUCCESS) {
+            if (result != null && result.getRegeocodeAddress() != null
+                    && result.getRegeocodeAddress().getFormatAddress() != null) {
+                setLocation(latitude, longitude, result.getRegeocodeAddress().getFormatAddress());
+                RegeocodeAddress addr = result.getRegeocodeAddress();
+                poiname = addr.getFormatAddress();
+                addressView.setText(addr.getFormatAddress());
+                townshipView.setText(addr.getTownship());
+            }
         }
     }
 
@@ -175,88 +156,11 @@ public class MapActivity extends BaseActivity implements GeocodeSearch.OnGeocode
     }
 
 
-    public void getLocation() {
-        mLocationManagerProxy = LocationManagerProxy.getInstance(this);
-        /*
-         * mAMapLocManager.setGpsEnable(false);//
-		 * 1.0.2版本新增方法，设置true表示混合定位中包含gps定位，false表示纯网络定位，默认是true Location
-		 * API定位采用GPS和网络混合定位方式
-		 * ，第一个参数是定位provider，第二个参数时间最短是2000毫秒，第三个参数距离间隔单位是米，第四个参数是定位监听者
-		 */
-        mLocationManagerProxy.requestLocationData(LocationProviderProxy.AMapNetwork, 2000, 10, this);
-
-        sendMsg(MSG_LOCATION_TIMEOUT, 12000);// 设置超过12秒还没有定位到就停止定位
-    }
-
-    private void sendMsg(int what, int delayMS) {
-        if (mMyHandler == null) {
-            mMyHandler = new MyHandler(this);
-        }
-        mMyHandler.sendEmptyMessageDelayed(what, delayMS);
-    }
 
     /*======== 定位回调 begin ======== */
     @Override
     public void onLocationChanged(AMapLocation aMapLocation) {
-        if (aMapLocation != null) {
-            setLocation(aMapLocation.getLatitude(), aMapLocation.getLongitude(), aMapLocation.getAddress());
-        } else {
-            setLocation(0, 0, null);
-        }
-        stopLocation(false);
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
 
     }
 
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
-    /*======== 定位回调 end ======== */
-
-    private static class MyHandler extends Handler {
-
-        private final WeakReference<MapActivity> mWeakReference;
-
-        public MyHandler(MapActivity locationUtil) {
-            this.mWeakReference = new WeakReference<MapActivity>(locationUtil);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            MapActivity locationUtil = mWeakReference.get();
-            if (locationUtil != null) {
-                switch (msg.what) {
-                    case MSG_LOCATION_TIMEOUT:
-                        locationUtil.stopLocation(true);
-                        break;
-                }
-            }
-        }
-    }
-
-    private void stopLocation(boolean isTimeout) {
-        if (isTimeout && mLocationManagerProxy != null) {
-            // 超时并仍在定位
-            Toast.makeText(this, "超时", Toast.LENGTH_SHORT).show();
-        }
-        if (mLocationManagerProxy != null) {
-            mLocationManagerProxy.removeUpdates(this);
-            mLocationManagerProxy.destory();
-        }
-        mLocationManagerProxy = null;
-    }
 }

@@ -34,7 +34,10 @@ public class MessageDatabaseHelper {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
+            db.beginTransaction();
             createDatabase(db);
+            db.setTransactionSuccessful();
+            db.endTransaction();
         }
 
         @Override
@@ -50,10 +53,17 @@ public class MessageDatabaseHelper {
             db.execSQL(SQLCreator.PEER_MESSAGE_FTS);
             db.execSQL(SQLCreator.GROUP_MESSAGE_FTS);
             db.execSQL(SQLCreator.CUSTOMER_MESSAGE_FTS);
+            db.execSQL(SQLCreator.GROUP_MESSAGE_READED);
+
             db.execSQL(SQLCreator.PEER_MESSAGE_IDX);
             db.execSQL(SQLCreator.PEER_MESSAGE_UUID_IDX);
+            db.execSQL(SQLCreator.GROUP_MESSAGE_IDX);
             db.execSQL(SQLCreator.GROUP_MESSAGE_UUID_IDX);
+
+            db.execSQL(SQLCreator.CUSTOMER_MESSAGE_IDX);
+            db.execSQL(SQLCreator.CUSTOMER_PEER_MESSAGE_IDX);
             db.execSQL(SQLCreator.CUSTOMER_MESSAGE_UUID_IDX);
+
             db.execSQL(SQLCreator.CONVERSATION);
             db.execSQL(SQLCreator.CONVERSATION_IDX);
         }

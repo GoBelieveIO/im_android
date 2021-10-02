@@ -21,6 +21,7 @@ import com.beetle.im.PeerMessageObserver;
 
 public class PeerMessageActivity extends MessageActivity implements
         IMServiceObserver, PeerMessageObserver {
+    protected long currentUID;
     protected long peerUID;
     protected String peerName;
     protected String peerAvatar;
@@ -57,13 +58,9 @@ public class PeerMessageActivity extends MessageActivity implements
         }
 
         secret = intent.getBooleanExtra("secret", false);
-
-
         messageID = intent.getIntExtra("message_id", 0);
 
         Log.i(TAG, "local id:" + currentUID +  "peer id:" + peerUID);
-
-        this.conversationID = peerUID;
 
         if (secret) {
             getSupportActionBar().setTitle(peerName + "(密)");
@@ -114,15 +111,6 @@ public class PeerMessageActivity extends MessageActivity implements
         IMService.getInstance().removeObserver(this);
         IMService.getInstance().removePeerObserver(this);
         FileDownloader.getInstance().removeObserver(this);
-    }
-
-    @Override
-    protected MessageIterator getMessageIterator() {
-        if (secret) {
-            return EPeerMessageDB.getInstance().newMessageIterator(peerUID);
-        } else {
-            return PeerMessageDB.getInstance().newMessageIterator(peerUID);
-        }
     }
 
 
@@ -328,6 +316,42 @@ public class PeerMessageActivity extends MessageActivity implements
     protected void handleP2PSession(IMessage imsg) {
 
     }
+
+
+    @Override
+    protected MessageIterator createMessageIterator() {
+        messageDB = PeerMessageDB.getInstance();
+        MessageIterator iter = PeerMessageDB.getInstance().newMessageIterator(peerUID);
+        return iter;
+    }
+
+    @Override
+    protected MessageIterator createForwardMessageIterator(long messageID) {
+        messageDB = PeerMessageDB.getInstance();
+        MessageIterator iter = PeerMessageDB.getInstance().newForwardMessageIterator(peerUID, messageID);
+        return iter;
+    }
+
+    @Override
+    protected MessageIterator createBackwardMessageIterator(long messageID) {
+        messageDB = PeerMessageDB.getInstance();
+        MessageIterator iter = PeerMessageDB.getInstance().newBackwardMessageIterator(peerUID, messageID);
+        return iter;
+    }
+
+    @Override
+    protected MessageIterator createMiddleMessageIterator(long messageID) {
+        messageDB = PeerMessageDB.getInstance();
+        MessageIterator iter = PeerMessageDB.getInstance().newMiddleMessageIterator(peerUID, messageID);
+        return iter;
+    }
+
+
+    @Override
+    protected boolean getMessageOutgoing(IMessage msg) {
+        return (msg.sender == currentUID);
+    }
+
 
     @Override
     protected void sendMessage(IMessage imsg) {

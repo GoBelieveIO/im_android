@@ -265,42 +265,9 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
                 updateGroupConversationName(conv);
                 updateNotificationDesc(conv);
                 updateConversationDetail(conv);
-            } else if (conv.type == Conversation.CONVERSATION_CUSTOMER_SERVICE) {
-                if (conv.cid != KEFU_ID) {
-                    continue;
-                }
-                IMessage msg = CustomerMessageDB.getInstance().getLastMessage(conv.cid);
-                conv.message = msg;
-
-                conv.setName("客服");
-                updateNotificationDesc(conv);
-                updateConversationDetail(conv);
-                customerExists = true;
             }
         }
 
-        if (!customerExists) {
-            ICustomerMessage   msg = new ICustomerMessage();
-            msg.isSupport = true;
-            msg.isOutgoing = false;
-            msg.customerAppID = APPID;
-            msg.customerID = currentUID;
-            msg.storeID = KEFU_ID;
-            msg.sellerID = 0;
-
-            msg.content = Text.newText("如果你在使用过程中有任何问题和建议，记得给我们发信反馈哦");
-            msg.sender = 0;
-            msg.receiver = this.currentUID;
-            msg.timestamp = now();
-
-            Conversation conv = new Conversation();
-            conv.message = msg;
-            conv.cid = 0;
-            conv.type = Conversation.CONVERSATION_CUSTOMER_SERVICE;
-            conv.setName("客服");
-            updateConversationDetail(conv);
-            conversations.add(conv);
-        }
 
         Comparator<Conversation> cmp = new Comparator<Conversation>() {
             public int compare(Conversation c1, Conversation c2) {
@@ -365,8 +332,6 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
             onPeerClick(conv.cid);
         } else if (conv.type == Conversation.CONVERSATION_GROUP){
             onGroupClick(conv.cid);
-        } else if (conv.type == Conversation.CONVERSATION_CUSTOMER_SERVICE) {
-            onCustomerServiceClick(conv);
         }
     }
 
@@ -750,17 +715,6 @@ public class MessageListActivity extends BaseActivity implements IMServiceObserv
     }
 
 
-    protected void onCustomerServiceClick(Conversation conv) {
-        ICustomerMessage msg = (ICustomerMessage)conv.message;
 
-        Intent intent = new Intent(this, CustomerMessageActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("store_id", msg.storeID);
-        intent.putExtra("seller_id", msg.sellerID);
-        intent.putExtra("app_id", APPID);
-        intent.putExtra("current_uid", this.currentUID);
-        intent.putExtra("peer_name", "客服");
-        startActivity(intent);
-    }
 
 }

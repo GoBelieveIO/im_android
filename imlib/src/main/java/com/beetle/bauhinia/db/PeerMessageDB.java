@@ -1,27 +1,12 @@
 package com.beetle.bauhinia.db;
-
-
 import com.beetle.bauhinia.db.message.Location;
 
-/**
- * Created by houxh on 14-7-22.
- *
- * FilePeerMessageDB vs SQLPeerMessageDB
- */
-public class PeerMessageDB extends SQLPeerMessageDB implements IMessageDB {
-    public static final boolean SQL_ENGINE_DB = true;
+class BasePeerMessageDB extends SQLPeerMessageDB implements IMessageDB {
 
-    private static PeerMessageDB instance = new PeerMessageDB();
-
-    public static PeerMessageDB getInstance() {
-        return instance;
+    public boolean clearConversation(String conversationID) {
+        long peer = Long.parseLong(conversationID);
+        return clearConversation(peer);
     }
-
-
-    PeerMessageDB() {
-        secret = 0;
-    }
-
 
     public void saveMessageAttachment(IMessage msg, String address) {
         Location loc = (Location)msg.content;
@@ -48,5 +33,19 @@ public class PeerMessageDB extends SQLPeerMessageDB implements IMessageDB {
 
     public void eraseMessageFailure(IMessage imsg) {
         this.eraseMessageFailure(imsg.msgLocalID);
+    }
+}
+
+
+public class PeerMessageDB extends BasePeerMessageDB {
+    private static PeerMessageDB instance = new PeerMessageDB();
+
+    public static PeerMessageDB getInstance() {
+        return instance;
+    }
+
+
+    PeerMessageDB() {
+        secret = 0;
     }
 }
