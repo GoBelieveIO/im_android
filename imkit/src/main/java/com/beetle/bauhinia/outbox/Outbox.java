@@ -423,27 +423,21 @@ public abstract class Outbox {
 
     protected void sendImageMessage(IMessage imsg, String url) {
         com.beetle.bauhinia.db.message.Image image = (com.beetle.bauhinia.db.message.Image) imsg.content;
-        com.beetle.bauhinia.db.message.Image newImage = com.beetle.bauhinia.db.message.Image.newImage(url, image.width, image.height);
-        newImage.generateRaw(image.getUUID(), image.getReference(), image.getGroupId());
-
+        com.beetle.bauhinia.db.message.Image newImage = new com.beetle.bauhinia.db.message.Image(image, url);
         sendRawMessage(imsg, newImage.getRaw());
     }
 
 
     protected void sendAudioMessage(IMessage imsg, String url) {
         com.beetle.bauhinia.db.message.Audio audio = (com.beetle.bauhinia.db.message.Audio) imsg.content;
-        com.beetle.bauhinia.db.message.Audio newAudio = com.beetle.bauhinia.db.message.Audio.newAudio(url, audio.duration);
-        newAudio.generateRaw(audio.getUUID(), audio.getReference(), audio.getGroupId());
-
+        com.beetle.bauhinia.db.message.Audio newAudio = new com.beetle.bauhinia.db.message.Audio(audio, url);
         sendRawMessage(imsg, newAudio.getRaw());
     }
 
 
     protected void sendVideoMessage(IMessage imsg, String url, String thumbURL) {
         Video video = (Video) imsg.content;
-        Video newVideo = Video.newVideo(url, thumbURL, video.width, video.height, video.duration);
-        newVideo.generateRaw(video.getUUID(), video.getReference(), video.getGroupId());
-
+        Video newVideo = new Video(video, url, thumbURL);
         sendRawMessage(imsg, newVideo.getRaw());
     }
 
@@ -452,18 +446,14 @@ public abstract class Outbox {
         com.beetle.bauhinia.db.message.File file = (com.beetle.bauhinia.db.message.File) imsg.content;
         com.beetle.bauhinia.db.message.File newFile = com.beetle.bauhinia.db.message.File.newFile(url, file.filename, file.size);
         newFile.generateRaw(file.getUUID(), file.getReference(), file.getGroupId());
-
         sendRawMessage(imsg, newFile.getRaw());
     }
-
 
     protected void saveImageURL(IMessage msg, String url) {
         String content = "";
         if (msg.content.getType() == MessageContent.MessageType.MESSAGE_IMAGE) {
             com.beetle.bauhinia.db.message.Image image = (com.beetle.bauhinia.db.message.Image) msg.content;
-            com.beetle.bauhinia.db.message.Image newImage = com.beetle.bauhinia.db.message.Image.newImage(url, image.width, image.height);
-            newImage.generateRaw(image.getUUID(), image.getReference(), image.getGroupId());
-
+            com.beetle.bauhinia.db.message.Image newImage = new com.beetle.bauhinia.db.message.Image(image, url);
             content = newImage.getRaw();
         } else {
             return;
@@ -476,8 +466,7 @@ public abstract class Outbox {
         String content = "";
         if (msg.content.getType() == MessageContent.MessageType.MESSAGE_AUDIO) {
             com.beetle.bauhinia.db.message.Audio audio = (com.beetle.bauhinia.db.message.Audio) msg.content;
-            com.beetle.bauhinia.db.message.Audio newAudio = com.beetle.bauhinia.db.message.Audio.newAudio(url, audio.duration);
-            newAudio.generateRaw(audio.getUUID(), audio.getReference(), audio.getGroupId());
+            com.beetle.bauhinia.db.message.Audio newAudio = new com.beetle.bauhinia.db.message.Audio(audio, url);
             content = newAudio.getRaw();
         } else {
             return;
@@ -490,8 +479,7 @@ public abstract class Outbox {
         String content = "";
         if (msg.content.getType() == MessageContent.MessageType.MESSAGE_VIDEO) {
             Video video = (Video) msg.content;
-            Video newVideo = Video.newVideo(url, thumbURL, video.width, video.height, video.duration);
-            newVideo.generateRaw(video.getUUID(), video.getReference(), video.getGroupId());
+            Video newVideo = new Video(video, url, thumbURL);
             content = newVideo.getRaw();
         } else {
             return;
@@ -505,8 +493,7 @@ public abstract class Outbox {
         String content = "";
         if (msg.content.getType() == MessageContent.MessageType.MESSAGE_FILE) {
             com.beetle.bauhinia.db.message.File file = (com.beetle.bauhinia.db.message.File) msg.content;
-            com.beetle.bauhinia.db.message.File newFile = com.beetle.bauhinia.db.message.File.newFile(url, file.filename, file.size);
-            newFile.generateRaw(file.getUUID(), file.getReference(), file.getGroupId());
+            com.beetle.bauhinia.db.message.File newFile = new com.beetle.bauhinia.db.message.File(file, url);
             content = newFile.getRaw();
         } else {
             return;

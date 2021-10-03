@@ -82,6 +82,25 @@ public abstract class MessageContent implements Cloneable {
     protected String storeName;
 
 
+    public MessageContent() {
+
+    }
+
+    public MessageContent(String uuid) {
+        this.uuid = uuid;
+    }
+
+    public MessageContent(MessageContent other) {
+        this.raw = other.raw;
+        this.uuid = other.uuid;
+        this.groupId = other.groupId;
+        this.reference = other.reference;
+        this.storeId = other.storeId;
+        this.sessionId = other.sessionId;
+        this.name = other.name;
+        this.appName = other.appName;
+        this.storeName = other.storeName;
+    }
     public MessageType getType() {
         return MessageType.MESSAGE_UNKNOWN;
     }

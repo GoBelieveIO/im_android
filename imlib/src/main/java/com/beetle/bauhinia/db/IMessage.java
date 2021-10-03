@@ -112,10 +112,6 @@ public class IMessage implements Cloneable {
                 content = gson.fromJson(raw, Text.class);
             } else if (element.has(MessageContent.IMAGE2)) {
                 content = gson.fromJson(element.get(MessageContent.IMAGE2), Image.class);
-            } else if (element.has(MessageContent.IMAGE)) {
-                Image image = new Image();
-                image.url = element.get(MessageContent.IMAGE).getAsString();
-                content = image;
             } else if (element.has(MessageContent.AUDIO)) {
                 content = gson.fromJson(element.get(MessageContent.AUDIO), Audio.class);
             } else if (element.has(MessageContent.NOTIFICATION)) {
