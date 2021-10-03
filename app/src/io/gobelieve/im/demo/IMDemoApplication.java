@@ -59,7 +59,7 @@ public class IMDemoApplication extends Application {
         IMService mIMService = IMService.getInstance();
         //app可以单独部署服务器，给予第三方应用更多的灵活性
         mIMService.setHost("imnode2.gobelieve.io");
-        IMHttpAPI.setAPIURL("https://api.gobelieve.io");
+        IMHttpAPI.setAPIURL("https://api.gobelieve.io/v2");
 
         String androidID = Settings.Secure.getString(this.getContentResolver(),
                 Settings.Secure.ANDROID_ID);
@@ -95,46 +95,10 @@ public class IMDemoApplication extends Application {
         mIMService.setGroupMessageHandler(GroupMessageHandler.getInstance());
         mIMService.setCustomerMessageHandler(CustomerMessageHandler.getInstance());
 
-
-        //预先做dns查询
-        refreshHost();
-
         //表情资源初始化
         EmoticonManager.getInstance().init(this);
     }
 
-    private void refreshHost() {
-        new AsyncTask<Void, Integer, Integer>() {
-            @Override
-            protected Integer doInBackground(Void... urls) {
-                for (int i = 0; i < 10; i++) {
-                    String imHost = lookupHost("imnode2.gobelieve.io");
-                    String apiHost = lookupHost("api.gobelieve.io");
-                    if (TextUtils.isEmpty(imHost) || TextUtils.isEmpty(apiHost)) {
-                        try {
-                            Thread.sleep(1000 * 1);
-                        } catch (InterruptedException e) {
-                        }
-                        continue;
-                    } else {
-                        break;
-                    }
-                }
-                return 0;
-            }
-
-            private String lookupHost(String host) {
-                try {
-                    InetAddress inetAddress = InetAddress.getByName(host);
-                    Log.i("beetle", "host name:" + inetAddress.getHostName() + " " + inetAddress.getHostAddress());
-                    return inetAddress.getHostAddress();
-                } catch (UnknownHostException exception) {
-                    exception.printStackTrace();
-                    return "";
-                }
-            }
-        }.execute();
-    }
     public static Application getApplication() {
         return sApplication;
     }
