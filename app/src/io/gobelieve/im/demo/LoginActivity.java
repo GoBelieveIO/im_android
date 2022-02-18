@@ -61,9 +61,9 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener 
 
     private static final long APP_ID = 7;
 
-    private static final boolean TEST_PEER = false;
+    private static final boolean TEST_PEER = true;
     private static final boolean TEST_GROUP = false;
-    private static final boolean TEST_CUSTOMER = true;
+    private static final boolean TEST_CUSTOMER = false;
 
     private EditText mEtAccount;
     private EditText mEtTargetAccount;
