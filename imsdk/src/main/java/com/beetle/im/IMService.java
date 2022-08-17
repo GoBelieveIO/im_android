@@ -338,7 +338,7 @@ public class IMService {
     }
 
     public void enterBackground() {
-        runOnThread(looper, new Runnable() {
+        runOnWorkerThread(new Runnable() {
             @Override
             public void run() {
                 IMService.this._enterBackground();
@@ -360,7 +360,7 @@ public class IMService {
     }
 
     public void enterForeground() {
-        runOnThread(looper, new Runnable() {
+        runOnWorkerThread(new Runnable() {
             @Override
             public void run() {
                 IMService.this._enterForeground();
@@ -547,7 +547,7 @@ public class IMService {
     }
 
     public void start() {
-        runOnThread(looper, new Runnable() {
+        runOnWorkerThread(new Runnable() {
             @Override
             public void run() {
                 IMService.this._start();
@@ -579,7 +579,7 @@ public class IMService {
     }
 
     public void stop() {
-        runOnThread(looper, new Runnable() {
+        runOnWorkerThread(new Runnable() {
             @Override
             public void run() {
                 IMService.this._stop();
@@ -799,7 +799,7 @@ public class IMService {
             return;
         }
 
-        runOnThread(looper, new Runnable() {
+        runOnWorkerThread(new Runnable() {
             @Override
             public void run() {
                 IMService.this.roomID = roomID;
@@ -812,7 +812,7 @@ public class IMService {
         if (roomID == 0) {
             return;
         }
-        runOnThread(looper, new Runnable() {
+        runOnWorkerThread(new Runnable() {
             @Override
             public void run() {
                 if (IMService.this.roomID != roomID) {
@@ -880,7 +880,6 @@ public class IMService {
         }
 
         messages = resendMessages;
-
 
         if (this.tcp != null) {
             Log.i(TAG, "close tcp");
@@ -1879,14 +1878,18 @@ public class IMService {
     }
 
     private void runOnMainThread(Runnable r) {
-        runOnThread(Looper.getMainLooper(), r);
+        runOnThread(Looper.getMainLooper(), mainThreadHandler, r);
     }
 
-    private void runOnThread(Looper looper, Runnable r) {
+    private void runOnWorkerThread(Runnable r) {
+        runOnThread(looper, handler, r);
+    }
+
+    private void runOnThread(Looper looper, Handler handler, Runnable r) {
         if (Looper.myLooper() == looper) {
             r.run();
         } else {
-            mainThreadHandler.post(r);
+            handler.post(r);
         }
     }
 
