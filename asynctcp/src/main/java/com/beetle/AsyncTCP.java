@@ -15,6 +15,7 @@ import java.lang.ref.WeakReference;
 public class AsyncTCP implements AsyncTCPInterface {
     private int sock;
     private int events;
+    private boolean closed;
 
     private byte[] data;
     private boolean connecting;
@@ -32,6 +33,7 @@ public class AsyncTCP implements AsyncTCPInterface {
     }
     public native boolean connect(String host, int port);
     public native void close();
+    public native void release();
 
     public native void writeData(byte[] bytes);
     

@@ -4,10 +4,15 @@ public interface AsyncTCPInterface {
 
     public void setConnectCallback(TCPConnectCallback cb);
     public void setReadCallback(TCPReadCallback cb);
-    public  boolean connect(String host, int port);
-    public  void close();
+    public boolean connect(String host, int port);
 
-    public  void writeData(byte[] bytes);
+    // close async tcp only stop read&write.
+    public void close();
 
-    public  void startRead();
+    // release the underline resource, like socket fd, java object weak reference.
+    public void release();
+
+    public void writeData(byte[] bytes);
+
+    public void startRead();
 }

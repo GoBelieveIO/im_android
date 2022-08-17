@@ -884,7 +884,14 @@ public class IMService {
         if (this.tcp != null) {
             Log.i(TAG, "close tcp");
             this.tcp.close();
+            final AsyncTCPInterface local_tcp = this.tcp;
             this.tcp = null;
+            this.handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    local_tcp.release();
+                }
+            });
         }
     }
 

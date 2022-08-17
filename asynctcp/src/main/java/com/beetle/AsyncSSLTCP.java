@@ -3,6 +3,7 @@ package com.beetle;
 public class AsyncSSLTCP implements AsyncTCPInterface {
     private int sock;
     private int events;
+    private boolean closed;
     private int state;
     private long ssl;
     private long sslCTX;
@@ -22,6 +23,7 @@ public class AsyncSSLTCP implements AsyncTCPInterface {
     }
     public native boolean connect(String host, int port);
     public native void close();
+    public native void release();
 
     public native void writeData(byte[] bytes);
     
